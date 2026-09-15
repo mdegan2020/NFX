@@ -91,6 +91,10 @@ classdef HeaderTest < NfxTest
             t.verifyTrue(segment.validate().valid);
             t.verifyEqual(segment.header.abpp, 16);
         end
+        function oversizedRawExtensionIsRejected(t)
+            [~, segment] = fixtureFile();
+            t.verifyError(@() segment.header.bytes(zeros(1,99986,'uint8')), 'nfx:TREOverflow');
+        end
         function representationsAndCategories(t)
             [~, segment] = fixtureFile();
             segment.header.irep = 'RGB';
