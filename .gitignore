@@ -20,6 +20,7 @@ IMPLEMENTATION_PLAN.md
 /artifacts/
 *.[Nn][Tt][Ff]
 *.[Nn][Ii][Tt][Ff]
+*.nfx-part
 
 # MATLAB generated files and local editor state
 /build/

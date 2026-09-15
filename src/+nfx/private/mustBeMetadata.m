@@ -1,0 +1,9 @@
+function mustBeMetadata(value, lower, upper, integral) %#codegen
+    %mustBeMetadata - Validate a double scalar while allowing an unset NaN
+    if ~isa(value, 'double') || ~isscalar(value) || ~isreal(value) || ...
+            issparse(value) || isinf(value) || value < lower || ...
+            value > upper || (integral && ~isnan(value) && fix(value) ~= value)
+        error('nfx:Metadata', ...
+            'Expected a real double scalar in [%g, %g], or NaN when unset.', lower, upper);
+    end
+end
