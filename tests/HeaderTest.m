@@ -49,7 +49,7 @@ classdef HeaderTest < NfxTest
             t.verifyFalse(report.valid);
             t.verifyTrue(any(strcmp({report.issues.field}, 'header.ostaid')));
             t.verifyTrue(any(strcmp({report.issues.field}, 'header.fsclas')));
-            t.verifyTrue(any(strcmp({report.issues.id}, 'ImageCount')));
+            t.verifyTrue(any(strcmp({report.issues.id}, 'SegmentCount')));
             t.verifyError(@() file.header.bytes(), 'nfx:Invalid');
         end
         function copyTracking(t)
@@ -63,7 +63,7 @@ classdef HeaderTest < NfxTest
         function derivedDimensionsAndReplacement(t)
             segment = nfx.ImageSegment(zeros(1025, 1027, 2, 'uint16'));
             t.verifyEqual([segment.header.nrows segment.header.ncols], [1025 1027]);
-            t.verifyEqual([segment.header.nbands segment.header.nbpp segment.header.abpp], [2 16 16]);
+            t.verifyEqual([segment.header.nbands segment.header.nbpp segment.header.abpp], [2 16 1]);
             t.verifyEqual([segment.header.nbpr segment.header.nbpc], [2 2]);
             segment.header.nppbh = 500;
             segment.header.nppbv = 400;
@@ -72,7 +72,7 @@ classdef HeaderTest < NfxTest
             t.verifyEqual([segment.header.nrows segment.header.ncols segment.header.nbpp], [4 7 8]);
             t.verifyEqual(segment.header.nbands, 0);
             t.verifyEqual(segment.header.xbands, 12);
-            t.verifyEqual(segment.header.abpp, 8);
+            t.verifyEqual(segment.header.abpp, 1);
         end
         function replacingHeaderCannotLeaveStaleShape(t)
             segment = nfx.ImageSegment(zeros(2, 3, 'uint8'));

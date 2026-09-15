@@ -30,15 +30,15 @@ classdef ImageSegment
     properties (Dependent, SetAccess = private)
         tre_ids % Ordered private-collection identities, exposed for removal
         tre_tags % Ordered tags, one row per attachment
+        tre_records % Physical record snapshots, including logical attachment IDs
         lish % Serialized image header length
         li % Serialized padded pixel length
     end
     properties (Access = private)
         pixels = zeros(0, 0, 'uint8')
         headerValue
-        records = repmat(struct('tag', '      ', ...
-            'payload', zeros(1, 0, 'uint8'), 'id', 0), 1, 0)
-        nextId = 1
+        store = nfx.internal.TREStore()
+        stats = struct('bits', 1, 'trailing', 8)
     end
     methods
         function obj = ImageSegment(data, options) %#codegen
@@ -48,6 +48,7 @@ classdef ImageSegment
                 options.header (1,1) nfx.ImageHeader = nfx.ImageHeader()
             end
             obj.pixels = data;
+            obj.stats = pixelStatistics(data);
             obj.headerValue = options.header;
         end
         function value = get.data(obj) %#codegen
@@ -58,10 +59,11 @@ classdef ImageSegment
             %set.data - Replace pixels without an implicit type conversion
             mustBePixels(value);
             obj.pixels = value;
+            obj.stats = pixelStatistics(value);
         end
         function value = get.header(obj) %#codegen
             %get.header - Derive structural fields on access
-            value = derive(obj.headerValue, obj.pixels);
+            value = derive(obj.headerValue, obj.pixels, obj.stats);
         end
         function obj = set.header(obj, value) %#codegen
             %set.header - Replace editable image metadata
@@ -73,24 +75,24 @@ classdef ImageSegment
         end
         function value = get.tre_ids(obj) %#codegen
             %get.tre_ids - Return attachment identifiers in insertion order
-            value = zeros(1, numel(obj.records));
-            for k = 1:numel(value), value(k) = obj.records(k).id; end
+            value = obj.store.ids;
         end
         function value = get.tre_tags(obj) %#codegen
             %get.tre_tags - Return attachment tags in insertion order
-            value = repmat(' ', numel(obj.records), 6);
-            for k = 1:numel(obj.records), value(k,:) = obj.records(k).tag; end
+            value = obj.store.tags;
+        end
+        function value = get.tre_records(obj) %#codegen
+            %get.tre_records - Return physical snapshots for inspection
+            value = obj.store.records;
         end
         function value = get.lish(obj) %#codegen
-            %get.lish - Derive header length without serializing pixels
+            %get.lish - Derive the subheader length with whole-record overflow
+            [inline, overflow] = obj.store.areas(99985);
+            h = obj.header;
             bands = size(obj.pixels, 3);
-            value = 426 + 13*bands + 5*(bands > 9);
-            if ~isempty(obj.records)
-                value = value + 3;
-                for k = 1:numel(obj.records)
-                    value = value + 11 + numel(obj.records(k).payload);
-                end
-            end
+            value = 426 + 13*bands + 5*(bands > 9) + ...
+                60*~strcmp(h.icords, ' ') + 80*h.nicom + numel(inline) + ...
+                3*(~isempty(inline) || ~isempty(overflow));
         end
         function value = get.li(obj) %#codegen
             %get.li - Derive padded image byte length
@@ -102,21 +104,12 @@ classdef ImageSegment
             %PLUS - Append a serialized TRE snapshot
             %   OBJ = OBJ + TRE validates TRE and appends its current state.
             %   Later edits to TRE leave OBJ unchanged. Use TRE_IDS to select
-            %   an attachment for removal. This candidate accepts RPC00B.
+            %   an attachment for removal. Placement is checked on attachment.
             arguments
                 obj (1,1) nfx.ImageSegment
                 tre (1,1) nfx.TRE
             end
-            if ~isa(tre, 'nfx.RPC00B')
-                error('nfx:UnsupportedTRE', 'Only the built-in RPC00B TRE is supported.');
-            end
-            encoded = payload(tre);
-            if obj.nextId >= flintmax
-                error('nfx:AttachmentId', 'Attachment identity space is exhausted.');
-            end
-            obj.records(end + 1) = struct('tag', tre.cetag, ...
-                'payload', encoded, 'id', obj.nextId);
-            obj.nextId = obj.nextId + 1;
+            obj.store = obj.store.attach(tre, 'image');
         end
         function obj = removeTRE(obj, id) %#codegen
             %removeTRE - Remove one attachment without reordering others
@@ -126,11 +119,7 @@ classdef ImageSegment
                 obj (1,1) nfx.ImageSegment
                 id {mustBeMetadata(id, 1, 9007199254740991, 1), mustBeFinite}
             end
-            index = find(obj.tre_ids == id, 1);
-            if isempty(index)
-                error('nfx:UnknownAttachment', 'No TRE attachment has ID %g.', id);
-            end
-            obj.records(index) = [];
+            obj.store = obj.store.remove(id);
         end
         function report = validate(obj) %#codegen
             %VALIDATE - Check the supported image and attached metadata
@@ -145,35 +134,28 @@ classdef ImageSegment
             reference = 'JBP 2025.1, 5.9 and 5.13; STDI-0002-1 App E, E.3.12';
             report = addIssue(report, isempty(obj.pixels), 'PixelsRequired', ...
                 'data', 'Attach a nonempty pixel array.', reference);
-            report = addIssue(report, numel(obj.records) > 1, 'DuplicateRPC', ...
-                'tre_ids', 'Remove duplicate RPC00B attachments before writing.', reference);
-            extensionLength = 0;
-            for k = 1:numel(obj.records)
-                extensionLength = extensionLength + 11 + numel(obj.records(k).payload);
-            end
-            report = addIssue(report, extensionLength > 99985, 'TREOverflow', ...
-                'tre_ids', 'Inline TRE area exceeds 99985 bytes; overflow is not supported.', reference);
+            report = addIssue(report, sum(strcmp({obj.store.records.tag}, 'RPC00B')) > 1, ...
+                'DuplicateRPC', 'tre_ids', 'Remove duplicate RPC00B attachments before writing.', reference);
             report = addIssue(report, obj.li > 9999999998 || obj.lish > 999998, ...
                 'Length', 'li/lish', 'Image data or subheader exceeds its NITF length field.', reference);
         end
     end
     methods (Access = ?nfx.File)
-        function value = subheader(obj) %#codegen
-            %SUBHEADER - Serialize the attached snapshots into the header
-            count = 0;
-            for k = 1:numel(obj.records)
-                count = count + 11 + numel(obj.records(k).payload);
-            end
-            extensions = zeros(1, count, 'uint8');
-            offset = 0;
-            for k = 1:numel(obj.records)
-                record = obj.records(k);
-                count = 11 + numel(record.payload);
-                extensions(offset+1:offset+count) = [uint8(record.tag) ...
-                    decimalField(numel(record.payload), 5, 0, false) record.payload];
-                offset = offset + count;
-            end
-            value = bytes(obj.header, extensions);
+        function value = subheader(obj, inline, overflow) %#codegen
+            %SUBHEADER - Serialize the preflight-selected extended area
+            value = bytes(obj.header, inline, overflow);
+        end
+        function [inline, overflow] = areas(obj) %#codegen
+            %AREAS - Partition whole records for the owning file
+            [inline, overflow] = obj.store.areas(99985);
+        end
+        function value = explicitLevel(obj) %#codegen
+            %explicitLevel - Return the caller's level or an automatic marker
+            value = explicitLevel(obj.headerValue);
+        end
+        function obj = resolveLevel(obj, value) %#codegen
+            %resolveLevel - Refresh the containing file's display default
+            obj.headerValue = resolveLevel(obj.headerValue, value);
         end
         function count = writePixels(obj, fid) %#codegen
             %writePixels - Stream band-interleaved blocks in big-endian order

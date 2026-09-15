@@ -12,7 +12,7 @@ function results = runTests(options)
     end
     root = fileparts(mfilename('fullpath'));
     runner = matlab.unittest.TestRunner.withTextOutput;
-    suite = matlab.unittest.TestSuite.fromFolder(fullfile(root,'tests'));
+    suite = matlab.unittest.TestSuite.fromFolder(fullfile(root,'tests'),InvalidFileFoundAction='error');
     if options.Coverage
         output = fullfile(root,'coverage');
         if ~isfolder(output), mkdir(output); end

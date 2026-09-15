@@ -19,6 +19,8 @@ classdef FileHeader
     %       fhdr, fver, stype   - Fixed NITF version identifiers
     %       clevel, fl, hl     - Derived complexity and byte lengths
     %       numi, lish, li     - Derived image count and length vectors
+    %       numt, ltsh, lt     - Derived text count and length vectors
+    %       numdes, ldsh, ld   - Derived DES count and length vectors
     %
     %   See also File, ImageHeader
 
@@ -45,6 +47,16 @@ classdef FileHeader
         numi = 0 % Derived image segment count
         lish = zeros(1, 0) % Derived image subheader lengths
         li = zeros(1, 0) % Derived image data lengths
+        numt = 0 % Derived text count
+        ltsh = zeros(1, 0) % Derived text subheader lengths
+        lt = zeros(1, 0) % Derived text data lengths
+        numdes = 0 % Derived DES count, including automatic overflow
+        ldsh = zeros(1, 0) % Derived DES subheader lengths
+        ld = zeros(1, 0) % Derived DES data lengths
+    end
+    properties (Access = ?nfx.File)
+        xhd = zeros(1, 0, 'uint8')
+        xhdlofl = 0
     end
     methods
         function obj = FileHeader(options) %#codegen
@@ -79,8 +91,12 @@ classdef FileHeader
             report = addIssue(report, obj.fscpys > 0 && obj.fscop > obj.fscpys, ...
                 'Copies', 'fscop', 'Copy number exceeds the tracked number of copies.', reference);
             report = addIssue(report, obj.fl > 999999999998 || obj.hl > 999999 || ...
-                any(obj.lish > 999998) || any(obj.li > 9999999998), 'Length', ...
-                'fl/hl/lish/li', 'Content exceeds a NITF length field.', reference);
+                any(obj.lish > 999998) || any(obj.li > 9999999998) || ...
+                any(obj.ltsh > 9998) || any(obj.lt > 99998) || ...
+                any(obj.ldsh > 9998) || any(obj.ld > 999999998), 'Length', ...
+                'fl/hl/segment lengths', 'Content exceeds a NITF length field.', reference);
+            report = addIssue(report, obj.numi > 999 || obj.numt > 999 || obj.numdes > 999, ...
+                'SegmentCount', 'numi/numt/numdes', 'Each segment type permits at most 999 entries.', reference);
         end
         function value = bytes(obj) %#codegen
             %BYTES - Serialize a validated file header
@@ -103,8 +119,19 @@ classdef FileHeader
                 imageTable(16*k-15:16*k) = [decimalField(obj.lish(k), 6, 0, false) ...
                     decimalField(obj.li(k), 10, 0, false)];
             end
-            % NUMS, NUMX, NUMT, NUMDES, NUMRES, UDHDL, XHDL.
-            value = [value imageTable uint8('0000000000000000000000000')];
+            textTable = zeros(1, 9*obj.numt, 'uint8');
+            for k = 1:obj.numt
+                textTable(9*k-8:9*k) = [decimalField(obj.ltsh(k), 4, 0, false) ...
+                    decimalField(obj.lt(k), 5, 0, false)];
+            end
+            desTable = zeros(1, 13*obj.numdes, 'uint8');
+            for k = 1:obj.numdes
+                desTable(13*k-12:13*k) = [decimalField(obj.ldsh(k), 4, 0, false) ...
+                    decimalField(obj.ld(k), 9, 0, false)];
+            end
+            value = [value imageTable uint8('000000') decimalField(obj.numt, 3, 0, false) ...
+                textTable decimalField(obj.numdes, 3, 0, false) desTable uint8('00000000') ...
+                extensionBytes(obj.xhd, obj.xhdlofl, 99985)];
         end
     end
 end

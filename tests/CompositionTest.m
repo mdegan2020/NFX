@@ -58,14 +58,14 @@ classdef CompositionTest < NfxTest
             t.verifyError(@() plus(image,nfx.RPC00B()), 'nfx:Invalid');
             t.verifyEmpty(image.tre_ids);
         end
-        function multipleImagesFailHonestly(t)
+        function multipleImagesHaveIndependentDisplayLevels(t)
             [file, image] = fixtureFile();
             file = file + image;
             report = file.validate();
-            t.verifyFalse(report.valid);
+            t.verifyTrue(report.valid);
             t.verifyEqual(file.header.numi, 2);
             t.verifyEqual(file.header.hl, 420);
-            t.verifyTrue(any(strcmp({report.issues.id}, 'ImageCount')));
+            t.verifyEqual([file.images(1).header.idlvl file.images(2).header.idlvl], [1 2]);
         end
         function emptyPixelsCannotWrite(t)
             [file, image] = fixtureFile();

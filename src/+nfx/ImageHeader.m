@@ -4,8 +4,8 @@ classdef ImageHeader
     %   blocks. Set IID1, IDATIM, ISCLAS, IREP, and ICAT before writing.
     %
     %   OBJ = ImageHeader(Name=VALUE) sets editable metadata. This candidate
-    %   supports unclassified MONO, RGB, and MULTI images with full-width
-    %   unsigned samples. Geographic corners, comments, and LUTs are absent.
+    %   supports unclassified MONO, RGB, and MULTI images with unsigned
+    %   samples, supplied geographic corners, and image comments.
     %
     %   ImageHeader functions:
     %       validate - Check metadata and derived layout
@@ -21,7 +21,8 @@ classdef ImageHeader
     %       nbands, xbands            - Derived band-count fields
     %       nbpr, nbpc                - Derived block counts
     %       im, pvtype, ic, imode     - Fixed encoding fields
-    %       idlvl, ialvl, iloc, imag  - Single-image display placement
+    %       idlvl, ialvl, iloc, imag  - Composite display placement
+    %       icords, igeolo, icom     - Supplied corners and image comments
     %
     %   See also ImageSegment, FileHeader
 
@@ -36,9 +37,15 @@ classdef ImageHeader
         pjust {mustBeAscii(pjust, 1)} = 'R' % Sample justification
         nppbh {mustBeMetadata(nppbh, 1, 8192, 1), mustBeFinite} = 1024 % Block width
         nppbv {mustBeMetadata(nppbv, 1, 8192, 1), mustBeFinite} = 1024 % Block height
+        ialvl {mustBeMetadata(ialvl, 0, 998, 1), mustBeFinite} = 0 % Parent display level
+        iloc {mustBeLocation} = [0 0] % Row and column offset from parent
+        icords {mustBeAscii(icords, 1)} = ' ' % Blank, D decimal degrees, or G DMS
+        igeolo {mustBeAscii(igeolo, 60)} = '' % Four supplied corner coordinates
     end
     properties (Dependent)
-        abpp % Significant bits; defaults to derived NBPP
+        abpp % Automatic significant bits, or an explicit acquisition precision
+        idlvl % Explicit display level, or a file-assigned default
+        icom % Up to nine image comments, one padded row per comment
     end
     properties (SetAccess = private)
         nrows = 0 % Significant rows derived from pixels
@@ -50,20 +57,22 @@ classdef ImageHeader
         xbands % Band count above nine; empty when omitted
         nbpr % Blocks per row
         nbpc % Blocks per column
+        nicom % Number of image comments
     end
     properties (Constant)
         im = 'IM' % Image subheader marker
         pvtype = 'INT' % Unsigned integer pixels
         ic = 'NC' % Uncompressed, unmasked imagery
         imode = 'B' % Band interleaved by block
-        idlvl = 1 % Display level of the sole image
-        ialvl = 0 % Unattached image
-        iloc = [0 0] % Display row and column offset
         imag = '1.0' % No display magnification
     end
     properties (Access = private)
         bandCount = 0
         significantBits = NaN
+        stats = struct('bits', 1, 'trailing', 8)
+        displayLevel = NaN
+        defaultDisplayLevel = 1
+        comments = repmat(' ', 0, 80)
     end
     methods
         function obj = ImageHeader(options) %#codegen
@@ -82,16 +91,47 @@ classdef ImageHeader
             if isfield(options, 'nppbh'), obj.nppbh = options.nppbh; end
             if isfield(options, 'nppbv'), obj.nppbv = options.nppbv; end
             if isfield(options, 'abpp'), obj.abpp = options.abpp; end
+            if isfield(options, 'idlvl'), obj.idlvl = options.idlvl; end
+            if isfield(options, 'ialvl'), obj.ialvl = options.ialvl; end
+            if isfield(options, 'iloc'), obj.iloc = options.iloc; end
+            if isfield(options, 'icords'), obj.icords = options.icords; end
+            if isfield(options, 'igeolo'), obj.igeolo = options.igeolo; end
+            if isfield(options, 'icom'), obj.icom = options.icom; end
         end
         function value = get.abpp(obj) %#codegen
             %get.abpp - Resolve default significant-bit count
             value = obj.significantBits;
-            if isnan(value), value = obj.nbpp; end
+            if isnan(value)
+                value = obj.stats.bits;
+                if strcmp(obj.pjust, 'L'), value = obj.nbpp; end
+            end
         end
         function obj = set.abpp(obj, value) %#codegen
             %set.abpp - Record an explicit significant-bit count
             mustBeMetadata(value, 1, 64, true);
             obj.significantBits = value;
+        end
+        function value = get.idlvl(obj) %#codegen
+            %get.idlvl - Resolve an explicit or file-assigned display level
+            value = obj.displayLevel;
+            if isnan(value), value = obj.defaultDisplayLevel; end
+        end
+        function obj = set.idlvl(obj, value) %#codegen
+            %set.idlvl - Set a display level; NaN restores automatic assignment
+            mustBeMetadata(value, 1, 999, true);
+            obj.displayLevel = value;
+        end
+        function value = get.icom(obj) %#codegen
+            %get.icom - Return padded image comment rows
+            value = obj.comments;
+        end
+        function obj = set.icom(obj, value) %#codegen
+            %set.icom - Normalize supplied comment rows
+            obj.comments = commentRows(value);
+        end
+        function value = get.nicom(obj) %#codegen
+            %get.nicom - Derive the number of comments
+            value = size(obj.comments, 1);
         end
         function value = get.nbands(obj) %#codegen
             %get.nbands - Resolve the short band-count field
@@ -123,8 +163,8 @@ classdef ImageHeader
             id = char(obj.iid1);
             report = addIssue(report, isempty(strtrim(id)) || ...
                 any(~((id >= 'A' & id <= 'Z') | (id >= 'a' & id <= 'z') | ...
-                (id >= '0' & id <= '9') | id == ' ')), 'Identifier', 'iid1', ...
-                'Supply an alphanumeric image identifier.', reference);
+                (id >= '0' & id <= '9') | id == ' ' | id == '_')), 'Identifier', 'iid1', ...
+                'Supply an image identifier containing letters, digits, spaces or underscores.', reference);
             report = addIssue(report, ~validDate(obj.idatim), 'Date', 'idatim', ...
                 'Supply CCYYMMDDhhmmss UTC; unknown two-digit parts use --.', reference);
             report = addIssue(report, ~strcmp(obj.isclas, 'U'), 'UnsupportedClassification', ...
@@ -137,10 +177,18 @@ classdef ImageHeader
                 'Bands', 'nbands', 'Attach pixels with 1 to 99999 bands.', reference);
             report = addIssue(report, obj.nbpr > 9999 || obj.nbpc > 9999, ...
                 'Blocks', 'nbpr/nbpc', 'Use block dimensions that require at most 9999 blocks per axis.', reference);
-            report = addIssue(report, obj.abpp ~= obj.nbpp || obj.nbpp == 0, ...
-                'UnsupportedBits', 'abpp', 'Only full-width uint8 and uint16 samples are supported.', reference);
+            report = addIssue(report, obj.abpp > obj.nbpp || obj.nbpp == 0, ...
+                'UnsupportedBits', 'abpp', 'ABPP must not exceed the native storage width.', reference);
+            report = addIssue(report, strcmp(obj.pjust, 'R') && obj.abpp < obj.stats.bits, ...
+                'PixelPrecision', 'abpp', 'ABPP cannot represent the largest right-justified sample.', reference);
+            report = addIssue(report, strcmp(obj.pjust, 'L') && obj.nbpp-obj.abpp > obj.stats.trailing, ...
+                'PixelPadding', 'abpp', 'Left-justified samples require zero low-order padding bits.', reference);
             report = addIssue(report, ~(strcmp(obj.pjust, 'R') || strcmp(obj.pjust, 'L')), ...
                 'Justification', 'pjust', 'Use R or L justification.', reference);
+            report = addIssue(report, obj.ialvl >= obj.idlvl, 'DisplayAttachment', ...
+                'ialvl', 'An overlay display level must exceed its attachment level.', reference);
+            report = addIssue(report, ~validCorners(obj.icords, obj.igeolo), 'Corners', ...
+                'icords/igeolo', 'Supply valid D or G corner text, or omit both coordinate fields.', reference);
             mono = strcmp(obj.irep, 'MONO');
             rgb = strcmp(obj.irep, 'RGB');
             multi = strcmp(obj.irep, 'MULTI');
@@ -160,7 +208,7 @@ classdef ImageHeader
             report = addIssue(report, ~categoryValid, 'Category', 'icat', ...
                 'Select an image category allowed for IREP by JBP Table 5.13-3.', reference);
         end
-        function value = bytes(obj, extensions) %#codegen
+        function value = bytes(obj, extensions, overflow) %#codegen
             %BYTES - Serialize the image subheader
             %   VALUE = BYTES(OBJ) returns a validated uint8 subheader.
             %
@@ -169,18 +217,19 @@ classdef ImageHeader
             arguments
                 obj (1,1) nfx.ImageHeader
                 extensions (1,:) uint8 = zeros(1, 0, 'uint8')
+                overflow {mustBeMetadata(overflow, 0, 999, 1), mustBeFinite} = 0
             end
             requireValid(validate(obj));
-            if numel(extensions) > 99985
-                error('nfx:TREOverflow', 'Inline TRE area exceeds 99985 bytes; overflow is not supported.');
-            end
+            area = extensionBytes(extensions, overflow, 99985);
             value = [uint8(obj.im) textField(obj.iid1, 10) ...
                 textField(obj.idatim, 14) textField('', 17) textField(obj.iid2, 80) ...
                 uint8('U') textField('', 166) uint8('0') textField(obj.isorce, 42) ...
                 decimalField(obj.nrows, 8, 0, false) decimalField(obj.ncols, 8, 0, false) ...
                 uint8(obj.pvtype) textField(obj.irep, 8) textField(obj.icat, 8) ...
-                decimalField(obj.abpp, 2, 0, false) uint8(obj.pjust) uint8(' 0NC') ...
-                decimalField(obj.nbands, 1, 0, false)];
+                decimalField(obj.abpp, 2, 0, false) uint8(obj.pjust) uint8(obj.icords)];
+            if ~strcmp(obj.icords, ' '), value = [value uint8(obj.igeolo)]; end
+            value = [value decimalField(obj.nicom, 1, 0, false) ...
+                reshape(uint8(obj.comments).', 1, []) uint8('NC') decimalField(obj.nbands, 1, 0, false)];
             if obj.bandCount > 9
                 value = [value decimalField(obj.bandCount, 5, 0, false)];
             end
@@ -197,24 +246,30 @@ classdef ImageHeader
             value = [value bandBytes uint8('0B') ...
                 decimalField(obj.nbpr, 4, 0, false) decimalField(obj.nbpc, 4, 0, false) ...
                 decimalField(obj.nppbh, 4, 0, false) decimalField(obj.nppbv, 4, 0, false) ...
-                decimalField(obj.nbpp, 2, 0, false) uint8('001000') ...
-                uint8('0000000000') uint8('1.0 ') uint8('00000')];
-            if isempty(extensions)
-                value = [value uint8('00000')];
-            else
-                value = [value decimalField(numel(extensions) + 3, 5, 0, false) ...
-                    uint8('000') extensions];
-            end
+                decimalField(obj.nbpp, 2, 0, false) decimalField(obj.idlvl, 3, 0, false) ...
+                decimalField(obj.ialvl, 3, 0, false) decimalField(obj.iloc(1), 5, 0, false) ...
+                decimalField(obj.iloc(2), 5, 0, false) uint8('1.0 ') uint8('00000') area];
         end
     end
     methods (Access = ?nfx.ImageSegment)
-        function obj = derive(obj, data) %#codegen
+        function obj = derive(obj, data, stats) %#codegen
             %DERIVE - Refresh all pixel-owned structural fields
             obj.nrows = size(data, 1);
             obj.ncols = size(data, 2);
             obj.bandCount = size(data, 3);
             obj.nbpp = 8;
             if isa(data, 'uint16'), obj.nbpp = 16; end
+            obj.stats = stats;
+        end
+    end
+    methods (Access = {?nfx.File, ?nfx.ImageSegment})
+        function value = explicitLevel(obj) %#codegen
+            %explicitLevel - Return the caller's display-level choice
+            value = obj.displayLevel;
+        end
+        function obj = resolveLevel(obj, value) %#codegen
+            %resolveLevel - Supply the default chosen by the containing file
+            obj.defaultDisplayLevel = value;
         end
     end
 end

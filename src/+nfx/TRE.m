@@ -37,8 +37,8 @@ classdef (Abstract) TRE
                 obj (1,1) nfx.TRE
             end
             data = payload(obj);
-            if numel(data) > 99985
-                error('nfx:TRELength', 'TRE payload exceeds 99985 bytes.');
+            if isempty(data) || numel(data) > 99985
+                error('nfx:TRELength', 'TRE payload must contain 1 to 99985 bytes.');
             end
             value = [uint8(obj.cetag) decimalField(numel(data), 5, 0, false) data];
         end

@@ -1,6 +1,6 @@
 # NFX test and compatibility notes
 
-From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLAB. The runner errors on failed or incomplete tests. Base MATLAB supplies `matlab.unittest` and statement coverage; Image Processing Toolbox supplies `nitfread`, `nitfinfo`, and `isnitf`. Tests require no local reference library, design documents, GDAL, or NITRO.
+From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLAB. The runner errors on invalid test files, failed tests, or incomplete tests. Base MATLAB supplies `matlab.unittest` and statement coverage; Image Processing Toolbox supplies `nitfread`, `nitfinfo`, and `isnitf`. Tests require no local reference library, design documents, GDAL, or NITRO.
 
 ## What the suite checks
 
@@ -12,8 +12,14 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `WriterTest` | Independent header/length/TRE/pixel parsing, literal byte expectations, reader round trips, big-endian uint16, edge padding, and determinism |
 | `LayoutTest` | Band and dimension boundaries, complexity levels, padded lengths, and limits checked without huge pixel allocations |
 | `FileSystemTest` | Overwrite opt-in, validation/SNIP failures, short writes, open/close/position/publication failures, read-only targets, cleanup, and destination rechecks |
+| `ABPPTest` | Every uint16 bit boundary, cached-statistics refresh, explicit precision, left justification, padding, and unchanged serialized samples |
+| `ContainerTest` | Mixed images/text/DESs, text-only files, exact ordering and bytes, display references, corners/comments, snapshots, and later-segment failures |
+| `OverflowTest` | Whole-record placement, all owner types, capacity boundaries, derived DES indices, order, determinism, and corrupted-reference detection |
+| `SegmentCountTest` | Image/text/DES count limits and complexity transitions, including derived overflow in the DES limit |
 
 `helpers/inspectNITF.m` independently parses fixed specification offsets and reconstructs pixels without calling NFX serialization or layout helpers. Fixture RPC values are synthetic; these tests establish encoding behavior, not camera-model accuracy or general NITF/SNIP conformance.
+
+`helpers/inspectContainer.m` walks segment tables and optional fields independently, checks byte lengths and ordering, follows overflow references, and verifies that every overflow DES has exactly one matching owner. Literal tests cover representative headers and both inline/overflow boundaries. Generic synthetic DES fixtures exercise container bytes without claiming a registered support-data model.
 
 ## Coverage review
 
@@ -21,7 +27,6 @@ Coverage reports include every implementation file under `src/`, including priva
 
 Known defensive paths that are not exercised by the normal public file workflow:
 
-- The image-header serializer's raw extension-size guard: the supported RPC has a fixed payload size, and segment validation rejects overflow before serialization.
 - Attachment-ID exhaustion at `flintmax`: exercising it would require approximately nine quadrillion attachments/removals. IDs are private and are not weakened for testing.
 - The private decimal formatter's width guard: public metadata validators constrain values to their encoded widths. It remains a last check against an internal regression.
 
@@ -42,7 +47,7 @@ This creates an 8192 × 8192 uint16 image (128 MiB), observes process memory bef
 
 The candidate was developed and tested with MATLAB R2026a Update 4 on Windows. R2023b is the target minimum but has not been executed. The test helper for open file handles uses `openedFiles` on R2024a+ and the earlier `fopen('all')` API on R2023b. No R2025a live-script format or newer argument syntax is required by implementation.
 
-Every implementation function/method carries generation intent; there are no implementation imports or extrinsic fallbacks. Class-valued properties are initialized in constructors. Native pixel types, homogeneous serialized TRE records, fixed coefficient vectors, explicit byte assembly, and ordinary validation structs avoid unnecessary dynamic dispatch or image conversion.
+Every implementation function/method carries generation intent; there are no implementation imports or extrinsic fallbacks. Native pixel types, homogeneous serialized TRE records, typed segment arrays, fixed coefficient vectors, explicit byte assembly, and ordinary validation structs avoid unnecessary image conversion. ABPP reductions use native blocks of at most 65,536 samples and cache their scalar statistics.
 
 Compilation and generated-byte parity remain unverified because MATLAB Coder is unavailable. Specific remaining work:
 

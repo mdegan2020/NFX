@@ -39,7 +39,7 @@ classdef WriterTest < NfxTest
             t.verifyEqual(h(298:300), uint8([1 128 255]));
             t.verifyEqual(char(h(343:379)), '0000000019940004040010014940000000096');
             t.verifyEqual(char(parsed.imageHeader(334:375)), ...
-                '0000000500000007INTMONO    VIS     16R 0NC');
+                '0000000500000007INTMONO    VIS     09R 0NC');
             t.verifyEqual(char(parsed.rpc(1:15)), '10000.000000.00');
             t.verifyEqual(numel(parsed.rpc), 1041);
         end
