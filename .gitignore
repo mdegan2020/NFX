@@ -1,0 +1,33 @@
+# Local reference library and design notes
+/docs/
+/design/
+/reference/
+DOCUMENTATION_REVIEW.md
+FIRST_CANDIDATE.md
+REQUIREMENTS.md
+IMPLEMENTATION_PLAN.md
+[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]
+.agents/
+.codex/
+
+# Generated test data and reports (keep test source tracked)
+/tests/data/
+/tests/output/
+/tests/artifacts/
+/test-results/
+/coverage/
+/coverage-report/
+/artifacts/
+*.[Nn][Tt][Ff]
+*.[Nn][Ii][Tt][Ff]
+
+# MATLAB generated files and local editor state
+/build/
+/codegen/
+slprj/
+*.mltbx
+*.mex*
+*.asv
+*.m~
+.DS_Store
+Thumbs.db
