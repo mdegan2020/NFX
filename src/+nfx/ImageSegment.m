@@ -136,6 +136,8 @@ classdef ImageSegment
                 'data', 'Attach a nonempty pixel array.', reference);
             report = addIssue(report, sum(strcmp({obj.store.records.tag}, 'RPC00B')) > 1, ...
                 'DuplicateRPC', 'tre_ids', 'Remove duplicate RPC00B attachments before writing.', reference);
+            report = mergeReport(report,rsmSetReport(obj.store.records,obj.header),'rsm.');
+            report = mergeReport(report,wrappedRSMReport(obj.store.records),'rsm.');
             report = addIssue(report, obj.li > 9999999998 || obj.lish > 999998, ...
                 'Length', 'li/lish', 'Image data or subheader exceeds its NITF length field.', reference);
         end

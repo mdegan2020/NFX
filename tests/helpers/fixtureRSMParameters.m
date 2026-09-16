@@ -1,0 +1,6 @@
+function value = fixtureRSMParameters()
+    %fixtureRSMParameters - Describe row and column translation parameters
+    value = nfx.RSMParameters(nsfx=1,nsfy=1,nsfz=1, ...
+        noffx=0,noffy=0,noffz=0,xpwrr=0,ypwrr=0,zpwrr=0, ...
+        xpwrc=0,ypwrc=0,zpwrc=0);
+end

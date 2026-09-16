@@ -143,6 +143,7 @@ classdef File
             [h, plan] = layout(obj);
             report = newReport('NITF 2.1');
             report = mergeReport(report, validate(h), 'header.');
+            report = mergeReport(report,wrappedRSMReport(obj.store.records),'rsm.');
             reference = 'JBP 2025.1, 5.11 and 5.14';
             report = addIssue(report, h.numi+h.numt+h.numdes == 0, 'SegmentCount', ...
                 'images/texts/des', 'Attach at least one data segment.', reference);
@@ -151,6 +152,7 @@ classdef File
                 levels(k) = plan.images(k).header.idlvl;
                 report = mergeReport(report, validate(plan.images(k)), sprintf('images(%d).', k));
             end
+            report = mergeReport(report,rsmFileReport(plan.images,plan.positions),'rsm.');
             report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
                 'images.header.idlvl', 'Display levels must be unique across all images.', reference);
             for k = 1:h.numi
