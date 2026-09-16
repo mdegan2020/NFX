@@ -2,7 +2,7 @@
 
 A MATLAB toolbox for constructing and writing NITF files through a compact object-oriented API in the `nfx` namespace.
 
-NFX writes NITF 2.1 files with multiple uncompressed blocked images, standard text segments, and data extension segments (DESs). Images support dense real `uint8` and `uint16` pixels, explicit unclassified metadata, and MONO, RGB, or MULTI representation. Blocks default to 1024 × 1024; partial edge blocks are zero padded. RPC00B and FREESA are supported TRE definitions; oversized metadata areas use derived `TRE_OVERFLOW` DESs.
+NFX writes NITF 2.1 files with multiple uncompressed blocked images, standard text segments, and data extension segments (DESs). Images support dense real `uint8` and `uint16` pixels, explicit unclassified metadata, and MONO, RGB, or MULTI representation. Blocks default to 1024 × 1024; partial edge blocks are zero padded. Concrete spectral, airborne, motion timing, and wrapper TREs complement RPC00B and FREESA. Oversized metadata areas use derived `TRE_OVERFLOW` DESs.
 
 Targets MATLAB R2023b and newer; tested locally on R2026a. Writing requires base MATLAB. Reader round-trip tests also require Image Processing Toolbox. No GDAL or NITRO dependency.
 
@@ -37,7 +37,7 @@ file.write('example.ntf');
 ## API behavior
 
 - Header and TRE metadata use specification mnemonics in lowercase. Numeric metadata requires `double`; pixels retain their native class. Required caller metadata starts unset. RPC coefficient groups contain exactly 20 doubles each, in specification order.
-- `RPC00B` is editable before attachment. `image + rpc` captures its validated bytes; later edits to `rpc` do not change the image. `file + image` also captures a value snapshot.
+- TREs are editable before attachment. `image + rpc` captures its validated bytes; later edits to `rpc` do not change the image. `file + image` also captures a value snapshot.
 - Remove an attachment with `image = image.removeTRE(image.tre_ids(1))`. Files and text segments provide the same TRE API. Remaining IDs and insertion order survive removal; removed IDs are not reused. `tre_records` exposes physical snapshots for inspection. Repeated RPC attachments can be edited, but must be reduced to at most one per image before writing. Attachment checks each concrete TRE's legal owner.
 - Set pixels through `image.data`, and block dimensions through `image.header.nppbh` / `nppbv`. Dimensions, bands, block counts, storage width, segment lengths, and file complexity update automatically.
 - Automatic `abpp` is the number of bits needed for the largest right-justified sample across all bands; all-zero data uses one bit. `nbpp` remains 8 or 16 according to native storage. Set `image.header.abpp` to declare a larger acquisition precision, or `NaN` to restore automatic behavior. A smaller precision must still fit every sample. With `pjust='L'`, automatic ABPP uses the full storage width; an explicit precision requires zero low-order padding bits. Samples are never shifted or converted. Statistics refresh on pixel replacement and indexed edits, using bounded temporary storage; header access does not rescan pixels.
@@ -59,6 +59,27 @@ file = file + text;
 `DESSegment(DATA,header=nfx.DESHeader(...))` accepts supplied `uint8` payload bytes, with `desid`, `desver`, `desclas`, and optional `desshf` header bytes. Generic validation checks the container and byte limits; it does not establish the semantic validity of an arbitrary registered DES payload.
 
 TRE attachment preserves complete records and order. NFX uses an inline capacity of 99,985 **framed bytes** for file and image extended areas, a conservative policy within the field limits. Text extended areas allow 9,713 framed bytes so the subheader fits its 9,998-byte limit. The remaining suffix moves intact into one overflow DES per owner. An individual TRE payload is limited to 99,985 bytes; its 11-byte envelope is additional. `file.des` includes supplied DESs followed by these derived overflow records. Callers cannot attach `TRE_OVERFLOW` directly.
+
+## Spectral and motion metadata
+
+| Records | Supplied metadata |
+| --- | --- |
+| `CSDIDA`, `ACFTB`, `AIMIDB` | Dataset, aircraft, and acquisition identifiers |
+| `BANDSB`, `ILLUMB` | Spectral characterization and illumination |
+| `HISTOA` with `HistoryEvent` | Chronological image processing history |
+| `CSCRNA`, `FCRNSA`, `ICHIPB`, `MATESA` | Corners, chip mapping, and related products |
+| `MIMCSA`, `CAMSDA`, `TMINTA`, `MTIMFA`, `MTIMSA` | Motion collection descriptions, camera sets, intervals, temporal blocks, and frame timing |
+| `FSYNWA`, `FASYWA`, `CONTXA` | Frame, asynchronous time, and collection-context metadata wrappers |
+
+These definitions encode caller-supplied metadata. They do not calculate radiometry, illumination, aircraft state, sensor identity, or processing history. The pinned definitions use the supplied STDI-0002 appendices through 2025. Additional registry values absent from those publications are not assumed valid.
+
+`BANDSB` takes a row of `nfx.SpectralBand` values. It derives counts and masks, requires matching optional groups across bands, and supports all defined binary and auxiliary fields. Cube and per-band numeric metadata remain double until field encoding. `ILLUMB` uses band-by-set matrices, other-source-by-band-by-set arrays, and explicit `P`/`M` methods. Supply its vertical reference when any target height is known; leave both vertical reference fields blank when all heights are unknown. Unknown, omitted, and partially known values follow each record's own field rules.
+
+`MTIMSA` keeps `dt` and `dt_multiplier` as native `uint64`, including values above `flintmax`. Its derived `dt_size` supports one through eight bytes; an explicit width must fit every delta. Timestamps preserve their supplied decimal text and permitted unknown digits.
+
+Wrappers support ordered `+` snapshots and `removeTRE`, like their file and image owners. NFX validates supported nesting, effective file/image context, and payload bounds. Collection index membership, cross-file relationships, frame packing, and complete SNIP/MIE profile enforcement belong to the subsequent collection and profile milestones.
+
+**Reference gap:** `MICIDA` and current MIIS identifier validation remain pending because MISB ST 1204.3 is not in the supplied library and its current normative text has not been retrieved. An available older ST 1204.1 edition is not treated as proof of current conformance. MIE collection/profile completion must account for this gap.
 
 ## Tests and limits
 

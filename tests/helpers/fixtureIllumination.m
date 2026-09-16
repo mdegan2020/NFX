@@ -1,0 +1,6 @@
+function value = fixtureIllumination()
+    %fixtureIllumination - Supply a synthetic one-band solar geometry set
+    value = nfx.ILLUMB(lbound=.4,ubound=.7,datetime='20190621194935', ...
+        target_lat=36.588,target_lon=-116.943,target_hgt=-57,sun_azimuth=180,sun_elev=76.8, ...
+        coordinate_precision=[3;3;6;6;6;6],vertical_datum_ref='Geodetic',vertical_ref_code='GEOD');
+end

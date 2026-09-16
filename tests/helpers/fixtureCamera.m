@@ -1,0 +1,6 @@
+function camera = fixtureCamera()
+    %fixtureCamera - Fixed synthetic identity and layout for metadata tests
+    camera = struct('camera_id','01234567-89ab-4def-8123-456789abcdef', ...
+        'camera_desc','Synthetic camera','layer_id','LAYER','idlvl',1,'ialvl',0, ...
+        'iloc',[0 0],'nrows',2,'ncols',3);
+end

@@ -16,10 +16,18 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `ContainerTest` | Mixed images/text/DESs, text-only files, exact ordering and bytes, display references, corners/comments, snapshots, and later-segment failures |
 | `OverflowTest` | Whole-record placement, all owner types, capacity boundaries, derived DES indices, order, determinism, and corrupted-reference detection |
 | `SegmentCountTest` | Image/text/DES count limits and complexity transitions, including derived overflow in the DES limit |
+| `SpectralTRETest`, `MATESATest` | Literal dataset/corner/chip bytes, relationship types, encodings, counts, identifiers, and placement |
+| `BandMetadataTest` | BANDSB masks, floating-decimal precision, big-endian binary32, every defined band group, auxiliary I/R/A data, and payload boundaries |
+| `HistoryTest`, `AirborneTRETest` | Processing-event conditions and chronology, aircraft/acquisition fields, registered codes, required comments, and fixed byte layouts |
+| `IlluminationTest` | Every ILLUMB mask group, band/set/other-source ordering, scientific values, unknowns, partial coordinates/times, datum codes, and length limits |
+| `MotionTRETest`, `FrameTimingTest` | Camera sets, intervals, mapping, native uint64 timing at all eight byte widths, temporal order, unavailable/unused blocks, and limits |
+| `WrapperTest` | Context grammar, nesting, effective owners, asynchronous/frame restrictions, child lengths, snapshot precedence, and removal |
 
 `helpers/inspectNITF.m` independently parses fixed specification offsets and reconstructs pixels without calling NFX serialization or layout helpers. Fixture RPC values are synthetic; these tests establish encoding behavior, not camera-model accuracy or general NITF/SNIP conformance.
 
 `helpers/inspectContainer.m` walks segment tables and optional fields independently, checks byte lengths and ordering, follows overflow references, and verifies that every overflow DES has exactly one matching owner. Literal tests cover representative headers and both inline/overflow boundaries. Generic synthetic DES fixtures exercise container bytes without claiming a registered support-data model.
+
+`helpers/inspectBANDSB.m` and `helpers/inspectILLUMB.m` independently walk all selected fields and require exact end-of-payload alignment. Other TRE suites compare literal field bytes, including mixed-record container output. Synthetic scientific fixtures establish encoding and validation behavior; they do not establish sensor-model accuracy or the truth of provider metadata.
 
 ## Coverage review
 
@@ -29,6 +37,8 @@ Known defensive paths that are not exercised by the normal public file workflow:
 
 - Attachment-ID exhaustion at `flintmax`: exercising it would require approximately nine quadrillion attachments/removals. IDs are private and are not weakened for testing.
 - The private decimal formatter's width guard: public metadata validators constrain values to their encoded widths. It remains a last check against an internal regression.
+
+The spectral/motion milestone's 396-test run measured 2,784 of 2,815 executable lines (98.90%) after review fixes. Remaining lines include defensive private-format guards, metadata getter/constructor alternatives, and a few invalid text/registry branches. No MICIDA coverage is claimed: the current normative MIIS reference remains unavailable. Complete product associations and profile enforcement are separate later milestones.
 
 Review branches as well as line percentages: a one-line conditional can count as covered even when its body was skipped. Tests cover valid/invalid reports, native uint8/uint16 paths, block/representation choices, and the filesystem error paths above. Measured decision/condition coverage requires the separately licensed [MATLAB Test coverage metrics](https://www.mathworks.com/help/matlab/ref/matlab.unittest.plugins.codecoverageplugin.forfolder.html), which are unavailable in the development installation. Platform crashes, power loss, and simultaneous publication by other processes are not simulated; publication is not claimed to be a crash-safe transaction.
 

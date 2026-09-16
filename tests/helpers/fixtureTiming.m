@@ -1,0 +1,6 @@
+function value = fixtureTiming()
+    %fixtureTiming - Supply one camera with explicit frame timing
+    value = nfx.MTIMSA(image_seg_index=1,layer_id='LAYER',camera_set_index=1, ...
+        camera_id='01234567-89ab-4def-8123-456789abcdef',time_interval_index=7, ...
+        temp_block_index=1,base_timestamp='20260915120000.123456789',number_frames=1);
+end

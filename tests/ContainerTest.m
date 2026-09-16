@@ -157,6 +157,19 @@ classdef ContainerTest < NfxTest
             image.header.icords = ' ';
             t.verifyFalse(image.validate().valid);
         end
+        function stringScalarFlagsAndCornersSerializeAsText(t)
+            [base,image] = fixtureFile(uint8(1));
+            image.header.pjust = "R";
+            image.header.icords = "D";
+            image.header.igeolo = string(repmat('+40.000-075.000',1,4));
+            file = nfx.File(header=base.header)+image;
+            name = fullfile(t.folder,'strings.ntf');
+            file.write(name);
+            parsed = inspectContainer(name);
+            t.verifyEqual(parsed.images(1).fields.pjust, 'R');
+            t.verifyEqual(parsed.images(1).fields.icords, 'D');
+            t.verifyEqual(parsed.images(1).fields.igeolo, char(image.header.igeolo));
+        end
         function commentsRejectBadShapesAndCharacters(t, badComments)
             t.verifyError(@() nfx.ImageHeader(icom=badComments), 'nfx:Comments');
         end

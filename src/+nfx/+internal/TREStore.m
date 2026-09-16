@@ -26,14 +26,27 @@ classdef (Hidden) TREStore
         function obj = attach(obj, tre, owner) %#codegen
             %ATTACH - Validate placement and capture the supplied record
             switch class(tre)
-                case 'nfx.RPC00B'
+                case {'nfx.RPC00B','nfx.CSCRNA','nfx.ICHIPB','nfx.MTIMSA','nfx.AIMIDB','nfx.ACFTB','nfx.HISTOA','nfx.BANDSB'}
                     legal = strcmp(owner, 'image');
+                case 'nfx.FCRNSA'
+                    legal = strcmp(owner, 'image') || ...
+                        (any(strcmp(owner, {'file','text'})) && any(strcmp(tre.predict_corners, {'Y','N'})));
+                case {'nfx.MIMCSA','nfx.CSDIDA','nfx.TMINTA','nfx.CAMSDA','nfx.MTIMFA'}
+                    legal = strcmp(owner, 'file');
+                case {'nfx.MATESA','nfx.ILLUMB'}
+                    legal = any(strcmp(owner, {'file','image'}));
                 case 'nfx.FREESA'
                     legal = any(strcmp(owner, {'file','image','text'}));
+                case {'nfx.FSYNWA','nfx.FASYWA','nfx.CONTXA'}
+                    % Validate fields before inspecting the serialized context.
+                    bytes(tre);
+                    legal = any(strcmp(owner,{'file','image'})) && tre.allowsPlacement(owner);
                 otherwise
                     error('nfx:UnsupportedTRE', 'This concrete TRE is not supported.');
             end
-            if ~legal, error('nfx:TREPlacement', '%s cannot attach to %s.', tre.cetag, owner); end
+            if ~legal && ~strcmp(owner,'wrapped')
+                error('nfx:TREPlacement', '%s cannot attach to %s.', tre.cetag, owner);
+            end
             framed = bytes(tre);
             if obj.nextId >= flintmax
                 error('nfx:AttachmentId', 'Attachment identity space is exhausted.');
