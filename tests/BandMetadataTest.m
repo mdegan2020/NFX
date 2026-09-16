@@ -14,10 +14,10 @@ classdef BandMetadataTest < NfxTest
         end
         function independentDecoderCoversBinaryFloatsAndEveryCompatibleGroup(t)
             value = fullBandMetadata(); p = value.payload(); out = inspectBANDSB(p);
-            t.verifyEqual(value.cel,980);
-            t.verifyEqual(p(119:122),uint8([254 247 255 193]));
+            t.verifyEqual(value.cel,966);
+            t.verifyEqual(p(119:122),uint8([255 199 255 193]));
             t.verifyEqual(p(31:38),uint8([63 0 0 0 192 0 0 0]));
-            t.verifyEqual(out.mask,hex2dec('FEF7FFC1'));
+            t.verifyEqual(out.mask,hex2dec('FFC7FFC1'));
             t.verifyEqual(out.count,2); t.verifyEqual(out.scale_factor,.5); t.verifyEqual(out.additive_factor,-2);
             t.verifyEqual(out.altitude,1000); t.verifyEqual(out.diameter,10);
             t.verifyEqual(out.data_fld_1,uint8(255:-1:208)); t.verifyEqual(out.data_fld_2,uint8(128:159));
@@ -25,7 +25,7 @@ classdef BandMetadataTest < NfxTest
             t.verifyEqual(strtrim(a.bandid),'BAND ONE'); t.verifyEqual(strtrim(b.bandid),'BAND TWO');
             t.verifyEqual(a.niirs,'---'); t.verifyEqual(b.niirs,'+++');
             t.verifyEqual([a.bad_band a.focal_len b.focal_len],[1 200 250]);
-            t.verifyEqual([a.fwhm a.fwhm_unc a.nom_wave a.nom_wave_unc],[.05 .001 .45 .002]);
+            t.verifyEqual([a.cwave a.fwhm a.fwhm_unc],[.45 .05 .001]);
             t.verifyEqual([a.scale_factor a.additive_factor],[2 -1]);
             t.verifyEqual(a.start_time,'260915120000.001'); t.verifyEqual(b.start_time,'26----120000.---');
             t.verifyEqual([a.int_time b.int_time a.caldrk a.calibration_sensitivity],[.00001 999999 .1 .01]);
@@ -43,18 +43,21 @@ classdef BandMetadataTest < NfxTest
             t.verifyEqual(out.aux_c{2}.values{1},.25);
             t.verifyEqual(strtrim(out.aux_c{3}.values{1}),'clear');
         end
-        function symmetricFieldsHaveSpecifiedPrecisionAndUnknownAltitude(t)
-            band = nfx.SpectralBand(niirs=9.9,cwave=.00001,lbound=.00001,ubound=10000);
+        function asymmetricFieldsHaveSpecifiedPrecisionAndUnknownAltitude(t)
+            band = nfx.SpectralBand(niirs=9.9,nom_wave=.00001,nom_wave_unc=.002,lbound=.00001,ubound=10000);
             value = nfx.BANDSB(band=band,wave_length_unit="W", ...
                 radiometric_adjustment_surface="EARTH SURFACE",row_gsd=.001,row_gsd_unit="M", ...
                 diameter=8999.99,col_gsd=9999.99,col_gsd_unit='R');
             out = inspectBANDSB(value.payload());
             t.verifyTrue(isnan(out.altitude)); t.verifyEqual(out.row_gsd,.001); t.verifyEqual(out.col_gsd,9999.99);
             t.verifyEqual(out.diameter,8999.99); t.verifyEqual(out.band{1}.niirs,'9.9');
-            t.verifyEqual([out.band{1}.cwave out.band{1}.lbound out.band{1}.ubound],[.00001 .00001 10000]);
+            t.verifyEqual([out.band{1}.nom_wave out.band{1}.nom_wave_unc out.band{1}.lbound out.band{1}.ubound], ...
+                [.00001 .002 .00001 10000]);
         end
         function masksRejectIncompleteAndIncompatibleSpectralGroups(t)
-            t.verifyFalse(nfx.SpectralBand(cwave=.5,fwhm=.1).validate().valid);
+            t.verifyTrue(nfx.SpectralBand(cwave=.5,fwhm=.1).validate().valid);
+            t.verifyFalse(nfx.SpectralBand(cwave=.5,lbound=.4,ubound=.6).validate().valid);
+            t.verifyFalse(nfx.SpectralBand(fwhm=.1,nom_wave=.5).validate().valid);
             t.verifyFalse(nfx.SpectralBand(cwave=.5,nom_wave=.5).validate().valid);
             t.verifyFalse(nfx.SpectralBand(fwhm=.1,lbound=.4,ubound=.6).validate().valid);
             t.verifyFalse(nfx.SpectralBand(fwhm_unc=.1).validate().valid);

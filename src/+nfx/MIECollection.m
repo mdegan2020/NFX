@@ -112,6 +112,7 @@ classdef MIECollection
         function [files,report] = completePlan(obj) %#codegen
             %completePlan - Bind all collection contexts before file preflight
             [files,report] = mieCollectionPlan(obj);
+            report.scope = 'NFX-MIE-NC1 complete collection';
             if ~report.valid, return; end
             inputs = collectionContextInputs(files);
             for k = 1:numel(files)

@@ -142,8 +142,10 @@ classdef File
         function report = validate(obj, options) %#codegen
             %VALIDATE - Check all segments and their file-level relationships
             %   REPORT = VALIDATE(OBJ) checks the generic NITF container.
-            %   SNIP_COMPLIANT=true also requests SNIP enforcement; unsupported
-            %   profile rules are errors, so conformance cannot pass silently.
+            %   SNIP_COMPLIANT=true checks the supported airborne,
+            %   nonrectified MSI case with supplied RSM or ECF GLAS metadata.
+            %   These checks do not establish scientific accuracy or certify
+            %   a product. Unsupported profile paths produce explicit errors.
             arguments
                 obj (1,1) nfx.File
                 options.SNIP_COMPLIANT (1,1) {mustBeA(options.SNIP_COMPLIANT, 'logical')} = false
@@ -212,9 +214,10 @@ classdef File
                 report = mergeReport(report, validate(plan.des(k)), sprintf('des(%d).', k));
             end
             if options.SNIP_COMPLIANT
-                report.scope = 'NITF 2.1 + SNIP';
-                report = addIssue(report, true, 'SNIPNotSupported', 'SNIP_COMPLIANT', ...
-                    'SNIP validation and writing are not implemented.', 'NGA.STND.0072 SNIP');
+                report.scope = 'NITF 2.1 + SNIP 1.2 CN1 airborne nonrectified MSI';
+                if report.valid
+                    report = mergeReport(report,snipReport(h,plan.images,obj.texts,obj.store.records,plan.des),'');
+                end
             end
         end
         function [records,fileRecords] = effectiveTREs(obj,imageIndex,frameIndex) %#codegen
@@ -248,8 +251,8 @@ classdef File
             %   WRITE(...,Overwrite=true) permits replacing an existing file
             %   after complete output has been prepared in the same folder.
             %
-            %   WRITE(...,SNIP_COMPLIANT=true) fails because SNIP enforcement
-            %   is not implemented. Ordinary generic output remains supported.
+            %   WRITE(...,SNIP_COMPLIANT=true) also enforces the supported
+            %   spectral profile and matches FTITLE to the filename prefix.
             arguments
                 obj (1,1) nfx.File
                 filename {mustBeTextScalar, mustBeNonempty}
@@ -258,6 +261,12 @@ classdef File
             end
             requireValid(validate(obj, SNIP_COMPLIANT=options.SNIP_COMPLIANT));
             destination = char(filename);
+            if options.SNIP_COMPLIANT
+                [~,prefix,extension] = fileparts(destination);
+                if ~strcmp(prefix,strtrim(char(obj.headerValue.ftitle))) || ~strcmpi(extension,'.ntf')
+                    error('nfx:SNIPFilename','SNIP FTITLE must equal the destination filename prefix and use .ntf.');
+                end
+            end
             if isempty(destination) || any(destination == '*') || ...
                     any(destination == '?') || any(destination == char(0)) || ...
                     contains(destination, '://') || isfolder(destination)

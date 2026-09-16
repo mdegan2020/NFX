@@ -33,6 +33,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `MotionStorageTest`, `MotionBlockTest` | B/F/T frame order, exact block bytes and padding, native types, motion complexity limits, uint64 products beyond native range, calendar rollover and block boundaries |
 | `MIECollectionTest`, `MIEManifestTest`, `MIEQuicklookTest` | Runtime cameras/layers/intervals, deterministic file names, complete shared catalogs, FILE001/002 reconstruction, missing blocks, supplied quick looks, full preflight and partial-publication recovery diagnostics |
 | `FrameContextTest`, `CollectionContextTest` | Physical byte precedence across inline/user/overflow areas, exact asynchronous times, image/frame/collection index bounds, wrapped RSM/GLAS models, foreign manifest metadata, snapshot integrity and ambiguous cross-file override rejection |
+| `SNIPProfileTest` | Selected MSI profile, required records, citation bytes, symmetric/asymmetric bands, identity/time/lineage checks, mono/RGB quick looks, crop parents, RSM covariance, ECF frame/scanner GLAS timing, explicit unsupported paths and protected writing |
 
 `helpers/inspectNITF.m` independently parses fixed specification offsets and reconstructs pixels without calling NFX serialization or layout helpers. Fixture RPC values are synthetic; these tests establish encoding behavior, not camera-model accuracy or general NITF/SNIP conformance.
 
@@ -46,6 +47,37 @@ GLAS/GFM tests use literal field expectations, `inspectCSEXRB`, a separate full-
 
 `helpers/decodeMotion.m` reconstructs native motion frames from literal NITF offsets and an independent block/frame/band loop. Motion tests use exact small byte strings and multiple native types; MATLAB reader round trips cover still and quick-look products because the legacy reader does not establish multi-frame MIE correctness. Timing expectations include separately calculated integer products above 2^53 and UINT64_MAX. The large manifest case reconstructs 420 complete filename entries across multiple text segments. A real read-only later destination exercises partial publication while preserving the prior manifest.
 
+## Profile requirements and test mapping
+
+The common format suites above test each record's conditional fields and byte order. Profile suites test relationships across those records. All fixtures are synthetic and self-contained; no test reads the ignored reference library.
+
+| Pinned requirement | Implementation and regression evidence |
+| --- | --- |
+| JBP 2025.1 ABPP/PJUST; native sample preservation | `ABPPTest`, `WriterTest`: integer boundaries, explicit overrides, justification, padding and independent bytes |
+| JBP segment tables, extension ownership and whole-TRE overflow | `ContainerTest`, `OverflowTest`, `SegmentCountTest`: mixed files, exact sizes/order, each owner and protected preflight |
+| SNIP 1.2 CN1 Tables 6-5, 9-1, 10-5; sections 8-10 | `SNIPProfileTest`: required spectral metadata, first spectral IDLVL, supplied quick looks, source association, mono/RGB comments, multiple image identities and actual filename |
+| SNIP Table 17-1, sections 17.1 and 10.7.4 | `BandMetadataTest`, `SNIPProfileTest`: CWAVE/FWHM, NOM_WAVE/bounds, wavenumber conversion, nanometer display fields, known spacing and wavelength order |
+| SNIP sections 15, 17.6-17.7, 21.2.1.3 | `AirborneTRETest`, `HistoryTest`, `IlluminationTest`, `SNIPProfileTest`: catalog fields, dates, registered processing comments, datums and sensor angles; multiple illumination instances |
+| SNIP section 18 and Table 18-3 | `SNIPProfileTest`: literal pinned citation, unknown certification, CR/LF termination, additional citations, ordering and attachment |
+| SNIP section 20.1 | `SNIPProfileTest` and RSM/chip suites: integer crop mapping, processing event, PARENT FTITLE/ISORCE lineage and original-image domains |
+| SNIP Table 7-2 and section 16.12 | `SNIPProfileTest`, `RSM*Test`: adjusted/nonadjusted companions, unique supplied model editions, complete polynomial/grid sets and supplemental models |
+| SNIP sections 7.2.1 and 6.6; GLAS/GFM Appendix M | `SNIPProfileTest`, GLAS suites: ECF, UUID companions, scanner/frame acquisition timing, support-sample coverage and optional reserved-area rejection |
+| SNIP section 7.2.3; SENSRB Appendix Z | `SensorContinuationTest` implements generic splitting; `SNIPProfileTest` explicitly rejects SENSRB as the sole SNIP path without the separately distributed mensuration profile |
+| MIE4NITF 1.3.3 section 6, Tables 14-15; Appendix AF | `MotionStorageTest`, `MotionBlockTest`, `MIECollectionTest`: original-resolution NC, B/F/T layout, native data, complexity levels, runtime camera/layer/set/interval counts and exact timing |
+| MIE sections 6.11-6.12; requirements 99, 103, 105, 109, 110, 116, 121 | `MIECollectionTest`, `MIEManifestTest`, `MIEQuicklookTest`: complete shared catalogs, canonical names, missing blocks, manifest mappings, FILE001/002 whole-entry splits and quick-look scopes |
+| Appendix AF context/override semantics | `FrameContextTest`, `CollectionContextTest`: physical precedence, frame/time boundaries, nested scopes, cross-file targets and explicit ambiguous-override failure |
+| MISB ST 1204.3 Appendix E and Table 14 | `MICIDATest`: all ten published MIIS examples and a separately implemented permutation oracle |
+
+Reference decisions:
+
+- The local SNIP PDF filename contains 2025-01, but its actual identity is **1.2 CN1, 29 February 2024**. The generated citation follows the document identity.
+- Appendix X's band field definitions and sections X.6.3/X.7.4, plus SNIP Table 17-1 and its explicit symmetric mask 293601280, require CWAVE with FWHM. Appendix X Table X9 requirement 4 contradicts those definitions by calling bit 23 asymmetric. Encoding and tests follow the consistent field definitions and the explicit SNIP mask.
+- MIE section 6.12 prose says FLSTnnn; normative requirement 116 says FILEnnn. Output uses FILE001, FILE002, etc.
+- The current Appendix M explicit CSCSDB adjustment-correlation fields conflict with older zero-reserved packing/minimum-length statements. Generic bytes follow the counted field definitions. That optional area fails the sole GLAS SNIP path until the conflict is resolved.
+- CSDIDA Appendix AS identifies 9I as airborne/WAMI and AU as Aurora. The selected airborne profile uses 9I; other airborne registrations require a verified catalog update.
+
+`MIECollection.validate` checks the complete NFX-MIE-NC1 collection, including generated imagery and manifest distinctions. `File.validate` alone checks an individual generic NITF file; it cannot establish a complete external collection. Profile checks do not prove scientific calibration/geolocation, truthful provider declarations, actual image-center targeting, inherited parent metadata or external certification. SENSRB-only SNIP mensuration remains blocked by the unavailable NGA profile; independent RSM/ECF GLAS cases are implemented.
+
 ## Coverage review
 
 Coverage reports include every implementation file under `src/`, including private helpers. Inspect `coverage/html/index.html` and `coverage/cobertura.xml` after a run. No coverage exclusions are applied.
@@ -55,7 +87,7 @@ Known defensive paths that are not exercised by the normal public file workflow:
 - Attachment-ID exhaustion at `flintmax`: exercising it would require approximately nine quadrillion attachments/removals. IDs are private and are not weakened for testing.
 - The private decimal formatter's width guard: public metadata validators constrain values to their encoded widths. It remains a last check against an internal regression.
 
-The MIE milestone's final 985-test run measured 8,012 of 8,047 executable lines (99.57%). The 35 remaining uncovered lines include the existing defensive private-format/attachment guards, metadata constructor alternatives, and several new invalid-template/manifest-limit or missing-asynchronous-timing branches. Focused tests cover exact frame bytes, calendar and native-integer boundaries, wrapper scope/precedence, complete collection references, missing blocks, and protected publication; a high line percentage does not establish every combination of those conditions. The independent review also verified camera-root inheritance across time intervals after its correction. MICIDA checks retain all ten published MISB ST 1204.3 Appendix E examples and an independent Table 14 permutation oracle. Explicit profile enforcement is the next milestone.
+The final profile milestone's 1,013-test run measured 8,544 of 8,584 executable lines (99.53%). The 40 uncovered lines include defensive private-format/attachment guards, metadata constructor alternatives, invalid-template/manifest-limit branches, missing asynchronous timing, and SNIP early exits for unsupported timing. Focused tests cover exact bytes, calendar and native-integer boundaries, wrapper scope/precedence, complete collection references, selected SNIP relationships, missing blocks, and protected publication; a high line percentage does not establish every combination of those conditions. MICIDA checks retain all ten published MISB ST 1204.3 Appendix E examples and an independent Table 14 permutation oracle. The fresh profile reviewer independently verified 142 focused tests after resolving five profile findings, including comment inheritance, citation grammar, quick-look wavelengths and sorted complete-image identifiers.
 
 Review branches as well as line percentages: a one-line conditional can count as covered even when its body was skipped. Tests cover valid/invalid reports, native uint8/uint16 paths, block/representation choices, and the filesystem error paths above. Measured decision/condition coverage requires the separately licensed [MATLAB Test coverage metrics](https://www.mathworks.com/help/matlab/ref/matlab.unittest.plugins.codecoverageplugin.forfolder.html), which are unavailable in the development installation. Platform crashes, power loss, and simultaneous publication by other processes are not simulated; publication is not claimed to be a crash-safe transaction.
 
@@ -69,6 +101,8 @@ observations = measureMemory();
 ```
 
 This creates an 8192 Ã— 8192 uint16 image (128 MiB), observes process memory before/after attachment, metadata/TRE edits, file composition, validation, and writing, then removes its output. These observations can miss transient peaks and are not performance assertions. Pixel writes use block-sized native arrays and byte buffers; metadata operations do not intentionally copy or convert the whole image.
+
+The final R2026a Update 4 observation allocated 134,217,728 image bytes and observed the same 128 MiB process-memory increase. Subsequent attachment, metadata edits, composition, validation and writing showed no additional retained process-memory increase in that run. The output was 134,219,626 bytes. These are pre/post observations from a warmed session, not peak-allocation bounds or performance guarantees.
 
 ## Release and Coder review
 

@@ -23,14 +23,14 @@ classdef FileSystemTest < NfxTest
             t.verifyEqual(readBytes(destination),sentinel);
             t.verifyEmpty(dir(fullfile(t.folder,'*.nfx-part')));
         end
-        function snipCannotPassOrWrite(t)
+        function genericProductCannotPassOrWriteAsSnip(t)
             file = fixtureFile();
             report = file.validate(SNIP_COMPLIANT=true);
             destination = fullfile(t.folder,'existing.ntf');
             sentinel = uint8('keep');
             putBytes(destination,sentinel);
             t.verifyFalse(report.valid);
-            t.verifyTrue(any(strcmp({report.issues.id},'SNIPNotSupported')));
+            t.verifyTrue(any(strcmp({report.issues.id},'SNIPSpectralImage')));
             t.verifyError(@() file.write(destination,Overwrite=true,SNIP_COMPLIANT=true),'nfx:Invalid');
             t.verifyEqual(readBytes(destination),sentinel);
             t.verifyTrue(file.validate().valid);

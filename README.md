@@ -79,7 +79,7 @@ These definitions encode caller-supplied metadata. They do not calculate radiome
 
 `MTIMSA` keeps `dt` and `dt_multiplier` as native `uint64`, including values above `flintmax`. Its derived `dt_size` supports one through eight bytes; an explicit width must fit every delta. Timestamps preserve their supplied decimal text and permitted unknown digits.
 
-Wrappers support ordered `+` snapshots and `removeTRE`, like their file and image owners. NFX validates supported nesting, effective file/image context, and payload bounds. Frame and collection index membership, cross-file references, exact timing, and actual frame storage are implemented below. Explicit SNIP/MIE conformance claims remain subject to the profile milestone.
+Wrappers support ordered `+` snapshots and `removeTRE`, like their file and image owners. NFX validates supported nesting, effective file/image context, and payload bounds. Frame and collection index membership, cross-file references, exact timing, and actual frame storage are implemented below. Profile validation covers the explicitly bounded SNIP and MIE cases described below.
 
 `MICIDA` associates each supplied camera UUID with a MISB ST 1204.3 textual core identifier. It validates structure version 01, sensor/platform/window or minor-ID usage, UUID versions 1/4/5 and variant, and the two hexadecimal check digits. Counts and text lengths derive automatically. Each instance supports 1–999 cameras within 99,985 payload bytes; attach further instances as needed. Supplied letter case is preserved, while camera/core uniqueness checks ignore it.
 
@@ -144,7 +144,32 @@ The implementation follows the current May 2025 Volume 2 Appendix M definitions.
 
 CSCSDB's optional `spdcf_id_adj` uses the defined reserved area in current Table M.6-5. Its field-count markers conflict with the table's stated minimum lengths, and older packing criteria still say its reserved length must be zero. NFX follows the explicitly counted fields for generic encoding and does not claim profile conformance for that optional combination pending clarification.
 
-These checks establish supported encoding and associations, not scientific sensor-model accuracy, covariance propagation, CSM execution or Level 2 conformance. Incomplete generic metadata is permitted. Wrapped models resolve against their effective image/frame contexts, including shared DESs for different groups of motion frames. SNIP enforcement remains explicitly unavailable until the profile milestone.
+These checks establish supported encoding and associations, not scientific sensor-model accuracy, covariance propagation, CSM execution or Level 2 conformance. Incomplete generic metadata is permitted. Wrapped models resolve against their effective image/frame contexts, including shared DESs for different groups of motion frames.
+
+## Selected SNIP profile
+
+`File.validate(SNIP_COMPLIANT=true)` checks supplied metadata against the **SNIP 1.2 CN1 airborne nonrectified MSI** case. Generic NITF validation remains the default. Profile failures carry stable issue identifiers, field locations and specification references. Writing with the same option performs these checks before touching the destination and requires the filename prefix to equal FTITLE, with a `.ntf` extension.
+
+```matlab
+addpath('src','examples');
+file = snipExample();               % Synthetic two-band RSM example
+report = file.validate(SNIP_COMPLIANT=true);
+assert(report.valid);
+file.write([file.header.ftitle '.ntf'],SNIP_COMPLIANT=true);
+```
+
+The supported case uses unclassified, unsigned 8/16-bit still images with supplied D/G geographic corners. Spectral images require CSDIDA at file level and BANDSB, CSCRNA, HISTOA, ILLUMB, ACFTB and AIMIDB at image level. Checks cover placement/counts, known spatial response, band IDs and wavelength order, nanometer ISUBCAT values, acquisition/processing times, registered processing comments, illumination datums and supplied sensor angles. Symmetric bands use CWAVE/FWHM; asymmetric bands use NOM_WAVE/LBOUND/UBOUND. Each image uses one complete BANDSB instance.
+
+Multiple complete images may use sorted `MSI:000001` identifiers or uppercase base-26 suffixes; segmented-image identifier forms remain outside this case. Later HISTOA events inherit unchanged processing comments. Additional standard citations support numbered author and custodian blocks; the SNIP citation itself must omit authors and include its certification status.
+
+- At least one complete mensuration metadata path is required: RSM with the appropriate nonadjusted/adjusted covariance companions, or ECF GLAS/GFM with associated attitude, ephemeris, field alignment and covariance DESs. GLAS attitude/ephemeris samples must cover the supplied acquisition event. Supplemental generic metadata may accompany a complete path. RPC00B alone cannot satisfy this check.
+- Supplied mono/RGB quick looks precede spectral images, use one unpadded block, preserve source identity/corners/aspect ratio, and describe their displayed source bands and wavelengths in ICOM1. NFX does not generate quick-look pixels.
+- Integer spatial crops require ICHIPB original-image mapping, a HISTOA crop event and file-level MATESA parent lineage. Resampled/spectral chips, rectified imagery, HSI, geolocation grids, cloud masks and pixel-metric products are outside this selected case.
+- `nfx.snipCitation(file.header,1)` supplies the required SNIPSTD text segment with the pinned standard identity and `PRODUCT_CERT_DATE: ----------`. This explicitly records unknown certification. Additional ordered citations are supported.
+
+The pinned CSDIDA catalog identifies airborne/WAMI with platform code **9I**; the selected validator accepts that code. **AU is the Aurora satellite**, not a generic airborne code. Additional airborne registrations need an authoritative catalog update before they can be accepted. The SENSRB-only SNIP mensuration path fails with `SNIPSENSRBProfileUnavailable`: the separate NGA SENSRB image-to-ground profile is not present in the supplied library. SENSRB serialization, continuation splitting and supplemental use are implemented. The conflicting optional CSCSDB adjustment-correlation area likewise cannot establish the sole GLAS SNIP path.
+
+A passing report establishes the implemented structural and supplied-metadata checks. It does not establish the truth of sensor calibration, model accuracy, illumination target being the actual image center, correct parent-data inheritance, or external product certification. Those require provider evidence and scientific evaluation. See the [requirements-to-test mapping and reference decisions](tests/README.md#profile-requirements-and-test-mapping).
 
 ## Motion collections and manifests
 
@@ -181,6 +206,6 @@ results = runTests(Coverage=true);
 
 The suite includes independent byte checks, MATLAB reader round trips, metadata and layout boundaries, snapshot/removal behavior, and injected filesystem failures. Reports go under ignored `coverage/`; generated files use temporary fixtures. See [test and compatibility notes](tests/README.md).
 
-Classified products, LUTs, compression, and geographic coordinate representations other than D/G are not supported. `SNIP_COMPLIANT=true` explicitly fails validation and writing until profile enforcement is implemented. RPC fitting and evaluation are outside scope.
+Classified products, LUTs, compression, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation is restricted to NFX-MIE-NC1. RPC fitting and evaluation are outside scope.
 
 MATLAB Coder remains a design priority: implementation uses qualified names, applicable `%#codegen` annotations, and native pixel storage. No Coder license is available, and compiled compatibility is **not verified**. Temporary-file creation and publication still need a supported, tested generated-code path. The small `publishCollection` host helper isolates try/catch needed to report partial publication; its callers and metadata/byte paths retain generation intent. R2023b execution is also unverified.
