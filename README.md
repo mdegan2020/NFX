@@ -81,6 +81,30 @@ Wrappers support ordered `+` snapshots and `removeTRE`, like their file and imag
 
 **Reference gap:** `MICIDA` and current MIIS identifier validation remain pending because MISB ST 1204.3 is not in the supplied library and its current normative text has not been retrieved. An available older ST 1204.1 edition is not treated as proof of current conformance. MIE collection/profile completion must account for this gap.
 
+## Sensor metadata and time series
+
+`nfx.SENSRB` implements the 15 modules of Appendix Z 2.3. Supply general collection fields and the required reference/position fields, then add optional module fields and repeating groups:
+
+```matlab
+sensor = nfx.SENSRB(sensor='TEST SENSOR', platform='TEST PLATFORM', ...
+    operation_domain='Airborne', start_date='20260915', end_date='20260915', ...
+    start_time=43200, end_time=43201, reference_time=0, ...
+    latitude_or_x=40, longitude_or_y=-105, altitude_or_z=1000);
+sensor.time_stamped_data = nfx.SENSRB.timeSeries('06a', [0 1], [40 40.001]);
+sensor.uncertainty_data = nfx.SENSRB.uncertainty('06a', 0.5);
+image = image + sensor;
+```
+
+This example supplies synthetic measurements. Registered sensor/platform/detection labels and the scientific truth of metadata remain the provider's responsibility. `content_level` is an explicit declaration checked against its module prerequisites; NFX does not infer achievable geolocation accuracy. Levels 6–9 require optical geometry defining both detector dimensions. Redundant detector metrics, FOVs, and focal length must agree within their encoded quantization plus 0.01 percent relative tolerance. Coordinate and parameter units follow Appendix Z, including centimeters/inches for detector metrics and focal length, degrees for geographic coordinates, and meters/feet for their uncertainties.
+
+`pointSet`, `pixelSeries`, and `additionalParameter` construct the other repeating groups. Numeric metadata uses double; text samples use character rows or strings. `transform_param` contains a supported 0-, 2-, 4-, 5-, 6-, or 8-coefficient transform. Module flags, counts, lengths, and continuation boundaries derive from the supplied data. Optional numeric `[]` means omitted; `NaN` means unknown only where the field permits it.
+
+Module 12 splits automatically at the physical payload and loop-count limits. `sensor.physicalRecords()` returns ordered `tag`/`payload` structs. Each subsequent instance contains the minimum reference/position metadata and remaining time series. All non-module-12 data stays in the first instance and must fit there. Sample order, duplicate-time precedence, and the original `start_time` reference are preserved. `+` captures all instances under one attachment ID; `removeTRE` removes that whole group. `payload`, `bytes`, and `cel` reject a logical SENSRB that needs several instances.
+
+Uncertainty indices are checked against known numeric fields and loop samples. An uncertainty targeting a time-series sample moved to a later instance is explicitly rejected: the standard's first-instance uncertainty placement does not provide an unambiguous cross-instance sample index. Direct parameter uncertainties remain supported with large series. Wrappers retain their own payload limit; automatic SENSRB splitting does not make a single oversized wrapper valid.
+
+Splitting also rejects a continuation that would re-emit a required reference position conflicting with an earlier sample at that same reference, when the continuation no longer indexes that position parameter as dynamic. This safeguards later-record precedence without inventing a new position or time. Both time-only and explicit pixel references are checked; an explicit pixel reference has the standard's priority.
+
 ## Tests and limits
 
 ```matlab

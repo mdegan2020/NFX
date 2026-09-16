@@ -26,7 +26,7 @@ classdef (Hidden) TREStore
         function obj = attach(obj, tre, owner) %#codegen
             %ATTACH - Validate placement and capture the supplied record
             switch class(tre)
-                case {'nfx.RPC00B','nfx.CSCRNA','nfx.ICHIPB','nfx.MTIMSA','nfx.AIMIDB','nfx.ACFTB','nfx.HISTOA','nfx.BANDSB'}
+                case {'nfx.RPC00B','nfx.CSCRNA','nfx.ICHIPB','nfx.MTIMSA','nfx.AIMIDB','nfx.ACFTB','nfx.HISTOA','nfx.BANDSB','nfx.SENSRB'}
                     legal = strcmp(owner, 'image');
                 case 'nfx.FCRNSA'
                     legal = strcmp(owner, 'image') || ...
@@ -47,11 +47,13 @@ classdef (Hidden) TREStore
             if ~legal && ~strcmp(owner,'wrapped')
                 error('nfx:TREPlacement', '%s cannot attach to %s.', tre.cetag, owner);
             end
-            framed = bytes(tre);
+            snapshots = physicalRecords(tre);
             if obj.nextId >= flintmax
                 error('nfx:AttachmentId', 'Attachment identity space is exhausted.');
             end
-            obj.records(end+1) = struct('tag', tre.cetag, 'payload', framed(12:end), 'id', obj.nextId);
+            for k = 1:numel(snapshots)
+                obj.records(end+1) = struct('tag', snapshots(k).tag, 'payload', snapshots(k).payload, 'id', obj.nextId);
+            end
             obj.nextId = obj.nextId+1;
         end
         function obj = remove(obj, id) %#codegen
@@ -78,7 +80,7 @@ function value = encode(records, count) %#codegen
     offset = 0;
     for k = 1:numel(records)
         record = records(k);
-        framed = [uint8(record.tag) uint8(sprintf('%05d', numel(record.payload))) record.payload];
+        framed = [uint8(record.tag) uint8(sprintf('%05.0f', numel(record.payload))) record.payload];
         value(offset+1:offset+numel(framed)) = framed;
         offset = offset+numel(framed);
     end

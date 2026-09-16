@@ -25,6 +25,17 @@ classdef (Abstract) TRE
         bytes = payload(obj)
     end
     methods
+        function value = physicalRecords(obj) %#codegen
+            %PHYSICALRECORDS - Capture complete physical payload snapshots
+            %   VALUE contains tag/payload structs in serialization order.
+            %   A concrete TRE may expand one logical attachment into several
+            %   records when its standard defines continuation instances.
+            data = payload(obj);
+            if isempty(data) || numel(data) > 99985
+                error('nfx:TRELength', 'TRE payload must contain 1 to 99985 bytes.');
+            end
+            value = struct('tag',obj.cetag,'payload',data);
+        end
         function value = get.cel(obj) %#codegen
             %get.cel - Derive the payload length
             value = numel(payload(obj));

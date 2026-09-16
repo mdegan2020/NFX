@@ -22,12 +22,15 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `IlluminationTest` | Every ILLUMB mask group, band/set/other-source ordering, scientific values, unknowns, partial coordinates/times, datum codes, and length limits |
 | `MotionTRETest`, `FrameTimingTest` | Camera sets, intervals, mapping, native uint64 timing at all eight byte widths, temporal order, unavailable/unused blocks, and limits |
 | `WrapperTest` | Context grammar, nesting, effective owners, asynchronous/frame restrictions, child lengths, snapshot precedence, and removal |
+| `SensorTest`, `SensorFieldTest`, `SensorContinuationTest` | All 15 SENSRB modules, every eligible dynamic field, numeric/text types, uncertainty indices, content prerequisites, exact continuation boundaries, loop limits, snapshots, overflow output, and reader round trips |
 
 `helpers/inspectNITF.m` independently parses fixed specification offsets and reconstructs pixels without calling NFX serialization or layout helpers. Fixture RPC values are synthetic; these tests establish encoding behavior, not camera-model accuracy or general NITF/SNIP conformance.
 
 `helpers/inspectContainer.m` walks segment tables and optional fields independently, checks byte lengths and ordering, follows overflow references, and verifies that every overflow DES has exactly one matching owner. Literal tests cover representative headers and both inline/overflow boundaries. Generic synthetic DES fixtures exercise container bytes without claiming a registered support-data model.
 
 `helpers/inspectBANDSB.m` and `helpers/inspectILLUMB.m` independently walk all selected fields and require exact end-of-payload alignment. Other TRE suites compare literal field bytes, including mixed-record container output. Synthetic scientific fixtures establish encoding and validation behavior; they do not establish sensor-model accuracy or the truth of provider metadata.
+
+`helpers/inspectSENSRB.m` independently walks the 15 modules and decodes typed time/pixel loops using the published field widths. Continuation tests reconstruct all original samples across records, including repeated times and more than 9,999 values or 99 groups. Separate assertions check literal minimum/maximum sizes, required inherited context, first-instance static data, atomic removal, and rejection of uncertainty indices that would refer to a moved sample. No interpolation or sensor fitting is claimed.
 
 ## Coverage review
 
@@ -38,7 +41,7 @@ Known defensive paths that are not exercised by the normal public file workflow:
 - Attachment-ID exhaustion at `flintmax`: exercising it would require approximately nine quadrillion attachments/removals. IDs are private and are not weakened for testing.
 - The private decimal formatter's width guard: public metadata validators constrain values to their encoded widths. It remains a last check against an internal regression.
 
-The spectral/motion milestone's 396-test run measured 2,784 of 2,815 executable lines (98.90%) after review fixes. Remaining lines include defensive private-format guards, metadata getter/constructor alternatives, and a few invalid text/registry branches. No MICIDA coverage is claimed: the current normative MIIS reference remains unavailable. Complete product associations and profile enforcement are separate later milestones.
+The SENSRB milestone's 588-test run measured 3,858 of 3,888 executable lines (99.23%) after independent review fixes. All new SENSRB executable lines were covered. Remaining lines include defensive private-format guards, metadata getter/constructor alternatives, and a few invalid text/registry branches. No MICIDA coverage is claimed: the current normative MIIS reference remains unavailable. Complete product associations and profile enforcement are separate later milestones.
 
 Review branches as well as line percentages: a one-line conditional can count as covered even when its body was skipped. Tests cover valid/invalid reports, native uint8/uint16 paths, block/representation choices, and the filesystem error paths above. Measured decision/condition coverage requires the separately licensed [MATLAB Test coverage metrics](https://www.mathworks.com/help/matlab/ref/matlab.unittest.plugins.codecoverageplugin.forfolder.html), which are unavailable in the development installation. Platform crashes, power loss, and simultaneous publication by other processes are not simulated; publication is not claimed to be a crash-safe transaction.
 
