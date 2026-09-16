@@ -57,6 +57,8 @@ classdef FileHeader
     properties (Access = ?nfx.File)
         xhd = zeros(1, 0, 'uint8')
         xhdlofl = 0
+        udhd = zeros(1, 0, 'uint8')
+        udhofl = 0
     end
     methods
         function obj = FileHeader(options) %#codegen
@@ -130,7 +132,8 @@ classdef FileHeader
                     decimalField(obj.ld(k), 9, 0, false)];
             end
             value = [value imageTable uint8('000000') decimalField(obj.numt, 3, 0, false) ...
-                textTable decimalField(obj.numdes, 3, 0, false) desTable uint8('00000000') ...
+                textTable decimalField(obj.numdes, 3, 0, false) desTable uint8('000') ...
+                extensionBytes(obj.udhd, obj.udhofl, 99985) ...
                 extensionBytes(obj.xhd, obj.xhdlofl, 99985)];
         end
     end

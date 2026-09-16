@@ -16,6 +16,11 @@ classdef DESSegment
         ld % Payload length
         ldsh % Subheader length
     end
+    properties (Access = private)
+        sensorVerified = false
+        sensorData = zeros(1,0,'uint8')
+        sensorHeader = nfx.DESHeader()
+    end
     methods
         function obj = DESSegment(data, options) %#codegen
             %DESSegment - Construct supplied support-data bytes
@@ -40,6 +45,20 @@ classdef DESSegment
             report = mergeReport(report, validate(obj.header), 'header.');
             report = addIssue(report, obj.ld < 1 || obj.ld > 999999998, 'DESLength', ...
                 'data', 'DES payload must contain 1 to 999999998 bytes.', 'JBP 2025.1, Table 5.11-1');
+            report = addIssue(report,obj.sensorVerified && ~obj.verifiedSensor(), ...
+                'TypedDESChanged','data/header','Edit the typed sensor descriptor and capture a new segment after changing its bytes.', ...
+                'NFX typed GLAS/GFM DES snapshot contract');
+        end
+        function value = verifiedSensor(obj) %#codegen
+            %VERIFIEDSENSOR - Check that the typed serializer's proof is current
+            value = obj.sensorVerified && isequal(obj.data,obj.sensorData) && isequal(obj.header,obj.sensorHeader);
+        end
+    end
+    methods (Static, Access = ?nfx.SensorDES)
+        function obj = fromSensor(data,header) %#codegen
+            %fromSensor - Preserve the exact bytes validated by a typed model
+            obj = nfx.DESSegment(data,header=header);
+            obj.sensorVerified = true; obj.sensorData = data; obj.sensorHeader = header;
         end
     end
     methods (Static, Access = ?nfx.File)

@@ -1,0 +1,6 @@
+function value = fixtureFiducialTransform()
+    %fixtureFiducialTransform - Supply one identity image-to-fiducial transform
+    value = nfx.FiducialTransform(ls_fid_trans_t0=0,ls_fid_trans_t1=1, ...
+        ls_fid_trans_t2=0,ls_fid_trans_t3=0,ls_fid_trans_t4=0,ls_fid_trans_t5=0, ...
+        ls_fid_trans_t6=0,ls_fid_trans_t7=1);
+end

@@ -12,8 +12,8 @@ function result = inspectContainer(filename)
     [texts, cursor] = table(bytes, cursor+6, 4, 5);
     [des, cursor] = table(bytes, cursor, 4, 9);
     assert(number(bytes, cursor, 3) == 0, 'oracle:Reserved', 'Unexpected reserved segment.');
-    assert(number(bytes, cursor+3, 5) == 0, 'oracle:UserArea', 'Unexpected user area.');
-    [result.tres, result.overflow, cursor] = area(bytes, cursor+8);
+    [result.userTRE, result.userOverflow, cursor] = area(bytes, cursor+3);
+    [result.tres, result.overflow, cursor] = area(bytes, cursor);
     assert(cursor == result.hl+1, 'oracle:HeaderLength', 'HL disagrees with header fields.');
     [result.images, cursor] = segments(bytes, cursor, images, 'IM');
     [result.texts, cursor] = segments(bytes, cursor, texts, 'TE');
@@ -43,8 +43,9 @@ function result = inspectContainer(filename)
         f.nbpp = number(h,at+18,2);
         f.idlvl = number(h,at+20,3); f.ialvl = number(h,at+23,3);
         f.iloc = [number(h,at+26,5), number(h,at+31,5)];
-        assert(strcmp(char(h(at+36:at+44)), '1.0 00000'), 'oracle:Image', 'Unexpected IMAG/UDIDL.');
-        [result.images(k).tres, result.images(k).overflow, at] = area(h, at+45);
+        assert(strcmp(char(h(at+36:at+39)), '1.0 '), 'oracle:Image', 'Unexpected IMAG.');
+        [result.images(k).userTRE, result.images(k).userOverflow, at] = area(h, at+40);
+        [result.images(k).tres, result.images(k).overflow, at] = area(h, at);
         assert(at == numel(h)+1, 'oracle:ImageLength', 'Image subheader size mismatch.');
         result.images(k).fields = f;
     end
@@ -72,12 +73,14 @@ function result = inspectContainer(filename)
         assert(size == numel(f.desshf), 'oracle:DESLength', 'DES subheader size mismatch.');
         result.des(k).fields = f;
     end
-    result.allTRE = resolve(result.tres, result.overflow, result.des, 'XHD', 0);
-    pointers = result.overflow;
+    result.allTRE = [resolve(result.tres, result.overflow, result.des, 'XHD', 0) ...
+        resolve(result.userTRE, result.userOverflow, result.des, 'UDHD', 0)];
+    pointers = [result.overflow result.userOverflow];
     for k = 1:numel(result.images)
         segment = result.images(k);
-        result.images(k).allTRE = resolve(segment.tres, segment.overflow, result.des, 'IXSHD', k);
-        pointers(end+1) = segment.overflow;
+        result.images(k).allTRE = [resolve(segment.tres, segment.overflow, result.des, 'IXSHD', k) ...
+            resolve(segment.userTRE, segment.userOverflow, result.des, 'UDID', k)];
+        pointers = [pointers segment.overflow segment.userOverflow]; %#ok<AGROW>
     end
     for k = 1:numel(result.texts)
         segment = result.texts(k);
@@ -108,7 +111,8 @@ end
 
 function [value, cursor] = segments(bytes, cursor, lengths, marker)
     value = repmat(struct('header', zeros(1,0,'uint8'), 'data', zeros(1,0,'uint8'), ...
-        'offset', 0, 'fields', struct(), 'tres', emptyRecords(), 'overflow', 0, 'allTRE', emptyRecords()), 1, size(lengths,1));
+        'offset', 0, 'fields', struct(), 'tres', emptyRecords(), 'overflow', 0, ...
+        'userTRE',emptyRecords(),'userOverflow',0,'allTRE', emptyRecords()), 1, size(lengths,1));
     for k = 1:size(lengths,1)
         value(k).offset = cursor-1;
         value(k).header = bytes(cursor:cursor+lengths(k,1)-1);

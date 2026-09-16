@@ -27,14 +27,15 @@ classdef (Hidden) TREStore
             %ATTACH - Validate placement and capture the supplied record
             switch class(tre)
                 case {'nfx.RPC00B','nfx.CSCRNA','nfx.ICHIPB','nfx.MTIMSA','nfx.AIMIDB','nfx.ACFTB','nfx.HISTOA','nfx.BANDSB','nfx.SENSRB', ...
-                        'nfx.RSMIDA','nfx.RSMPCA','nfx.RSMPIA','nfx.RSMGGA','nfx.RSMGIA','nfx.RSMAPB','nfx.RSMECB','nfx.RSMDCB'}
+                        'nfx.RSMIDA','nfx.RSMPCA','nfx.RSMPIA','nfx.RSMGGA','nfx.RSMGIA','nfx.RSMAPB','nfx.RSMECB','nfx.RSMDCB', ...
+                        'nfx.CSRLSB','nfx.CSWRPB'}
                     legal = strcmp(owner, 'image');
                 case 'nfx.FCRNSA'
                     legal = strcmp(owner, 'image') || ...
                         (any(strcmp(owner, {'file','text'})) && any(strcmp(tre.predict_corners, {'Y','N'})));
                 case {'nfx.MIMCSA','nfx.CSDIDA','nfx.TMINTA','nfx.CAMSDA','nfx.MTIMFA','nfx.MICIDA'}
                     legal = strcmp(owner, 'file');
-                case {'nfx.MATESA','nfx.ILLUMB'}
+                case {'nfx.MATESA','nfx.ILLUMB','nfx.CSEXRB'}
                     legal = any(strcmp(owner, {'file','image'}));
                 case 'nfx.FREESA'
                     legal = any(strcmp(owner, {'file','image','text'}));
@@ -71,6 +72,26 @@ classdef (Hidden) TREStore
             if isempty(count), count = numel(lengths); end
             inline = encode(obj.records(1:count), sum(lengths(1:count)));
             overflow = encode(obj.records(count+1:end), sum(lengths(count+1:end)));
+        end
+        function [extended, user, overflow, overflowUser] = modelAreas(obj, capacity) %#codegen
+            %modelAreas - Fill extended then user areas for GLAS/GFM metadata
+            %   Each area retains a whole-record prefix. An indivisible record
+            %   that exceeds the area capacity remains in the overflow suffix.
+            overflowUser = any(ismember({obj.records.tag},{'CSEXRB','CSRLSB','CSWRPB'}));
+            user = zeros(1,0,'uint8');
+            if ~overflowUser
+                [extended,overflow] = areas(obj,capacity); return
+            end
+            lengths = zeros(1,numel(obj.records));
+            for k = 1:numel(lengths), lengths(k) = 11+numel(obj.records(k).payload); end
+            first = find(cumsum(lengths) > capacity,1)-1;
+            if isempty(first), first = numel(lengths); end
+            second = find(cumsum(lengths(first+1:end)) > capacity,1)-1;
+            if isempty(second), second = numel(lengths)-first; end
+            last = first+second;
+            extended = encode(obj.records(1:first),sum(lengths(1:first)));
+            user = encode(obj.records(first+1:last),sum(lengths(first+1:last)));
+            overflow = encode(obj.records(last+1:end),sum(lengths(last+1:end)));
         end
     end
 end

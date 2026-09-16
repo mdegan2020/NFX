@@ -109,7 +109,8 @@ classdef File
                     error('nfx:TextCount', 'NITF permits at most 999 text segments.');
                 end
                 obj.texts(end+1) = item;
-            elseif isa(item, 'nfx.DESSegment')
+            elseif isa(item, 'nfx.SensorDES') || isa(item, 'nfx.DESSegment')
+                if isa(item, 'nfx.SensorDES'), item = segment(item); end
                 if strcmp(item.header.desid, 'TRE_OVERFLOW')
                     error('nfx:DerivedOverflow', 'Attach TREs to their owner; File derives overflow DESs.');
                 end
@@ -153,6 +154,7 @@ classdef File
                 report = mergeReport(report, validate(plan.images(k)), sprintf('images(%d).', k));
             end
             report = mergeReport(report,rsmFileReport(plan.images,plan.positions),'rsm.');
+            report = mergeReport(report,glasFileReport(obj.store.records,plan.images,plan.des,plan.positions),'glas.');
             report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
                 'images.header.idlvl', 'Display levels must be unique across all images.', reference);
             for k = 1:h.numi
@@ -216,7 +218,8 @@ classdef File
             fileHeader = bytes(layoutHeader);
             imageHeaders = repmat(struct('data', zeros(1,0,'uint8')), 1, numel(plan.images));
             for k = 1:numel(plan.images)
-                imageHeaders(k).data = subheader(plan.images(k), plan.imageAreas(k).data, plan.imageOverflow(k));
+                imageHeaders(k).data = subheader(plan.images(k), plan.imageAreas(k).data, plan.imageOverflow(k), ...
+                    plan.imageUserAreas(k).data, plan.imageUserOverflow(k));
             end
             textHeaders = repmat(struct('data', zeros(1,0,'uint8')), 1, numel(obj.texts));
             for k = 1:numel(obj.texts)
@@ -251,22 +254,34 @@ classdef File
             h.numi = numel(plan.images);
             h.numt = numel(obj.texts);
             plan.imageAreas = repmat(struct('data', zeros(1,0,'uint8')), 1, h.numi);
+            plan.imageUserAreas = repmat(struct('data', zeros(1,0,'uint8')), 1, h.numi);
             plan.textAreas = repmat(struct('data', zeros(1,0,'uint8')), 1, h.numt);
             plan.imageOverflow = zeros(1, h.numi);
+            plan.imageUserOverflow = zeros(1, h.numi);
             plan.textOverflow = zeros(1, h.numt);
-            [h.xhd, excess] = obj.store.areas(99985);
-            h.xhdlofl = 0;
+            [h.xhd, h.udhd, excess, overflowUser] = obj.store.modelAreas(99985);
+            h.xhdlofl = 0; h.udhofl = 0;
             if ~isempty(excess)
-                plan.des(end+1) = nfx.DESSegment.overflow(excess, 'XHD', 0);
-                h.xhdlofl = numel(plan.des);
+                if overflowUser
+                    plan.des(end+1) = nfx.DESSegment.overflow(excess, 'UDHD', 0);
+                    h.udhofl = numel(plan.des);
+                else
+                    plan.des(end+1) = nfx.DESSegment.overflow(excess, 'XHD', 0);
+                    h.xhdlofl = numel(plan.des);
+                end
             end
             h.lish = zeros(1, h.numi);
             h.li = zeros(1, h.numi);
             for k = 1:h.numi
-                [plan.imageAreas(k).data, excess] = areas(plan.images(k));
+                [plan.imageAreas(k).data, plan.imageUserAreas(k).data, excess, overflowUser] = areas(plan.images(k));
                 if ~isempty(excess)
-                    plan.des(end+1) = nfx.DESSegment.overflow(excess, 'IXSHD', k);
-                    plan.imageOverflow(k) = numel(plan.des);
+                    if overflowUser
+                        plan.des(end+1) = nfx.DESSegment.overflow(excess, 'UDID', k);
+                        plan.imageUserOverflow(k) = numel(plan.des);
+                    else
+                        plan.des(end+1) = nfx.DESSegment.overflow(excess, 'IXSHD', k);
+                        plan.imageOverflow(k) = numel(plan.des);
+                    end
                 end
                 h.lish(k) = plan.images(k).lish;
                 h.li(k) = plan.images(k).li;
@@ -289,8 +304,8 @@ classdef File
                 h.ldsh(k) = plan.des(k).ldsh;
                 h.ld(k) = plan.des(k).ld;
             end
-            h.hl = 388+16*h.numi+9*h.numt+13*h.numdes+numel(h.xhd)+ ...
-                3*(~isempty(h.xhd) || h.xhdlofl ~= 0);
+            h.hl = 388+16*h.numi+9*h.numt+13*h.numdes+numel(h.xhd)+numel(h.udhd)+ ...
+                3*(~isempty(h.xhd) || h.xhdlofl ~= 0)+3*(~isempty(h.udhd) || h.udhofl ~= 0);
             h.fl = h.hl+sum(h.lish)+sum(h.li)+sum(h.ltsh)+sum(h.lt)+sum(h.ldsh)+sum(h.ld);
             h.clevel = complexity(h, plan.images, plan.positions);
         end

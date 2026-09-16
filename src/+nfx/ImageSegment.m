@@ -87,12 +87,13 @@ classdef ImageSegment
         end
         function value = get.lish(obj) %#codegen
             %get.lish - Derive the subheader length with whole-record overflow
-            [inline, overflow] = obj.store.areas(99985);
+            [inline, user, overflow, overflowUser] = obj.store.modelAreas(99985);
             h = obj.header;
             bands = size(obj.pixels, 3);
             value = 426 + 13*bands + 5*(bands > 9) + ...
-                60*~strcmp(h.icords, ' ') + 80*h.nicom + numel(inline) + ...
-                3*(~isempty(inline) || ~isempty(overflow));
+                60*~strcmp(h.icords, ' ') + 80*h.nicom + numel(inline) + numel(user) + ...
+                3*(~isempty(inline) || (~isempty(overflow) && ~overflowUser)) + ...
+                3*(~isempty(user) || (~isempty(overflow) && overflowUser));
         end
         function value = get.li(obj) %#codegen
             %get.li - Derive padded image byte length
@@ -138,18 +139,19 @@ classdef ImageSegment
                 'DuplicateRPC', 'tre_ids', 'Remove duplicate RPC00B attachments before writing.', reference);
             report = mergeReport(report,rsmSetReport(obj.store.records,obj.header),'rsm.');
             report = mergeReport(report,wrappedRSMReport(obj.store.records),'rsm.');
+            report = mergeReport(report,glasImageReport(obj.store.records,obj.header),'glas.');
             report = addIssue(report, obj.li > 9999999998 || obj.lish > 999998, ...
                 'Length', 'li/lish', 'Image data or subheader exceeds its NITF length field.', reference);
         end
     end
     methods (Access = ?nfx.File)
-        function value = subheader(obj, inline, overflow) %#codegen
-            %SUBHEADER - Serialize the preflight-selected extended area
-            value = bytes(obj.header, inline, overflow);
+        function value = subheader(obj, inline, overflow, user, userOverflow) %#codegen
+            %SUBHEADER - Serialize the preflight-selected metadata areas
+            value = bytes(obj.header, inline, overflow, user, userOverflow);
         end
-        function [inline, overflow] = areas(obj) %#codegen
+        function [inline, user, overflow, overflowUser] = areas(obj) %#codegen
             %AREAS - Partition whole records for the owning file
-            [inline, overflow] = obj.store.areas(99985);
+            [inline, user, overflow, overflowUser] = obj.store.modelAreas(99985);
         end
         function value = explicitLevel(obj) %#codegen
             %explicitLevel - Return the caller's level or an automatic marker

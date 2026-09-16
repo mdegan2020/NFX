@@ -1,0 +1,6 @@
+function value = fixtureFieldAlignmentGrid()
+    %fixtureFieldAlignmentGrid - Supply a single rectangular focal-plane block
+    value = nfx.FieldAlignmentGrid(fl_cal=0.5,num_fir_line=0,delta_line=32, ...
+        num_fir_samp=0,delta_samp=64,fa_x1=-0.1,fa_y1=-0.05,fa_x2=0.1,fa_y2=-0.05, ...
+        fa_x3=0.1,fa_y3=0.05,fa_x4=-0.1,fa_y4=0.05);
+end

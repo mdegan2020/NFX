@@ -29,6 +29,7 @@ classdef ImageHeader
     properties
         iid1 {mustBeAscii(iid1, 10)} = '' % Required image identifier
         idatim {mustBeAscii(idatim, 14)} = '' % Acquisition UTC or unknown pairs
+        tgtid {mustBeAscii(tgtid,17)} = '' % Supplied registered target ID and country
         iid2 {mustBeAscii(iid2, 80)} = '' % Optional image title
         isorce {mustBeAscii(isorce, 42)} = '' % Optional source description
         isclas {mustBeAscii(isclas, 1)} = '' % Explicit classification choice
@@ -46,6 +47,8 @@ classdef ImageHeader
         abpp % Automatic significant bits, or an explicit acquisition precision
         idlvl % Explicit display level, or a file-assigned default
         icom % Up to nine image comments, one padded row per comment
+        irepband % Cell row of display labels; empty input restores defaults
+        isubcat % Double row of wavelengths in nm; NaN encodes spaces
     end
     properties (SetAccess = private)
         nrows = 0 % Significant rows derived from pixels
@@ -73,6 +76,8 @@ classdef ImageHeader
         displayLevel = NaN
         defaultDisplayLevel = 1
         comments = repmat(' ', 0, 80)
+        bandRepresentations = cell(1,0)
+        bandWavelengths = zeros(1,0)
     end
     methods
         function obj = ImageHeader(options) %#codegen
@@ -82,6 +87,7 @@ classdef ImageHeader
             end
             if isfield(options, 'iid1'), obj.iid1 = options.iid1; end
             if isfield(options, 'idatim'), obj.idatim = options.idatim; end
+            if isfield(options, 'tgtid'), obj.tgtid = options.tgtid; end
             if isfield(options, 'iid2'), obj.iid2 = options.iid2; end
             if isfield(options, 'isorce'), obj.isorce = options.isorce; end
             if isfield(options, 'isclas'), obj.isclas = options.isclas; end
@@ -97,6 +103,36 @@ classdef ImageHeader
             if isfield(options, 'icords'), obj.icords = options.icords; end
             if isfield(options, 'igeolo'), obj.igeolo = options.igeolo; end
             if isfield(options, 'icom'), obj.icom = options.icom; end
+            if isfield(options, 'irepband'), obj.irepband = options.irepband; end
+            if isfield(options, 'isubcat'), obj.isubcat = options.isubcat; end
+        end
+        function value = get.irepband(obj) %#codegen
+            %get.irepband - Resolve default display labels from representation
+            value = obj.bandRepresentations;
+            if isempty(value)
+                value = repmat({''},1,obj.bandCount);
+                if strcmp(obj.irep,'MONO'), value = repmat({'M'},1,obj.bandCount); end
+                if strcmp(obj.irep,'RGB') && obj.bandCount == 3, value = {'R','G','B'}; end
+            end
+        end
+        function obj = set.irepband(obj,value) %#codegen
+            %set.irepband - Preserve a cell row of supplied band display labels
+            if ~iscell(value) || ~(isrow(value) || isequal(size(value),[0 0])) || numel(value) > 99999
+                error('nfx:BandRepresentations','Expected a cell row of band display labels.');
+            end
+            for k = 1:numel(value), mustBeAscii(value{k},2); end
+            obj.bandRepresentations = value;
+        end
+        function value = get.isubcat(obj) %#codegen
+            %get.isubcat - Resolve unspecified band wavelengths to blank fields
+            value = obj.bandWavelengths;
+            if isempty(value), value = NaN(1,obj.bandCount); end
+        end
+        function obj = set.isubcat(obj,value) %#codegen
+            %set.isubcat - Preserve nonnegative double wavelengths in nanometers
+            mustBeGLASMatrix(value,1,99999,999999);
+            if any(value < 0), error('nfx:BandWavelengths','Wavelengths must be nonnegative doubles or NaN.'); end
+            obj.bandWavelengths = value;
         end
         function value = get.abpp(obj) %#codegen
             %get.abpp - Resolve default significant-bit count
@@ -207,8 +243,26 @@ classdef ImageHeader
                 (multi && any(strcmp(obj.icat, multiCategories)));
             report = addIssue(report, ~categoryValid, 'Category', 'icat', ...
                 'Select an image category allowed for IREP by JBP Table 5.13-3.', reference);
+            labels = obj.irepband; wavelengths = obj.isubcat;
+            report = addIssue(report,numel(labels) ~= obj.bandCount || numel(wavelengths) ~= obj.bandCount, ...
+                'BandMetadataCount','irepband/isubcat','Provide one label and wavelength per band, or use empty defaults.',reference);
+            for k = 1:numel(labels), labels{k} = strtrim(char(labels{k})); end
+            legal = false;
+            if mono, legal = all(ismember(labels,{'M',''})); end
+            if rgb, legal = numel(labels) == 3 && all(ismember({'R','G','B'},labels)); end
+            if multi, legal = all(ismember(labels,{'M','R','G','B','N',''})); end
+            legal = legal && sum(strcmp(labels,'R')) <= 1 && sum(strcmp(labels,'G')) <= 1 && sum(strcmp(labels,'B')) <= 1;
+            report = addIssue(report,~legal,'BandRepresentation','irepband', ...
+                'Use display labels allowed by IREP, with each RGB label at most once; LUT bands are unsupported.',reference);
+            for k = 1:numel(wavelengths)
+                if ~isnan(wavelengths(k))
+                    encoded = str2double(char(bandDecimal(wavelengths(k),6)));
+                    report = addIssue(report,wavelengths(k) ~= 0 && encoded == 0,'BandWavelengthPrecision','isubcat', ...
+                        'A nonzero wavelength must remain nonzero in its six-byte decimal field.',reference);
+                end
+            end
         end
-        function value = bytes(obj, extensions, overflow) %#codegen
+        function value = bytes(obj, extensions, overflow, user, userOverflow) %#codegen
             %BYTES - Serialize the image subheader
             %   VALUE = BYTES(OBJ) returns a validated uint8 subheader.
             %
@@ -218,11 +272,13 @@ classdef ImageHeader
                 obj (1,1) nfx.ImageHeader
                 extensions (1,:) uint8 = zeros(1, 0, 'uint8')
                 overflow {mustBeMetadata(overflow, 0, 999, 1), mustBeFinite} = 0
+                user (1,:) uint8 = zeros(1,0,'uint8')
+                userOverflow {mustBeMetadata(userOverflow,0,999,1), mustBeFinite} = 0
             end
             requireValid(validate(obj));
             area = extensionBytes(extensions, overflow, 99985);
             value = [uint8(obj.im) textField(obj.iid1, 10) ...
-                textField(obj.idatim, 14) textField('', 17) textField(obj.iid2, 80) ...
+                textField(obj.idatim, 14) textField(obj.tgtid, 17) textField(obj.iid2, 80) ...
                 uint8('U') textField('', 166) uint8('0') textField(obj.isorce, 42) ...
                 decimalField(obj.nrows, 8, 0, false) decimalField(obj.ncols, 8, 0, false) ...
                 uint8(obj.pvtype) textField(obj.irep, 8) textField(obj.icat, 8) ...
@@ -234,21 +290,18 @@ classdef ImageHeader
                 value = [value decimalField(obj.bandCount, 5, 0, false)];
             end
             bandBytes = zeros(1, 13*obj.bandCount, 'uint8');
+            labels = obj.irepband; wavelengths = obj.isubcat;
             for k = 1:obj.bandCount
-                representation = ' ';
-                if strcmp(obj.irep, 'MONO'), representation = 'M'; end
-                if strcmp(obj.irep, 'RGB')
-                    colors = 'RGB';
-                    representation = colors(k);
-                end
-                bandBytes(13*k-12:13*k) = [textField(representation, 2) textField('', 6) uint8('N   0')];
+                wavelength = textField('',6);
+                if ~isnan(wavelengths(k)), wavelength = bandDecimal(wavelengths(k),6); end
+                bandBytes(13*k-12:13*k) = [textField(labels{k}, 2) wavelength uint8('N   0')];
             end
             value = [value bandBytes uint8('0B') ...
                 decimalField(obj.nbpr, 4, 0, false) decimalField(obj.nbpc, 4, 0, false) ...
                 decimalField(obj.nppbh, 4, 0, false) decimalField(obj.nppbv, 4, 0, false) ...
                 decimalField(obj.nbpp, 2, 0, false) decimalField(obj.idlvl, 3, 0, false) ...
                 decimalField(obj.ialvl, 3, 0, false) decimalField(obj.iloc(1), 5, 0, false) ...
-                decimalField(obj.iloc(2), 5, 0, false) uint8('1.0 ') uint8('00000') area];
+                decimalField(obj.iloc(2), 5, 0, false) uint8('1.0 ') extensionBytes(user,userOverflow,99985) area];
         end
     end
     methods (Access = ?nfx.ImageSegment)

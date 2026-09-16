@@ -105,13 +105,13 @@ function valid = leafLegal(tag,payload,scope,aggregate,asynchronous) %#codegen
     switch tag
         case {'RPC00B','CSCRNA','ICHIPB','MTIMSA','BANDSB','HISTOA','ACFTB ','AIMIDB', ...
                 'SENSRB','RSMIDA','RSMPCA','RSMPIA','RSMGGA','RSMGIA','RSMAPB','RSMECB','RSMDCB', ...
-                'CSEXRB','CSRLSB','CSWRPB'}
+                'CSRLSB','CSWRPB'}
             valid = scope == 2 && ~aggregate;
         case 'FCRNSA'
             valid = scope == 2 || any(payload(1) == uint8('YN'));
         case {'MIMCSA','CSDIDA','TMINTA','CAMSDA','MTIMFA','MICIDA'}
             valid = scope == 1;
-        case {'MATESA','ILLUMB','FREESA'}
+        case {'MATESA','ILLUMB','FREESA','CSEXRB'}
             valid = true;
     end
 end

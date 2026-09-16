@@ -1,0 +1,6 @@
+function value = fixtureCSATTB()
+    %fixtureCSATTB - Supply two known JPL quaternions and exact timing
+    value = nfx.CSATTB(uuid='20000000-0000-4000-8000-000000000001',aisdlvl=1, ...
+        qual_flag_att=1,interp_type_att=0,att_type=1,eci_ecf_att=1,dt_att=0.1, ...
+        date_att='20260915',t0_att='123456.123456789',q1=[0 0],q2=[0 0],q3=[0 0.6],q4=[1 0.8]);
+end
