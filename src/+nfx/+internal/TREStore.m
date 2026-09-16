@@ -77,7 +77,7 @@ classdef (Hidden) TREStore
             %modelAreas - Fill extended then user areas for GLAS/GFM metadata
             %   Each area retains a whole-record prefix. An indivisible record
             %   that exceeds the area capacity remains in the overflow suffix.
-            overflowUser = any(ismember({obj.records.tag},{'CSEXRB','CSRLSB','CSWRPB'}));
+            overflowUser = containsGLAS(obj.records);
             user = zeros(1,0,'uint8');
             if ~overflowUser
                 [extended,overflow] = areas(obj,capacity); return
@@ -92,6 +92,25 @@ classdef (Hidden) TREStore
             extended = encode(obj.records(1:first),sum(lengths(1:first)));
             user = encode(obj.records(first+1:last),sum(lengths(first+1:last)));
             overflow = encode(obj.records(last+1:end),sum(lengths(last+1:end)));
+        end
+    end
+end
+
+function value = containsGLAS(records) %#codegen
+    %containsGLAS - Recognize model leaves inside validated metadata wrappers
+    value = false;
+    for k = 1:numel(records)
+        data = records(k).payload; tag = records(k).tag; first = 1; last = numel(data);
+        while true
+            if any(strcmp(tag,{'CSEXRB','CSRLSB','CSWRPB'})), value = true; return; end
+            if strcmp(tag,'FSYNWA'), at = first+18;
+            elseif strcmp(tag,'FASYWA'), at = first+48;
+            elseif strcmp(tag,'CONTXA'), at = first+7+str2double(char(data(first+3:first+6)));
+            else, at = last+1;
+            end
+            if at > numel(data), break; end
+            tag = char(data(at:at+5)); length = str2double(char(data(at+6:at+10)));
+            first = at+11; last = first+length-1;
         end
     end
 end

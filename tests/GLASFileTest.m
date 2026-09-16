@@ -158,13 +158,13 @@ classdef GLASFileTest < NfxTest
             for k = 0:7, field = sprintf('tele_trans_t%d',k); s.telescope.(field) = s.telescope.(field)(1); end
             file = nfx.File(header=base.header)+(image+x)+a+e+s+c; t.verifyTrue(file.validate().valid);
         end
-        function duplicateModelsAndUnresolvedFrameContextsFailHonestly(t)
+        function duplicateModelsAndMissingFrameTimingFailHonestly(t)
             [base,image,x,a,e,s,c] = fixtureGLASFile('F');
             file = nfx.File(header=base.header)+(image+x+x)+a+e+s+c; verifyIssue(t,file,'GLASMultiplicity');
             x.time_stamp_loc = 1; x.number_frames = NaN; x.base_timestamp = '';
             file = nfx.File(header=base.header)+(image+x)+a+e+s+c; verifyIssue(t,file,'GLASFrameTiming');
             wrapper = nfx.FSYNWA(); wrapper = wrapper+x;
-            file = nfx.File(header=base.header)+(image+wrapper)+a+e+s+c; verifyIssue(t,file,'GLASContextPending');
+            file = nfx.File(header=base.header)+(image+wrapper)+a+e+s+c; verifyIssue(t,file,'GLASFrameTiming');
         end
         function externalFrameTimingSuppliesTheModelCount(t)
             [base,image,x,a,e,s,c] = fixtureGLASFile('F'); x.time_stamp_loc = 1; x.number_frames = NaN; x.base_timestamp = '';

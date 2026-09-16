@@ -208,11 +208,11 @@ classdef RSMSetTest < NfxTest
             image = baseImage()+fixtureRSMIdentification()+fixturePolynomial()+adjustment+direct;
             t.verifyTrue(image.validate().valid);
         end
-        function wrappedModelsRequireEffectiveContextResolution(t)
+        function wrappedModelsResolveTheirEffectiveCompanions(t)
             wrapper = nfx.FSYNWA()+fixtureRSMIdentification()+fixturePolynomial();
-            image = baseImage()+wrapper; t.verifyFalse(image.validate().valid);
+            image = baseImage()+wrapper; t.verifyTrue(image.validate().valid);
             wrapper = nfx.CONTXA(context_type='IS',index_list='1')+fixtureRSMIdentification()+fixturePolynomial();
-            file = wrapFile(baseImage())+wrapper; t.verifyFalse(file.validate().valid);
+            file = wrapFile(baseImage())+wrapper; t.verifyTrue(file.validate().valid);
         end
     end
 end

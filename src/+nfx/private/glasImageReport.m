@@ -1,6 +1,6 @@
 function report = glasImageReport(records,header) %#codegen
     %glasImageReport - Check image-local model and exploitation relationships
-    report = wrappedGLASReport(records); names = {records.tag};
+    report = newReport('GLAS/GFM image associations'); names = {records.tag};
     exploitation = find(strcmp(names,'CSEXRB')); rolling = find(strcmp(names,'CSRLSB')); warping = find(strcmp(names,'CSWRPB'));
     report = glasIssue(report,numel(exploitation) > 1 || numel(rolling) > 1 || numel(warping) > 1, ...
         'GLASMultiplicity','tre_ids','Supply at most one unwrapped record of each GLAS/GFM TRE type per image context.');

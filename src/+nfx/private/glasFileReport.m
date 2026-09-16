@@ -1,6 +1,6 @@
 function report = glasFileReport(fileRecords,images,des,positions) %#codegen
     %glasFileReport - Bind verified sensor DESs to current image contexts
-    report = wrappedGLASReport(fileRecords);
+    report = newReport('GLAS/GFM file associations');
     report = glasIssue(report,sum(strcmp({fileRecords.tag},'CSEXRB')) > 1, ...
         'GLASMultiplicity','CSEXRB','The file header permits at most one CSEXRB record.');
     info = repmat(glasDESInfo(nfx.DESSegment()),1,numel(des));
@@ -44,13 +44,16 @@ function report = glasFileReport(fileRecords,images,des,positions) %#codegen
         for j = 1:numel(owners)
             unchipped(j) = ~any(strcmp({images(owners(j)).tre_records.tag},'ICHIPB'));
         end
-        owners = owners(unchipped); planePosition = [0 0];
+        owners = owners(unchipped);
+        % Frame contexts from the same stored segment have one raster origin.
+        [~,distinct] = unique(levels(owners),'stable'); owners = owners(distinct);
+        planePosition = [0 0];
         if ~isempty(owners), planePosition = positions(entry.owner,:)-min(positions(owners,:),[],1); end
         report = geometry(report,plane,records,h,positions(entry.owner,:),planePosition,numel(owners) > 1);
         frames = plane.frames; timing = find(strcmp({records.tag},'MTIMSA'));
         if plane.timeLocation == 1 && isscalar(timing), frames = integer4(records(timing).payload(145:148)); end
         if plane.sensor == 'F' && isfinite(frames)
-            report = glasIssue(report,frames ~= size(image.data,4),'GLASFrameCount','CSEXRB/MTIMSA.number_frames', ...
+            report = glasIssue(report,frames ~= image.number_frames,'GLASFrameCount','CSEXRB/MTIMSA.number_frames', ...
                 'The effective model frame count must match the stored frame array.');
         end
         for d = linked

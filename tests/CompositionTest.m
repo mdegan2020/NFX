@@ -1,7 +1,7 @@
 classdef CompositionTest < NfxTest
     properties (TestParameter)
         badPixels = {ones(2), single(ones(2)), int16(ones(2)), true(2), ...
-            sparse(eye(2)), zeros(2,2,2,2,'uint8'), '123', ones(2)*1i}
+            sparse(eye(2)), zeros(2,2,2,2,2,'uint8'), '123', ones(2)*1i}
     end
     methods (Test)
         function rejectPixelConversions(t, badPixels)

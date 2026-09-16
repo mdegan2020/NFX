@@ -30,6 +30,9 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `FieldAlignmentTest`, `TelescopeOpticsTest` | Scanner pairs, framing grids, calibration/homography arrays, per-frame/time transforms, focal/time counts, ordering and conditional fields |
 | `GLASCorrelationTest`, `SensorErrorGroupTest`, `CalibrationErrorTest`, `CovarianceDESTest` | All covariance allocations, correction posts, five time-sync layouts, upper triangles, unmodeled grids, SPDCF families/weights, internal references, direct adjustments and current reserved-area bytes |
 | `GLASContainerTest`, `GLASFileTest`, `ImageBandFieldsTest` | Extended/user/overflow area order, preserved records, typed snapshots, forward/display/shared UUID associations, original/chipped geometry, band units/identities, warping, frame counts, target fields, generic partial models and reader round trips |
+| `MotionStorageTest`, `MotionBlockTest` | B/F/T frame order, exact block bytes and padding, native types, motion complexity limits, uint64 products beyond native range, calendar rollover and block boundaries |
+| `MIECollectionTest`, `MIEManifestTest`, `MIEQuicklookTest` | Runtime cameras/layers/intervals, deterministic file names, complete shared catalogs, FILE001/002 reconstruction, missing blocks, supplied quick looks, full preflight and partial-publication recovery diagnostics |
+| `FrameContextTest`, `CollectionContextTest` | Physical byte precedence across inline/user/overflow areas, exact asynchronous times, image/frame/collection index bounds, wrapped RSM/GLAS models, foreign manifest metadata, snapshot integrity and ambiguous cross-file override rejection |
 
 `helpers/inspectNITF.m` independently parses fixed specification offsets and reconstructs pixels without calling NFX serialization or layout helpers. Fixture RPC values are synthetic; these tests establish encoding behavior, not camera-model accuracy or general NITF/SNIP conformance.
 
@@ -41,6 +44,8 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 
 GLAS/GFM tests use literal field expectations, `inspectCSEXRB`, a separate full-covariance cursor oracle, and complete file reconstruction through `inspectContainer`. The latter walks both user-defined and extended areas and verifies each overflow owner. Tests include scanner/framer products and a standalone synthetic example. They do not evaluate GSET/PMA/DGA scientific conformance or geolocation accuracy. The optional current CSCSDB adjustment-correlation area is tested against its explicit byte-count markers; the contradictory packing/minimum-length statements remain documented and cannot establish profile conformance.
 
+`helpers/decodeMotion.m` reconstructs native motion frames from literal NITF offsets and an independent block/frame/band loop. Motion tests use exact small byte strings and multiple native types; MATLAB reader round trips cover still and quick-look products because the legacy reader does not establish multi-frame MIE correctness. Timing expectations include separately calculated integer products above 2^53 and UINT64_MAX. The large manifest case reconstructs 420 complete filename entries across multiple text segments. A real read-only later destination exercises partial publication while preserving the prior manifest.
+
 ## Coverage review
 
 Coverage reports include every implementation file under `src/`, including private helpers. Inspect `coverage/html/index.html` and `coverage/cobertura.xml` after a run. No coverage exclusions are applied.
@@ -50,7 +55,7 @@ Known defensive paths that are not exercised by the normal public file workflow:
 - Attachment-ID exhaustion at `flintmax`: exercising it would require approximately nine quadrillion attachments/removals. IDs are private and are not weakened for testing.
 - The private decimal formatter's width guard: public metadata validators constrain values to their encoded widths. It remains a last check against an internal regression.
 
-The GLAS/GFM milestone's 921-test run measured 7,090 of 7,120 executable lines (99.58%). All new GLAS/GFM executable lines were covered. The 30 remaining uncovered lines predate the milestone and include defensive private-format guards, metadata getter/constructor alternatives, and a few invalid text/registry branches. MICIDA checks use all ten published MISB ST 1204.3 Appendix E examples and an independent Table 14 permutation oracle. Complete collection associations and profile enforcement are separate later milestones.
+The MIE milestone's final 985-test run measured 8,012 of 8,047 executable lines (99.57%). The 35 remaining uncovered lines include the existing defensive private-format/attachment guards, metadata constructor alternatives, and several new invalid-template/manifest-limit or missing-asynchronous-timing branches. Focused tests cover exact frame bytes, calendar and native-integer boundaries, wrapper scope/precedence, complete collection references, missing blocks, and protected publication; a high line percentage does not establish every combination of those conditions. The independent review also verified camera-root inheritance across time intervals after its correction. MICIDA checks retain all ten published MISB ST 1204.3 Appendix E examples and an independent Table 14 permutation oracle. Explicit profile enforcement is the next milestone.
 
 Review branches as well as line percentages: a one-line conditional can count as covered even when its body was skipped. Tests cover valid/invalid reports, native uint8/uint16 paths, block/representation choices, and the filesystem error paths above. Measured decision/condition coverage requires the separately licensed [MATLAB Test coverage metrics](https://www.mathworks.com/help/matlab/ref/matlab.unittest.plugins.codecoverageplugin.forfolder.html), which are unavailable in the development installation. Platform crashes, power loss, and simultaneous publication by other processes are not simulated; publication is not claimed to be a crash-safe transaction.
 
@@ -63,13 +68,13 @@ addpath('tests');
 observations = measureMemory();
 ```
 
-This creates an 8192 × 8192 uint16 image (128 MiB), observes process memory before/after attachment, metadata/TRE edits, file composition, validation, and writing, then removes its output. These observations can miss transient peaks and are not performance assertions. Pixel writes use block-sized native arrays and byte buffers; metadata operations do not intentionally copy or convert the whole image.
+This creates an 8192 Ã— 8192 uint16 image (128 MiB), observes process memory before/after attachment, metadata/TRE edits, file composition, validation, and writing, then removes its output. These observations can miss transient peaks and are not performance assertions. Pixel writes use block-sized native arrays and byte buffers; metadata operations do not intentionally copy or convert the whole image.
 
 ## Release and Coder review
 
 The candidate was developed and tested with MATLAB R2026a Update 4 on Windows. R2023b is the target minimum but has not been executed. The test helper for open file handles uses `openedFiles` on R2024a+ and the earlier `fopen('all')` API on R2023b. No R2025a live-script format or newer argument syntax is required by implementation.
 
-Every implementation function/method carries generation intent; there are no implementation imports or extrinsic fallbacks. Native pixel types, homogeneous serialized TRE records, typed segment arrays, fixed coefficient vectors, explicit byte assembly, and ordinary validation structs avoid unnecessary image conversion. ABPP reductions use native blocks of at most 65,536 samples and cache their scalar statistics.
+Implementation retains generation intent, with no imports or extrinsic fallbacks. The host-only `publishCollection` helper isolates try/catch for precise partial-publication diagnostics; metadata, planning, validation and pixel/byte paths retain applicable annotations. Native pixel types, homogeneous serialized TRE records, typed segment arrays, fixed coefficient vectors, explicit byte assembly, and ordinary validation structs avoid unnecessary image conversion. ABPP reductions use native blocks of at most 65,536 samples and cache their scalar statistics.
 
 Compilation and generated-byte parity remain unverified because MATLAB Coder is unavailable. Specific remaining work:
 

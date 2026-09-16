@@ -115,7 +115,11 @@ classdef WrapperTest < NfxTest
             t.verifyFalse(segments.allowsPlacement('image'));
             encoded = segments.payload();
             t.verifyEqual(char(encoded(1:31)),'ISI00031-2CONTXA01062FRI00033-5');
-            file = fixtureFile()+segments;
+            [base,first] = fixtureMotion(zeros(5,7,1,5,'uint16'));
+            second = first.removeTRE(first.tre_ids(1));
+            [~,~,timing] = fixtureMotion(second.data); timing.image_seg_index = 2;
+            second = second+timing;
+            file = nfx.File(header=base.header)+first+second+segments;
             name = fullfile(t.folder,'contexts.ntf');
             file.write(name);
             parsed = inspectContainer(name);

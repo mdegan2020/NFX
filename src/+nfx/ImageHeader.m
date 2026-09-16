@@ -20,7 +20,7 @@ classdef ImageHeader
     %       nrows, ncols, nbpp        - Derived dimensions and sample width
     %       nbands, xbands            - Derived band-count fields
     %       nbpr, nbpc                - Derived block counts
-    %       im, pvtype, ic, imode     - Fixed encoding fields
+    %       im, pvtype, ic, imode     - Fixed or pixel-derived encoding
     %       idlvl, ialvl, iloc, imag  - Composite display placement
     %       icords, igeolo, icom     - Supplied corners and image comments
     %
@@ -61,16 +61,17 @@ classdef ImageHeader
         nbpr % Blocks per row
         nbpc % Blocks per column
         nicom % Number of image comments
+        imode % B for still images, F for monochrome motion, T otherwise
     end
     properties (Constant)
         im = 'IM' % Image subheader marker
         pvtype = 'INT' % Unsigned integer pixels
         ic = 'NC' % Uncompressed, unmasked imagery
-        imode = 'B' % Band interleaved by block
         imag = '1.0' % No display magnification
     end
     properties (Access = private)
         bandCount = 0
+        frameCount = 1
         significantBits = NaN
         stats = struct('bits', 1, 'trailing', 8)
         displayLevel = NaN
@@ -80,6 +81,14 @@ classdef ImageHeader
         bandWavelengths = zeros(1,0)
     end
     methods
+        function value = get.imode(obj) %#codegen
+            %get.imode - Select the supported native uncompressed ordering
+            value = 'B';
+            if obj.frameCount > 1
+                value = 'T';
+                if obj.bandCount == 1, value = 'F'; end
+            end
+        end
         function obj = ImageHeader(options) %#codegen
             %ImageHeader - Construct editable image metadata
             arguments
@@ -238,9 +247,11 @@ classdef ImageHeader
                 'OP','PAN','RD','SAR','SL','SWIR','TI','UV','VD','VIS','VNIR','XRAY'};
             rgbCategories = {'CP','EOVIS','DTV','LEG','MAP','OP','PAT','VIS','CCD','MS'};
             multiCategories = {'EOVIS','HS','LWIR','MS','MWIR','NIR','SWIR','UV','VNIR','CAVIS'};
-            categoryValid = (mono && any(strcmp(obj.icat, monoCategories))) || ...
-                (rgb && any(strcmp(obj.icat, rgbCategories))) || ...
-                (multi && any(strcmp(obj.icat, multiCategories)));
+            category = char(obj.icat);
+            if endsWith(category,'.M'), category = category(1:end-2); end
+            categoryValid = (mono && any(strcmp(category, monoCategories))) || ...
+                (rgb && any(strcmp(category, rgbCategories))) || ...
+                (multi && any(strcmp(category, multiCategories)));
             report = addIssue(report, ~categoryValid, 'Category', 'icat', ...
                 'Select an image category allowed for IREP by JBP Table 5.13-3.', reference);
             labels = obj.irepband; wavelengths = obj.isubcat;
@@ -296,7 +307,7 @@ classdef ImageHeader
                 if ~isnan(wavelengths(k)), wavelength = bandDecimal(wavelengths(k),6); end
                 bandBytes(13*k-12:13*k) = [textField(labels{k}, 2) wavelength uint8('N   0')];
             end
-            value = [value bandBytes uint8('0B') ...
+            value = [value bandBytes uint8('0') uint8(obj.imode) ...
                 decimalField(obj.nbpr, 4, 0, false) decimalField(obj.nbpc, 4, 0, false) ...
                 decimalField(obj.nppbh, 4, 0, false) decimalField(obj.nppbv, 4, 0, false) ...
                 decimalField(obj.nbpp, 2, 0, false) decimalField(obj.idlvl, 3, 0, false) ...
@@ -310,6 +321,7 @@ classdef ImageHeader
             obj.nrows = size(data, 1);
             obj.ncols = size(data, 2);
             obj.bandCount = size(data, 3);
+            obj.frameCount = size(data, 4);
             obj.nbpp = 8;
             if isa(data, 'uint16'), obj.nbpp = 16; end
             obj.stats = stats;

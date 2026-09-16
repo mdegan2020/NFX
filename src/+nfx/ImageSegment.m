@@ -3,7 +3,8 @@ classdef ImageSegment
     %   OBJ = ImageSegment creates an empty segment for incremental editing.
     %
     %   OBJ = ImageSegment(DATA) attaches dense real uint8 or uint16 pixels
-    %   in rows-by-columns-by-bands order without converting their class.
+    %   in rows-by-columns-by-bands-by-frames order without converting class.
+    %   Multiple frames require matching MTIMSA timing and a motion ICAT.
     %
     %   OBJ = ImageSegment(DATA,header=HEADER) also supplies image metadata.
     %   Derived fields always reflect DATA and current block dimensions.
@@ -24,7 +25,7 @@ classdef ImageSegment
     %   See also ImageHeader, RPC00B, File
 
     properties (Dependent)
-        data % Native rows-by-columns-by-bands pixels
+        data % Native rows-by-columns-by-bands-by-frames pixels
         header % Metadata with fresh derived fields
     end
     properties (Dependent, SetAccess = private)
@@ -33,6 +34,7 @@ classdef ImageSegment
         tre_records % Physical record snapshots, including logical attachment IDs
         lish % Serialized image header length
         li % Serialized padded pixel length
+        number_frames % Frame count derived from the fourth pixel dimension
     end
     properties (Access = private)
         pixels = zeros(0, 0, 'uint8')
@@ -99,7 +101,11 @@ classdef ImageSegment
             %get.li - Derive padded image byte length
             h = obj.header;
             value = h.nbpr * h.nbpc * h.nppbh * h.nppbv * ...
-                size(obj.pixels, 3) * (h.nbpp / 8);
+                size(obj.pixels, 3) * obj.number_frames * (h.nbpp / 8);
+        end
+        function value = get.number_frames(obj) %#codegen
+            %get.number_frames - Derive the stored frame count
+            value = size(obj.pixels,4);
         end
         function obj = plus(obj, tre) %#codegen
             %PLUS - Append a serialized TRE snapshot
@@ -130,6 +136,21 @@ classdef ImageSegment
             arguments
                 obj (1,1) nfx.ImageSegment
             end
+            report = validateStructure(obj);
+            [extended,user,overflow,~] = obj.store.modelAreas(99985);
+            item = struct('owner',1,'offset',0,'data',zeros(1,0,'uint8'));
+            areas = repmat(item,1,3);
+            areas(1).data = user; areas(2).data = extended; areas(2).offset = numel(user);
+            areas(3).data = overflow; areas(3).offset = numel(user)+numel(extended);
+            [contexts,child] = frameContexts(contextNodes(areas),obj);
+            report = mergeReport(report,child,'');
+            if child.valid, report = mergeReport(report,contextImageReport(contexts,obj),''); end
+        end
+    end
+
+    methods (Access = ?nfx.File)
+        function report = validateStructure(obj) %#codegen
+            %validateStructure - Check storage before resolving metadata contexts
             report = newReport('NITF 2.1 image segment');
             report = mergeReport(report, validate(obj.header), 'header.');
             reference = 'JBP 2025.1, 5.9 and 5.13; STDI-0002-1 App E, E.3.12';
@@ -137,14 +158,10 @@ classdef ImageSegment
                 'data', 'Attach a nonempty pixel array.', reference);
             report = addIssue(report, sum(strcmp({obj.store.records.tag}, 'RPC00B')) > 1, ...
                 'DuplicateRPC', 'tre_ids', 'Remove duplicate RPC00B attachments before writing.', reference);
-            report = mergeReport(report,rsmSetReport(obj.store.records,obj.header),'rsm.');
-            report = mergeReport(report,wrappedRSMReport(obj.store.records),'rsm.');
-            report = mergeReport(report,glasImageReport(obj.store.records,obj.header),'glas.');
+            report = mergeReport(report,motionImageReport(obj.store.records,obj.header,obj.number_frames),'motion.');
             report = addIssue(report, obj.li > 9999999998 || obj.lish > 999998, ...
                 'Length', 'li/lish', 'Image data or subheader exceeds its NITF length field.', reference);
         end
-    end
-    methods (Access = ?nfx.File)
         function value = subheader(obj, inline, overflow, user, userOverflow) %#codegen
             %SUBHEADER - Serialize the preflight-selected metadata areas
             value = bytes(obj.header, inline, overflow, user, userOverflow);
@@ -169,17 +186,19 @@ classdef ImageSegment
                 rows = (blockRow-1)*h.nppbv+1:min(blockRow*h.nppbv, h.nrows);
                 for blockCol = 1:h.nbpr
                     cols = (blockCol-1)*h.nppbh+1:min(blockCol*h.nppbh, h.ncols);
-                    for band = 1:size(obj.pixels, 3)
-                        % Transpose only this block, so linear storage is row-major.
-                        block = zeros(h.nppbh, h.nppbv, 'like', obj.pixels);
-                        block(1:numel(cols), 1:numel(rows)) = obj.pixels(rows, cols, band).';
-                        if isa(block, 'uint16')
-                            buffer = zeros(2, numel(block), 'uint8');
-                            buffer(1,:) = uint8(bitshift(block(:), -8));
-                            buffer(2,:) = uint8(bitand(block(:), uint16(255)));
-                            count = count + writeBytes(fid, buffer);
-                        else
-                            count = count + writeBytes(fid, block);
+                    for frame = 1:obj.number_frames
+                        for band = 1:size(obj.pixels, 3)
+                            % Transpose just this block for row-major storage.
+                            block = zeros(h.nppbh, h.nppbv, 'like', obj.pixels);
+                            block(1:numel(cols), 1:numel(rows)) = obj.pixels(rows, cols, band, frame).';
+                            if isa(block, 'uint16')
+                                buffer = zeros(2, numel(block), 'uint8');
+                                buffer(1,:) = uint8(bitshift(block(:), -8));
+                                buffer(2,:) = uint8(bitand(block(:), uint16(255)));
+                                count = count + writeBytes(fid, buffer);
+                            else
+                                count = count + writeBytes(fid, block);
+                            end
                         end
                     end
                 end

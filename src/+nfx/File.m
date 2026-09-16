@@ -35,6 +35,10 @@ classdef File
         imageValues
         desValues
         store = nfx.internal.TREStore()
+        contextIsBound = false
+        contextDirty = false
+        contextInheritance
+        contextDefinitions
     end
     methods
         function obj = File(options) %#codegen
@@ -58,6 +62,7 @@ classdef File
                 value (1,1) nfx.FileHeader
             end
             obj.headerValue = value;
+            obj.contextDirty = obj.contextIsBound;
         end
         function value = get.images(obj) %#codegen
             %get.images - Assign unused levels to images with automatic IDs
@@ -99,6 +104,7 @@ classdef File
                 obj (1,1) nfx.File
                 item (1,1)
             end
+            obj.contextDirty = obj.contextIsBound;
             if isa(item, 'nfx.ImageSegment')
                 if numel(obj.imageValues) >= 999
                     error('nfx:ImageCount', 'NITF permits at most 999 image segments.');
@@ -131,6 +137,7 @@ classdef File
                 id {mustBeMetadata(id, 1, 9007199254740991, 1), mustBeFinite}
             end
             obj.store = obj.store.remove(id);
+            obj.contextDirty = obj.contextIsBound;
         end
         function report = validate(obj, options) %#codegen
             %VALIDATE - Check all segments and their file-level relationships
@@ -144,21 +151,41 @@ classdef File
             [h, plan] = layout(obj);
             report = newReport('NITF 2.1');
             report = mergeReport(report, validate(h), 'header.');
-            report = mergeReport(report,wrappedRSMReport(obj.store.records),'rsm.');
+            report = addIssue(report,obj.contextDirty,'CollectionContextChanged','collection', ...
+                'Edit the source collection and replan after changing a file with inherited collection metadata.', ...
+                'NFX-MIE-NC1 collection snapshot integrity');
             reference = 'JBP 2025.1, 5.11 and 5.14';
             report = addIssue(report, h.numi+h.numt+h.numdes == 0, 'SegmentCount', ...
                 'images/texts/des', 'Attach at least one data segment.', reference);
             levels = zeros(1, h.numi);
             for k = 1:h.numi
                 levels(k) = plan.images(k).header.idlvl;
-                report = mergeReport(report, validate(plan.images(k)), sprintf('images(%d).', k));
+                report = mergeReport(report, validateStructure(plan.images(k)), sprintf('images(%d).', k));
             end
-            report = mergeReport(report,rsmFileReport(plan.images,plan.positions),'rsm.');
-            report = mergeReport(report,glasFileReport(obj.store.records,plan.images,plan.des,plan.positions),'glas.');
+            [contexts,child] = resolveContexts(obj,h,plan);
+            report = mergeReport(report,child,'');
+            if child.valid
+                report = mergeReport(report,contextImageReport(contexts,plan.images),'');
+                for c = 1:numel(contexts)
+                    report = mergeReport(report,glasHeaderContextReport(contexts(c).file_records,plan.des), ...
+                        sprintf('contexts(%.0f).file.',c));
+                end
+                views = contextViews(contexts,plan.images);
+                positions = plan.positions([contexts.image],:);
+                report = mergeReport(report,rsmFileReport(views,positions),'rsm.');
+                report = mergeReport(report,glasFileReport(obj.store.records,views,plan.des,positions),'glas.');
+            end
             report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
                 'images.header.idlvl', 'Display levels must be unique across all images.', reference);
             for k = 1:h.numi
                 parent = plan.images(k).header.ialvl;
+                timing = plan.images(k).tre_records;
+                for j = find(strcmp({timing.tag},'MTIMSA'))
+                    report = addIssue(report,str2double(char(timing(j).payload(1:3))) ~= k, ...
+                        'MotionSegmentIndex',sprintf('images(%d).MTIMSA',k), ...
+                        'MTIMSA image index must identify its owning segment.', ...
+                        'NGA.STND.0044 1.3.3, 6.9.2.3');
+                end
                 report = addIssue(report, parent ~= 0 && ~any(levels == parent), ...
                     'DisplayAttachment', sprintf('images(%d).header.ialvl', k), ...
                     'Attachment level must identify an image in this file.', reference);
@@ -166,6 +193,13 @@ classdef File
                     sprintf('images(%d).header.iloc', k), ...
                     'The absolute image position must remain in the nonnegative CCS quadrant.', ...
                     'JBP 2025.1, 4.5.2 requirements 008 and 009');
+                im = plan.images(k).header;
+                report = addIssue(report,h.clevel >= 51 && ...
+                    (max(plan.positions(k,:)+[im.nrows im.ncols]) > 99999999 || ...
+                    min(im.nrows,im.ncols) > 65536 || size(plan.images(k).data,3) > 999), ...
+                    'MotionComplexity',sprintf('images(%d)',k), ...
+                    'The image exceeds the supported MIE complexity-level limits.', ...
+                    'NGA.STND.0044 1.3.3, Table 15');
             end
             for k = 1:h.numt
                 report = mergeReport(report, validate(obj.texts(k)), sprintf('texts(%d).', k));
@@ -182,6 +216,29 @@ classdef File
                 report = addIssue(report, true, 'SNIPNotSupported', 'SNIP_COMPLIANT', ...
                     'SNIP validation and writing are not implemented.', 'NGA.STND.0072 SNIP');
             end
+        end
+        function [records,fileRecords] = effectiveTREs(obj,imageIndex,frameIndex) %#codegen
+            %effectiveTREs - Inspect effective image metadata in physical order
+            %   RECORDS = effectiveTREs(OBJ,IMAGEINDEX,FRAMEINDEX) returns
+            %   snapshots selected by wrappers and scalar override precedence.
+            %   Augment and partial-override records retain their wire order.
+            %   BYTE_OFFSET is zero based. FILE_INDEX is zero for this file,
+            %   or the source index in a captured MIECollection plan.
+            %   [RECORDS,FILERECORDS] also returns effective file-header TREs.
+            arguments
+                obj (1,1) nfx.File
+                imageIndex {mustBeMetadata(imageIndex,1,999,1),mustBeFinite}
+                frameIndex {mustBeMetadata(frameIndex,1,4294967295,1),mustBeFinite} = 1
+            end
+            if obj.contextDirty, error('nfx:CollectionContextChanged','Replan inherited metadata from the source collection.'); end
+            [h,plan] = layout(obj);
+            if imageIndex > numel(plan.images) || frameIndex > plan.images(imageIndex).number_frames
+                error('nfx:ContextBounds','Select an existing image and frame.');
+            end
+            [contexts,report] = resolveContexts(obj,h,plan);
+            requireValid(report);
+            selected = find([contexts.image] == imageIndex & [contexts.first] <= frameIndex & [contexts.last] >= frameIndex,1);
+            records = contexts(selected).records; fileRecords = contexts(selected).file_records;
         end
         function write(obj, filename, options) %#codegen
             %WRITE - Write a validated file with destination protection
@@ -244,7 +301,34 @@ classdef File
             clear cleanup
         end
     end
+    methods (Hidden)
+        function [nodes,catalog] = contextState(obj) %#codegen
+            %contextState - Expose immutable metadata for collection preflight
+            [h,plan] = layout(obj); nodes = contextNodes(contextAreas(h,plan));
+            catalog = contextCatalog(nodes,plan.images);
+        end
+    end
+    methods (Access = ?nfx.MIECollection)
+        function obj = bindContext(obj,input) %#codegen
+            %bindContext - Capture validated collection catalogs by value
+            obj.contextInheritance = input.nodes; obj.contextDefinitions = input.catalog;
+            obj.contextIsBound = true; obj.contextDirty = false;
+        end
+    end
     methods (Access = private)
+        function [contexts,report] = resolveContexts(obj,header,plan) %#codegen
+            %resolveContexts - Combine local bytes with captured foreign scopes
+            nodes = contextNodes(contextAreas(header,plan));
+            if obj.contextIsBound
+                inherited = obj.contextInheritance; count = numel(nodes);
+                for k = 1:numel(inherited)
+                    if inherited(k).parent > 0, inherited(k).parent = inherited(k).parent+count; end
+                end
+                [contexts,report] = frameContexts([nodes inherited],plan.images,obj.contextDefinitions);
+            else
+                [contexts,report] = frameContexts(nodes,plan.images);
+            end
+        end
         function [h, plan] = layout(obj) %#codegen
             %LAYOUT - Derive area placement and lengths without serializing pixels
             h = obj.headerValue;
@@ -270,6 +354,8 @@ classdef File
                     h.xhdlofl = numel(plan.des);
                 end
             end
+            plan.fileExtended = h.xhd; plan.fileUser = h.udhd;
+            plan.fileExtendedPresent = ~isempty(h.xhd) || h.xhdlofl ~= 0;
             h.lish = zeros(1, h.numi);
             h.li = zeros(1, h.numi);
             for k = 1:h.numi
@@ -373,6 +459,24 @@ function value = complexity(h, images, positions) %#codegen
     if extent > 8192 || h.numdes > 10 || h.fl >= 1073741824, value = max(value, 6); end
     if extent > 65536 || h.numdes > 50 || h.fl >= 2147483648, value = max(value, 7); end
     if h.numi > 100 || h.numt > 32 || h.numdes > 100 || h.fl >= 10737418240, value = 9; end
+    frames = zeros(1,numel(images));
+    for k = 1:numel(images), frames(k) = images(k).number_frames; end
+    if any(frames > 1), value = motionComplexity(h,images,positions); end
+end
+
+function value = motionComplexity(header,images,positions) %#codegen
+    %motionComplexity - Apply current MIE Table 15 to the complete file
+    value = 51;
+    if header.fl > 214748364800, value = 54; end
+    if header.fl > 429496729600, value = 57; end
+    for k = 1:numel(images)
+        h = images(k).header; extent = max(positions(k,:)+[h.nrows h.ncols]);
+        dimensions = [h.nrows h.ncols]; bands = size(images(k).data,3);
+        if extent > 8192 || max(dimensions) > 8192 || bands > 9, value = max(value,54); end
+        if extent > 65536 || max(dimensions) > 65536 || min(dimensions) > 32768 || bands > 255
+            value = 57;
+        end
+    end
 end
 
 function discardTemporary(filename) %#codegen
