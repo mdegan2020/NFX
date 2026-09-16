@@ -32,7 +32,7 @@ classdef (Hidden) TREStore
                 case 'nfx.FCRNSA'
                     legal = strcmp(owner, 'image') || ...
                         (any(strcmp(owner, {'file','text'})) && any(strcmp(tre.predict_corners, {'Y','N'})));
-                case {'nfx.MIMCSA','nfx.CSDIDA','nfx.TMINTA','nfx.CAMSDA','nfx.MTIMFA'}
+                case {'nfx.MIMCSA','nfx.CSDIDA','nfx.TMINTA','nfx.CAMSDA','nfx.MTIMFA','nfx.MICIDA'}
                     legal = strcmp(owner, 'file');
                 case {'nfx.MATESA','nfx.ILLUMB'}
                     legal = any(strcmp(owner, {'file','image'}));

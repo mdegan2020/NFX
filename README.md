@@ -68,7 +68,7 @@ TRE attachment preserves complete records and order. NFX uses an inline capacity
 | `BANDSB`, `ILLUMB` | Spectral characterization and illumination |
 | `HISTOA` with `HistoryEvent` | Chronological image processing history |
 | `CSCRNA`, `FCRNSA`, `ICHIPB`, `MATESA` | Corners, chip mapping, and related products |
-| `MIMCSA`, `CAMSDA`, `TMINTA`, `MTIMFA`, `MTIMSA` | Motion collection descriptions, camera sets, intervals, temporal blocks, and frame timing |
+| `MIMCSA`, `CAMSDA`, `MICIDA`, `TMINTA`, `MTIMFA`, `MTIMSA` | Motion collection descriptions, camera sets/core identifiers, intervals, temporal blocks, and frame timing |
 | `FSYNWA`, `FASYWA`, `CONTXA` | Frame, asynchronous time, and collection-context metadata wrappers |
 
 These definitions encode caller-supplied metadata. They do not calculate radiometry, illumination, aircraft state, sensor identity, or processing history. The pinned definitions use the supplied STDI-0002 appendices through 2025. Additional registry values absent from those publications are not assumed valid.
@@ -79,7 +79,17 @@ These definitions encode caller-supplied metadata. They do not calculate radiome
 
 Wrappers support ordered `+` snapshots and `removeTRE`, like their file and image owners. NFX validates supported nesting, effective file/image context, and payload bounds. Collection index membership, cross-file relationships, frame packing, and complete SNIP/MIE profile enforcement belong to the subsequent collection and profile milestones.
 
-`MICIDA` and current MIIS identifier validation are the remaining motion-definition work. The MISB ST 1204.3 reference has now been obtained; implementation and validation are pending before MIE collection/profile completion.
+`MICIDA` associates each supplied camera UUID with a MISB ST 1204.3 textual core identifier. It validates structure version 01, sensor/platform/window or minor-ID usage, UUID versions 1/4/5 and variant, and the two hexadecimal check digits. Counts and text lengths derive automatically. Each instance supports 1–999 cameras within 99,985 payload bytes; attach further instances as needed. Supplied letter case is preserved, while camera/core uniqueness checks ignore it.
+
+```matlab
+cameraID = '865efd9c-ef8a-41c3-8244-b885afcc40bf';
+platformID = 'ed8a9ab8-72e2-4165-9979-7e5af54a5b9a';
+coreID = nfx.MICIDA.coreIdentifier(120,{cameraID,platformID});
+identifiers = nfx.MICIDA(cameras=nfx.MICIDA.camera(cameraID,coreID));
+file = file + identifiers;
+```
+
+This example uses the published ST 1204.3 example IDs. Usage 120 (`0x78`) declares physical sensor and platform identifiers. The formatter takes canonical 8-4-4-4-12 UUIDs and emits MIIS's eight groups of four digits with its check value. It does not create identifiers or verify the source device, UUID generation method, or global uniqueness. Camera UUIDs need not equal a core identifier's sensor UUID. Collection-wide camera coverage and consistency are checked in the later MIE collection/profile work.
 
 ## Sensor metadata and time series
 
