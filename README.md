@@ -6,6 +6,12 @@ NFX writes NITF 2.1 files with multiple uncompressed blocked images, standard te
 
 Targets MATLAB R2023b and newer; tested locally on R2026a. Writing requires base MATLAB. Reader round-trip tests also require Image Processing Toolbox. No GDAL or NITRO dependency.
 
+An optional [OpenJPEG prototype](prototypes/openjpeg/README.md) adds Windows-only
+lossless NPJE/EPJE JPEG 2000 still-image segments. It requires the pinned
+OpenJPEG 2.5.4 executable for compression; writing captured segments needs no
+codec. This experimental path is outside the MATLAB Coder goal and the existing
+SNIP/MIE profile support. Run its tests with `runTests(OpenJPEG=encoder)`.
+
 ## Example
 
 Run from the repository root. These pixels, dates, and RPC parameters are **synthetic demonstration data**, not a fitted camera model.

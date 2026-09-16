@@ -80,6 +80,15 @@ Reference decisions:
 
 ## Coverage review
 
+Optional Windows codec tests run with `runTests(OpenJPEG=encoder)` or a supplied
+`NFX_OPENJPEG` environment variable. They use the pinned OpenJPEG 2.5.4 binary,
+an independent codestream marker oracle and MATLAB decoder round trips. The
+default runner explicitly excludes these tests when no encoder is configured.
+See [the prototype notes](../prototypes/openjpeg/README.md) for setup and scope.
+`observeOpenJPEG(encoder)` in `examples/` records synthetic timings, temporary
+byte counts and pre/post MATLAB memory; it does not measure transient peaks or
+encoder-process memory. These are observations, not portable resource bounds.
+
 Coverage reports include every implementation file under `src/`, including private helpers. Inspect `coverage/html/index.html` and `coverage/cobertura.xml` after a run. No coverage exclusions are applied.
 
 Known defensive paths that are not exercised by the normal public file workflow:

@@ -11,6 +11,10 @@ classdef (Hidden) TREStore
         tags
     end
     methods
+        function obj = withJPEG2000(obj,payload)
+            %withJPEG2000 - Append a derived record with reserved identity zero
+            obj.records(end+1) = struct('tag','J2KLRA','payload',payload,'id',0);
+        end
         function value = get.ids(obj) %#codegen
             %get.ids - Return logical identities in insertion order
             value = unique([obj.records.id], 'stable');

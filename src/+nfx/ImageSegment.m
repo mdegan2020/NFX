@@ -13,6 +13,8 @@ classdef ImageSegment
     %       plus      - Append a validated TRE snapshot
     %       removeTRE - Remove one attachment by its ID
     %       validate  - Check header, data, and attached TREs
+    %       compress  - Capture an experimental lossless OpenJPEG encoding
+    %       uncompress - Restore native uncompressed storage
     %
     %   ImageSegment properties:
     %       data     - Native pixel array
@@ -20,7 +22,10 @@ classdef ImageSegment
     %       tre_ids  - Attachment IDs in insertion order
     %       tre_tags - Six-character tags in insertion order
     %       lish     - Derived subheader byte length
-    %       li       - Derived padded image byte length
+    %       li       - Derived stored image byte length
+    %       tre_records - Physical snapshots, including derived records
+    %       number_frames - Frame count in the native pixel array
+    %       compression - Immutable JPEG2000 snapshot, or empty
     %
     %   See also ImageHeader, RPC00B, File
 
@@ -33,14 +38,16 @@ classdef ImageSegment
         tre_tags % Ordered tags, one row per attachment
         tre_records % Physical record snapshots, including logical attachment IDs
         lish % Serialized image header length
-        li % Serialized padded pixel length
+        li % Serialized padded pixel or compressed codestream length
         number_frames % Frame count derived from the fourth pixel dimension
+        compression % Immutable JPEG2000 snapshot, or empty for NC storage
     end
     properties (Access = private)
         pixels = zeros(0, 0, 'uint8')
         headerValue
         store = nfx.internal.TREStore()
         stats = struct('bits', 1, 'trailing', 8)
+        compressed = nfx.JPEG2000.empty(1,0)
     end
     methods
         function obj = ImageSegment(data, options) %#codegen
@@ -62,10 +69,12 @@ classdef ImageSegment
             mustBePixels(value);
             obj.pixels = value;
             obj.stats = pixelStatistics(value);
+            obj.compressed = nfx.JPEG2000.empty(1,0);
         end
         function value = get.header(obj) %#codegen
             %get.header - Derive structural fields on access
             value = derive(obj.headerValue, obj.pixels, obj.stats);
+            if ~isempty(obj.compressed), value = withJPEG2000(value,obj.compressed.comrat); end
         end
         function obj = set.header(obj, value) %#codegen
             %set.header - Replace editable image metadata
@@ -85,27 +94,66 @@ classdef ImageSegment
         end
         function value = get.tre_records(obj) %#codegen
             %get.tre_records - Return physical snapshots for inspection
-            value = obj.store.records;
+            snapshots = effectiveStore(obj);
+            value = snapshots.records;
         end
         function value = get.lish(obj) %#codegen
             %get.lish - Derive the subheader length with whole-record overflow
-            [inline, user, overflow, overflowUser] = obj.store.modelAreas(99985);
+            snapshots = effectiveStore(obj);
+            [inline, user, overflow, overflowUser] = snapshots.modelAreas(99985);
             h = obj.header;
             bands = size(obj.pixels, 3);
             value = 426 + 13*bands + 5*(bands > 9) + ...
                 60*~strcmp(h.icords, ' ') + 80*h.nicom + numel(inline) + numel(user) + ...
                 3*(~isempty(inline) || (~isempty(overflow) && ~overflowUser)) + ...
-                3*(~isempty(user) || (~isempty(overflow) && overflowUser));
+                3*(~isempty(user) || (~isempty(overflow) && overflowUser)) + ...
+                4*~isempty(obj.compressed);
         end
         function value = get.li(obj) %#codegen
             %get.li - Derive padded image byte length
             h = obj.header;
+            if ~isempty(obj.compressed), value = numel(obj.compressed.codestream); return; end
             value = h.nbpr * h.nbpc * h.nppbh * h.nppbv * ...
                 size(obj.pixels, 3) * obj.number_frames * (h.nbpp / 8);
         end
         function value = get.number_frames(obj) %#codegen
             %get.number_frames - Derive the stored frame count
             value = size(obj.pixels,4);
+        end
+        function value = get.compression(obj)
+            %get.compression - Return the immutable encoding snapshot
+            value = obj.compressed;
+        end
+        function obj = compress(obj, encoder, options)
+            %COMPRESS - Capture an experimental OpenJPEG lossless codestream
+            %   OBJ = COMPRESS(OBJ,ENCODER) selects NPJE using the supplied
+            %   OpenJPEG 2.5.4 Windows executable. Native pixels remain in DATA.
+            %
+            %   OBJ = COMPRESS(...,Profile=VALUE) selects NPJE or EPJE. Still,
+            %   right-justified images with 1024-square blocks are supported.
+            %   ABPP and NBPP both describe native codestream precision. Pixel
+            %   edits restore NC storage; other encoding edits need validation.
+            arguments
+                obj (1,1) nfx.ImageSegment
+                encoder {mustBeTextScalar, mustBeNonzeroLengthText}
+                options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
+            end
+            requireValid(validate(obj));
+            h = obj.header;
+            if obj.number_frames ~= 1 || ~strcmp(h.pjust,'R') || h.nppbh ~= 1024 || h.nppbv ~= 1024 || ...
+                    endsWith(char(h.icat),'.M') || any(strcmp({obj.store.records.tag},'MTIMSA'))
+                error('nfx:JPEG2000Scope','Compression requires still, right-justified imagery and 1024-square blocks.');
+            end
+            obj.compressed = nfx.JPEG2000(obj.pixels,encoder,Profile=options.Profile);
+        end
+        function obj = uncompress(obj)
+            %UNCOMPRESS - Restore uncompressed storage from retained pixels
+            %   OBJ = UNCOMPRESS(OBJ) drops the codestream and derived J2KLRA.
+            %   DATA is unchanged and no decoder or executable is required.
+            arguments
+                obj (1,1) nfx.ImageSegment
+            end
+            obj.compressed = nfx.JPEG2000.empty(1,0);
         end
         function obj = plus(obj, tre) %#codegen
             %PLUS - Append a serialized TRE snapshot
@@ -137,7 +185,8 @@ classdef ImageSegment
                 obj (1,1) nfx.ImageSegment
             end
             report = validateStructure(obj);
-            [extended,user,overflow,~] = obj.store.modelAreas(99985);
+            snapshots = effectiveStore(obj);
+            [extended,user,overflow,~] = snapshots.modelAreas(99985);
             item = struct('owner',1,'offset',0,'data',zeros(1,0,'uint8'));
             areas = repmat(item,1,3);
             areas(1).data = user; areas(2).data = extended; areas(2).offset = numel(user);
@@ -153,6 +202,12 @@ classdef ImageSegment
             %validateStructure - Check storage before resolving metadata contexts
             report = newReport('NITF 2.1 image segment');
             report = mergeReport(report, validate(obj.header), 'header.');
+            h = obj.header;
+            report = addIssue(report,~isempty(obj.compressed) && ...
+                (h.nppbh ~= 1024 || h.nppbv ~= 1024 || ~strcmp(h.pjust,'R') || obj.number_frames ~= 1 || ...
+                endsWith(char(h.icat),'.M') || any(strcmp({obj.store.records.tag},'MTIMSA'))), ...
+                'JPEG2000Snapshot','compression','Restore 1024-square blocks and right justification, or uncompress the image.', ...
+                'BPJ2K01.20, Table 8-2 and Appendices D/E');
             reference = 'JBP 2025.1, 5.9 and 5.13; STDI-0002-1 App E, E.3.12';
             report = addIssue(report, isempty(obj.pixels), 'PixelsRequired', ...
                 'data', 'Attach a nonempty pixel array.', reference);
@@ -168,7 +223,8 @@ classdef ImageSegment
         end
         function [inline, user, overflow, overflowUser] = areas(obj) %#codegen
             %AREAS - Partition whole records for the owning file
-            [inline, user, overflow, overflowUser] = obj.store.modelAreas(99985);
+            snapshots = effectiveStore(obj);
+            [inline, user, overflow, overflowUser] = snapshots.modelAreas(99985);
         end
         function value = explicitLevel(obj) %#codegen
             %explicitLevel - Return the caller's level or an automatic marker
@@ -181,6 +237,9 @@ classdef ImageSegment
         function count = writePixels(obj, fid) %#codegen
             %writePixels - Stream band-interleaved blocks in big-endian order
             h = obj.header;
+            if ~isempty(obj.compressed)
+                count = writeBytes(fid,obj.compressed.codestream); return
+            end
             count = 0;
             for blockRow = 1:h.nbpc
                 rows = (blockRow-1)*h.nppbv+1:min(blockRow*h.nppbv, h.nrows);
@@ -203,6 +262,13 @@ classdef ImageSegment
                     end
                 end
             end
+        end
+    end
+    methods (Access = private)
+        function store = effectiveStore(obj)
+            %effectiveStore - Append derived metadata without attachment IDs
+            store = obj.store;
+            if ~isempty(obj.compressed), store = store.withJPEG2000(obj.compressed.j2klra); end
         end
     end
 end

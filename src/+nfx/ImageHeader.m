@@ -21,6 +21,7 @@ classdef ImageHeader
     %       nbands, xbands            - Derived band-count fields
     %       nbpr, nbpc                - Derived block counts
     %       im, pvtype, ic, imode     - Fixed or pixel-derived encoding
+    %       comrat                   - Derived compressed bitrate
     %       idlvl, ialvl, iloc, imag  - Composite display placement
     %       icords, igeolo, icom     - Supplied corners and image comments
     %
@@ -54,6 +55,8 @@ classdef ImageHeader
         nrows = 0 % Significant rows derived from pixels
         ncols = 0 % Significant columns derived from pixels
         nbpp = 0 % Storage bits per sample derived from pixels
+        ic = 'NC' % NC storage, or C8 for a captured JPEG2000 codestream
+        comrat = '' % Derived Nxyz bitrate for compressed storage
     end
     properties (Dependent, SetAccess = private)
         nbands % Bands 1 through 9, or zero when XBANDS is present
@@ -66,7 +69,6 @@ classdef ImageHeader
     properties (Constant)
         im = 'IM' % Image subheader marker
         pvtype = 'INT' % Unsigned integer pixels
-        ic = 'NC' % Uncompressed, unmasked imagery
         imag = '1.0' % No display magnification
     end
     properties (Access = private)
@@ -146,6 +148,7 @@ classdef ImageHeader
         function value = get.abpp(obj) %#codegen
             %get.abpp - Resolve default significant-bit count
             value = obj.significantBits;
+            if strcmp(obj.ic,'C8'), value = obj.nbpp; return; end
             if isnan(value)
                 value = obj.stats.bits;
                 if strcmp(obj.pjust, 'L'), value = obj.nbpp; end
@@ -198,7 +201,7 @@ classdef ImageHeader
         end
         function report = validate(obj) %#codegen
             %VALIDATE - Check image metadata and derived layout
-            %   REPORT = VALIDATE(OBJ) checks the supported uncompressed
+            %   REPORT = VALIDATE(OBJ) checks the supported image
             %   encoding without changing metadata or pixels.
             arguments
                 obj (1,1) nfx.ImageHeader
@@ -296,7 +299,8 @@ classdef ImageHeader
                 decimalField(obj.abpp, 2, 0, false) textField(obj.pjust, 1) textField(obj.icords, 1)];
             if ~strcmp(obj.icords, ' '), value = [value textField(obj.igeolo, 60)]; end
             value = [value decimalField(obj.nicom, 1, 0, false) ...
-                reshape(uint8(obj.comments).', 1, []) uint8('NC') decimalField(obj.nbands, 1, 0, false)];
+                reshape(uint8(obj.comments).', 1, []) uint8(obj.ic) uint8(obj.comrat) ...
+                decimalField(obj.nbands, 1, 0, false)];
             if obj.bandCount > 9
                 value = [value decimalField(obj.bandCount, 5, 0, false)];
             end
@@ -325,6 +329,11 @@ classdef ImageHeader
             obj.nbpp = 8;
             if isa(data, 'uint16'), obj.nbpp = 16; end
             obj.stats = stats;
+            obj.ic = 'NC'; obj.comrat = '';
+        end
+        function obj = withJPEG2000(obj,comrat)
+            %withJPEG2000 - Derive compressed fields from a verified snapshot
+            obj.ic = 'C8'; obj.comrat = comrat;
         end
     end
     methods (Access = {?nfx.File, ?nfx.ImageSegment})

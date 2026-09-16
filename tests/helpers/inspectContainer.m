@@ -30,9 +30,11 @@ function result = inspectContainer(filename)
         at = at+1;
         f.icom = reshape(char(h(at:at+80*comments-1)),80,comments).';
         at = at+80*comments;
-        assert(strcmp(char(h(at:at+1)), 'NC'), 'oracle:Compression', 'Expected uncompressed.');
-        bands = number(h,at+2,1);
-        at = at+3;
+        f.ic = char(h(at:at+1)); at = at+2; f.comrat = '';
+        assert(any(strcmp(f.ic,{'NC','C8'})), 'oracle:Compression', 'Unsupported compression.');
+        if strcmp(f.ic,'C8'), f.comrat = char(h(at:at+3)); at = at+4; end
+        bands = number(h,at,1);
+        at = at+1;
         if bands == 0, bands = number(h,at,5); at = at+5; end
         f.bands = bands;
         at = at+13*bands;
