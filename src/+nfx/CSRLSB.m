@@ -24,6 +24,34 @@ classdef (Sealed) CSRLSB < nfx.TRE
         n_rs_row_blocks
         m_rs_column_blocks
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable CSRLSB value
+            %   [OBJ, OK, STATUS] = nfx.CSRLSB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also CSRLSB, CSRLSB.payload
+            arguments
+                data
+            end
+            obj = nfx.CSRLSB();
+            reader = nfx.internal.TREReader(data);
+            [rows, reader] = reader.number(2, 1, 99, true);
+            [columns, reader] = reader.number(2, 1, 99, true);
+            [values, reader] = reader.numbers(4 * rows * columns, 12, ...
+                -9999999999, 9999999999);
+            if reader.ok
+                obj.rs_dt_1 = reshape(values(1:4:end), columns, rows).';
+                obj.rs_dt_2 = reshape(values(2:4:end), columns, rows).';
+                obj.rs_dt_3 = reshape(values(3:4:end), columns, rows).';
+                obj.rs_dt_4 = reshape(values(4:4:end), columns, rows).';
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.CSRLSB());
+        end
+    end
     methods
         function obj = CSRLSB(options) %#codegen
             %CSRLSB - Construct editable rolling-shutter time blocks

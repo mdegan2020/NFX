@@ -22,6 +22,57 @@ classdef (Sealed) MIMCSA < nfx.TRE
         mi_req_profile {mustBeAscii(mi_req_profile, 36)} = ''
         mi_req_level {mustBeAscii(mi_req_level, 6)} = ''
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable MIMCSA value
+            %   [OBJ, OK, STATUS] = nfx.MIMCSA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also MIMCSA, MIMCSA.payload
+            arguments
+                data
+            end
+            obj = nfx.MIMCSA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(36, true, false);
+            if reader.ok
+                obj.layer_id = value;
+            end
+            [value, reader] = reader.ue13();
+            if reader.ok
+                obj.nominal_frame_rate = value;
+            end
+            [value, reader] = reader.ue13();
+            if reader.ok
+                obj.min_frame_rate = value;
+            end
+            [value, reader] = reader.ue13();
+            if reader.ok
+                obj.max_frame_rate = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 99, 1, false);
+            if reader.ok
+                obj.t_rset = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.mi_req_decoder = value;
+            end
+            [value, reader] = reader.text(36, true, false);
+            if reader.ok
+                obj.mi_req_profile = value;
+            end
+            [value, reader] = reader.text(6, true, false);
+            if reader.ok
+                obj.mi_req_level = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.MIMCSA());
+        end
+    end
     methods
         function obj = MIMCSA(options) %#codegen
             %MIMCSA - Construct editable collection summary metadata

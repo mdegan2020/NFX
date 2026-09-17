@@ -79,6 +79,271 @@ classdef (Sealed) CSEXRB < nfx.TRE
     properties (Access = private)
         deltaWidth = NaN
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable CSEXRB value
+            %   [OBJ, OK, STATUS] = nfx.CSEXRB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also CSEXRB, CSEXRB.payload
+            arguments
+                data
+            end
+            obj = nfx.CSEXRB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(36, true, false);
+            if reader.ok
+                obj.image_uuid = value;
+            end
+            [count, reader] = reader.count(3, 36, 999);
+            ids = cell(1, count);
+            for k = 1:count
+                [ids{k}, reader] = reader.text(36);
+            end
+            if reader.ok
+                obj.assoc_des_uuid = ids;
+            end
+            [value, reader] = reader.text(6, true, false);
+            if reader.ok
+                obj.platform_id = value;
+            end
+            [value, reader] = reader.text(6, true, false);
+            if reader.ok
+                obj.payload_id = value;
+            end
+            [value, reader] = reader.text(6, true, false);
+            if reader.ok
+                obj.sensor_id = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.sensor_type = value;
+            end
+            [value, reader] = reader.number( ...
+                12, -99999999.99, 99999999.99, 0, true);
+            if reader.ok
+                obj.ground_ref_point_x = value;
+            end
+            [value, reader] = reader.number( ...
+                12, -99999999.99, 99999999.99, 0, true);
+            if reader.ok
+                obj.ground_ref_point_y = value;
+            end
+            [value, reader] = reader.number( ...
+                12, -99999999.99, 99999999.99, 0, true);
+            if reader.ok
+                obj.ground_ref_point_z = value;
+            end
+            if strcmp(obj.sensor_type, 'S')
+                [value, reader] = reader.text(8, true, false);
+                if reader.ok
+                    obj.day_first_line_image = value;
+                end
+                [value, reader] = reader.number( ...
+                    15, 0, 86399.999999999, 0, false);
+                if reader.ok
+                    obj.time_first_line_image = value;
+                end
+                [value, reader] = reader.number( ...
+                    16, -86399.999999999, 86399.999999999, 0, false);
+                if reader.ok
+                    obj.time_image_duration = value;
+                end
+            elseif strcmp(obj.sensor_type, 'F')
+                [value, reader] = reader.number( ...
+                    1, 0, 1, 1, false);
+                if reader.ok
+                    obj.time_stamp_loc = value;
+                end
+                if obj.time_stamp_loc == 0
+                    [value, reader] = reader.number( ...
+                        9, 1, 999999999, 1, true);
+                    if reader.ok
+                        obj.reference_frame_num = value;
+                    end
+                    [value, reader] = reader.text(24, true, false);
+                    if reader.ok
+                        obj.base_timestamp = value;
+                    end
+                    [multiplier, reader] = reader.unsigned(8);
+                    [width, reader] = reader.unsigned(1);
+                    [frames, reader] = reader.unsigned(4);
+                    [count, reader] = reader.unsigned(4);
+                    if reader.ok
+                        if multiplier == 0 || frames == 0 || width < 1 || width > 8
+                            reader = reader.fail('InvalidNumber', ...
+                                'Invalid frame timing integer or byte width.');
+                        else
+                            [deltas, reader] = reader.unsigned( ...
+                                double(width), double(count));
+                            if reader.ok
+                                obj.dt_multiplier = multiplier;
+                                obj.dt_size = double(width);
+                                obj.number_frames = double(frames);
+                                obj.dt = deltas;
+                            end
+                        end
+                    end
+                end
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.max_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.along_scan_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.cross_scan_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.geo_mean_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.a_s_vert_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.c_s_vert_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 9999999999.9, 0, true);
+            if reader.ok
+                obj.geo_mean_vert_gsd = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 0, 180, 0, true);
+            if reader.ok
+                obj.gsd_beta_angle = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 0, 99999, 1, true);
+            if reader.ok
+                obj.dynamic_range = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 9999999, 1, false);
+            if reader.ok
+                obj.num_lines = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 0, 99999, 1, false);
+            if reader.ok
+                obj.num_samples = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 359.999, 0, true);
+            if reader.ok
+                obj.angle_to_north = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 0, 90, 0, true);
+            if reader.ok
+                obj.obliquity_angle = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 359.999, 0, true);
+            if reader.ok
+                obj.az_of_obliquity = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 1, 1, false);
+            if reader.ok
+                obj.atm_refr_flag = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 1, 1, false);
+            if reader.ok
+                obj.vel_aber_flag = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 9, 1, false);
+            if reader.ok
+                obj.grd_cover = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 9, 1, false);
+            if reader.ok
+                obj.snow_depth_category = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 359.999, 0, true);
+            if reader.ok
+                obj.sun_azimuth = value;
+            end
+            [value, reader] = reader.number( ...
+                7, -90, 90, 0, true);
+            if reader.ok
+                obj.sun_elevation = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 9, 0, true);
+            if reader.ok
+                obj.predicted_niirs = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 0, 999.9, 0, true);
+            if reader.ok
+                obj.circl_err = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 0, 999.9, 0, true);
+            if reader.ok
+                obj.linear_err = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 999, 1, true);
+            if reader.ok
+                obj.cloud_cover = value;
+            end
+            if strcmp(obj.sensor_type, 'F')
+                [value, reader] = reader.number( ...
+                    1, 0, 1, 1, true);
+                if reader.ok
+                    obj.rolling_shutter_flag = value;
+                end
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 1, 1, true);
+            if reader.ok
+                obj.ue_time_flag = value;
+            end
+            [reserved, reader] = reader.count(5, 1, 99985);
+            if reserved > 0
+                reader = reader.literal('011');
+                [width, reader] = reader.count(5, 1, 99977);
+                if reader.ok && reserved ~= width + 8
+                    reader = reader.fail('InvalidCount', ...
+                        'Reserved area lengths disagree.');
+                end
+                [raw, reader] = reader.take(width);
+                if reader.ok
+                    child = nfx.internal.TREReader(raw);
+                    [info, child] = readExploitationInfo(child);
+                    child = child.finish();
+                    if child.ok
+                        obj.exploitation = info;
+                    else
+                        reader = reader.fail(child.code, child.message);
+                    end
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.CSEXRB());
+        end
+    end
     methods
         function obj = CSEXRB(options) %#codegen
             %CSEXRB - Construct editable image-plane metadata without coercion

@@ -24,6 +24,57 @@ classdef (Sealed) HISTOA < nfx.TRE
     properties (Dependent, SetAccess = private)
         nevents
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable HISTOA value
+            %   [OBJ, OK, STATUS] = nfx.HISTOA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also HISTOA, HISTOA.payload
+            arguments
+                data
+            end
+            obj = nfx.HISTOA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(20, true, false);
+            if reader.ok
+                obj.systype = value;
+            end
+            [value, reader] = reader.text(12, true, false);
+            if reader.ok
+                obj.pc = value;
+            end
+            [value, reader] = reader.text(4, true, false);
+            if reader.ok
+                obj.pe = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 1, 1, true);
+            if reader.ok
+                obj.remap_flag = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 64, 1, false);
+            if reader.ok
+                obj.lutid = value;
+            end
+            [count, reader] = reader.count(2, 72, 99);
+            events = nfx.HistoryEvent.empty(1, 0);
+            for k = 1:count
+                [item, reader] = readHistoryEvent(reader);
+                if reader.ok
+                    events(k) = item;
+                end
+            end
+            if reader.ok
+                obj.event = events;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.HISTOA());
+        end
+    end
     methods
         function obj = HISTOA(options) %#codegen
             %HISTOA - Construct an editable processing history

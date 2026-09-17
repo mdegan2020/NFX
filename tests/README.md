@@ -6,6 +6,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 
 | Suite | Checks |
 | --- | --- |
+| `TREDeserializeTest`, `TREInspectionTest` | Concrete byte round trips, malformed payloads and selectors, scalar missing results, stable IDs and order, nested wrappers, SENSRB continuations, independent copies, bounded display, and exact uint64 metadata |
 | `RPC00BTest` | Exact field widths, signs, coefficient order, rounding, exponent limits, unset values, strict types, and nonzero normalization |
 | `HeaderTest` | Required metadata, ASCII, dates, classification, representations, derived layout, and data replacement |
 | `CompositionTest` | Value snapshots, native pixels, attachment IDs, removal/order, duplicates, TRE framing, and unsupported content |

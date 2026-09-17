@@ -44,6 +44,153 @@ classdef (Sealed) RSMPIA < nfx.TRE
     properties (Dependent, SetAccess = private)
         tnis
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMPIA value
+            %   [OBJ, OK, STATUS] = nfx.RSMPIA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMPIA, RSMPIA.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMPIA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.r0 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ry = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rxx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rxy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rxz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ryy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ryz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rzz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.c0 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cxx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cxy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cxz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cyy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cyz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.czz = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.rnis = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.cnis = value;
+            end
+            [~, reader] = reader.take(3);
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rssiz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cssiz = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMPIA());
+        end
+    end
     methods
         function obj = RSMPIA(options) %#codegen
             %RSMPIA - Construct editable section metadata

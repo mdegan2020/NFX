@@ -44,6 +44,162 @@ classdef (Sealed) ACFTB < nfx.TRE
         patch_tot {mustBeMetadata(patch_tot,0,9999,1)} = 0
         mti_tot {mustBeMetadata(mti_tot,0,999,1)} = 0
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable ACFTB value
+            %   [OBJ, OK, STATUS] = nfx.ACFTB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also ACFTB, ACFTB.payload
+            arguments
+                data
+            end
+            obj = nfx.ACFTB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(20, true, false);
+            if reader.ok
+                obj.ac_msn_id = value;
+            end
+            [value, reader] = reader.text(10, true, false);
+            if reader.ok
+                obj.ac_tail_no = value;
+            end
+            [value, reader] = reader.text(12, true, false);
+            if reader.ok
+                obj.ac_to = value;
+            end
+            [value, reader] = reader.text(4, true, false);
+            if reader.ok
+                obj.sensor_id_type = value;
+            end
+            [value, reader] = reader.text(6, true, false);
+            if reader.ok
+                obj.sensor_id = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 9, 1, true);
+            if reader.ok
+                obj.scene_source = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 0, 999999, 1, false);
+            if reader.ok
+                obj.scnum = value;
+            end
+            [value, reader] = reader.text(8, true, false);
+            if reader.ok
+                obj.pdate = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 0, 999999, 1, false);
+            if reader.ok
+                obj.imhostno = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 0, 99999, 1, false);
+            if reader.ok
+                obj.imreqid = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 999, 1, false);
+            if reader.ok
+                obj.mplan = value;
+            end
+            [value, reader] = reader.text(25, true, false);
+            if reader.ok
+                obj.entloc = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 0, 999.99, 0, false);
+            if reader.ok
+                obj.loc_accy = value;
+            end
+            [value, reader] = reader.number( ...
+                6, -1000, 30000, 1, true);
+            if reader.ok
+                obj.entelv = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.elv_unit = value;
+            end
+            [value, reader] = reader.text(25, true, false);
+            if reader.ok
+                obj.exitloc = value;
+            end
+            [value, reader] = reader.number( ...
+                6, -1000, 30000, 1, true);
+            if reader.ok
+                obj.exitelv = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 180, 0, true);
+            if reader.ok
+                obj.tmap = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 9999.99, 0, false);
+            if reader.ok
+                if all(reader.data(reader.position - 7: ...
+                        reader.position - 1) == '0')
+                    value = NaN;
+                end
+                obj.row_spacing = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.row_spacing_units = value;
+            end
+            [value, reader] = reader.number( ...
+                7, 0, 9999.99, 0, false);
+            if reader.ok
+                if all(reader.data(reader.position - 7: ...
+                        reader.position - 1) == '0')
+                    value = NaN;
+                end
+                obj.col_spacing = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.col_spacing_units = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 0.01, 999.99, 0, false);
+            if reader.ok
+                obj.focal_length = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 1, 999999, 1, true);
+            if reader.ok
+                obj.senserial = value;
+            end
+            [value, reader] = reader.text(7, true, false);
+            if reader.ok
+                obj.abswver = value;
+            end
+            [value, reader] = reader.text(8, true, false);
+            if reader.ok
+                obj.cal_date = value;
+            end
+            [value, reader] = reader.number( ...
+                4, 0, 9999, 1, false);
+            if reader.ok
+                obj.patch_tot = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 999, 1, false);
+            if reader.ok
+                obj.mti_tot = value;
+            end
+            if obj.focal_length == 999.99
+                obj.focal_length = NaN;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.ACFTB());
+        end
+    end
     methods
         function obj = ACFTB(options) %#codegen
             %ACFTB - Construct editable aircraft/sensor information

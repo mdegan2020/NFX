@@ -31,6 +31,93 @@ classdef (Sealed) AIMIDB < nfx.TRE
         country {mustBeAscii(country,2)} = ''
         location {mustBeAscii(location,11)} = ''
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable AIMIDB value
+            %   [OBJ, OK, STATUS] = nfx.AIMIDB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also AIMIDB, AIMIDB.payload
+            arguments
+                data
+            end
+            obj = nfx.AIMIDB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(14, true, false);
+            if reader.ok
+                obj.acquisition_date = value;
+            end
+            [value, reader] = reader.text(4, true, false);
+            if reader.ok
+                obj.mission_no = value;
+            end
+            [value, reader] = reader.text(10, true, false);
+            if reader.ok
+                obj.mission_identification = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.flight_no = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 999, 1, false);
+            if reader.ok
+                obj.op_num = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.current_segment = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 99, 1, false);
+            if reader.ok
+                obj.repro_num = value;
+            end
+            [value, reader] = reader.text(3, true, false);
+            if reader.ok
+                obj.replay = value;
+            end
+            reader = reader.literal(' ');
+            [value, reader] = reader.number( ...
+                3, 1, 99, 1, false);
+            if reader.ok
+                obj.start_tile_column = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 1, 99999, 1, false);
+            if reader.ok
+                obj.start_tile_row = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.end_segment = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 99, 1, false);
+            if reader.ok
+                obj.end_tile_column = value;
+            end
+            [value, reader] = reader.number( ...
+                5, 1, 99999, 1, false);
+            if reader.ok
+                obj.end_tile_row = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.country = value;
+            end
+            reader = reader.literal('    ');
+            [value, reader] = reader.text(11, true, false);
+            if reader.ok
+                obj.location = value;
+            end
+            reader = reader.literal('             ');
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.AIMIDB());
+        end
+    end
     methods
         function obj = AIMIDB(options) %#codegen
             %AIMIDB - Construct editable image acquisition identifiers

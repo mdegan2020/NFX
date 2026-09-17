@@ -21,6 +21,47 @@ classdef (Sealed) CSWRPB < nfx.TRE
     properties (Dependent, SetAccess = private)
         num_sets_warp_data
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable CSWRPB value
+            %   [OBJ, OK, STATUS] = nfx.CSWRPB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also CSWRPB, CSWRPB.payload
+            arguments
+                data
+            end
+            obj = nfx.CSWRPB();
+            reader = nfx.internal.TREReader(data);
+            [count, reader] = reader.count(1, 60, 9);
+            [sensor, reader] = reader.choice('SF');
+            if reader.ok
+                obj.sensor_type = sensor;
+            end
+            if strcmp(sensor, 'F')
+                [value, reader] = reader.number( ...
+                    1, 0, 1, 1, false);
+                if reader.ok
+                    obj.wrp_interp = value;
+                end
+            end
+            sets = nfx.WarpingSet.empty(1, 0);
+            for k = 1:count
+                [item, reader] = readWarpingSet(reader, sensor);
+                if reader.ok
+                    sets(k) = item;
+                end
+            end
+            reader = reader.literal('00000');
+            if reader.ok
+                obj.warp_data = sets;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.CSWRPB());
+        end
+    end
     methods
         function obj = CSWRPB(options) %#codegen
             %CSWRPB - Construct editable warping data

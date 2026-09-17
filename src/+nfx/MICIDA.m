@@ -25,6 +25,35 @@ classdef (Sealed) MICIDA < nfx.TRE
         num_camera_ids_in_tre
         core_id_length
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable MICIDA value
+            %   [OBJ, OK, STATUS] = nfx.MICIDA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also MICIDA, MICIDA.payload
+            arguments
+                data
+            end
+            obj = nfx.MICIDA();
+            reader = nfx.internal.TREReader(data);
+            reader = reader.literal('01');
+            [count, reader] = reader.count(3, 39, 999);
+            entries = repmat(struct('camera_id', '', 'camera_core_id', ''), 1, count);
+            for k = 1:count
+                [entries(k).camera_id, reader] = reader.text(36);
+                [width, reader] = reader.count(3, 1, 127);
+                [entries(k).camera_core_id, reader] = reader.text(width, false);
+            end
+            if reader.ok
+                obj.cameras = entries;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.MICIDA());
+        end
+    end
     methods
         function obj = MICIDA(options) %#codegen
             %MICIDA - Construct editable camera/core-identifier associations

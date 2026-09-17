@@ -14,6 +14,43 @@ classdef (Sealed) FSYNWA < nfx.MetadataWrapper
         start_frame_number {mustBeMetadata(start_frame_number,1,999999999,1)} = 1
         end_frame_number {mustBeMetadata(end_frame_number,0,999999999,1)} = 0
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable FSYNWA value
+            %   [OBJ, OK, STATUS] = nfx.FSYNWA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also FSYNWA, FSYNWA.payload
+            arguments
+                data
+            end
+            obj = nfx.FSYNWA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.number( ...
+                9, 1, 999999999, 1, false);
+            if reader.ok
+                obj.start_frame_number = value;
+            end
+            [value, reader] = reader.number( ...
+                9, 0, 999999999, 1, false);
+            if reader.ok
+                obj.end_frame_number = value;
+            end
+            [records, reader] = readWrappedRecords(reader);
+            if reader.ok
+                [valid, childStatus] = validateWrappedRecords(records);
+                if valid
+                    obj = obj.restoreSnapshots(records);
+                else
+                    reader = reader.fail(childStatus.code, childStatus.message);
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.FSYNWA());
+        end
+    end
     methods
         function obj = FSYNWA(options) %#codegen
             %FSYNWA - Construct an editable frame range

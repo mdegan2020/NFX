@@ -44,6 +44,153 @@ classdef (Sealed) RSMGIA < nfx.TRE
     properties (Dependent, SetAccess = private)
         gtnis
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMGIA value
+            %   [OBJ, OK, STATUS] = nfx.RSMGIA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMGIA, RSMGIA.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMGIA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gr0 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gry = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grxx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grxy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grxz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gryy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gryz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grzz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gc0 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcxx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcxy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcxz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcyy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcyz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gczz = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.grnis = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.gcnis = value;
+            end
+            [~, reader] = reader.take(3);
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grssiz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.gcssiz = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMGIA());
+        end
+    end
     methods
         function obj = RSMGIA(options) %#codegen
             %RSMGIA - Construct editable section metadata

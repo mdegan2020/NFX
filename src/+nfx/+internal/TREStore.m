@@ -10,6 +10,17 @@ classdef (Hidden) TREStore
         ids
         tags
     end
+    methods (Static)
+        function obj = fromSnapshots(records) %#codegen
+            %fromSnapshots - Restore already checked homogeneous snapshots
+            %   Internal deserialization supplies contiguous local IDs.
+            obj = nfx.internal.TREStore();
+            obj.records = records;
+            if ~isempty(records)
+                obj.nextId = max([records.id]) + 1;
+            end
+        end
+    end
     methods
         function obj = withJPEG2000(obj,payload)
             %withJPEG2000 - Append a derived record with reserved identity zero

@@ -47,6 +47,15 @@ classdef (TestTags = {'OpenJPEG'}) OpenJPEGTest < NfxTest
             t.verifyEqual(oracle.bands,size(data,3));
             t.verifyEqual(parsed.images.allTRE.tag,'J2KLRA');
             t.verifyEqual(parsed.images.allTRE.payload,image.compression.j2klra);
+            [layers, ok, status] = image.J2KLRA(ID=0);
+            t.assertTrue(ok, status.message);
+            t.verifyEqual(layers.payload(), image.compression.j2klra);
+            t.verifyEqual(layers.nbands_o, size(data, 3));
+            t.verifyEqual(image.treCount('J2KLRA'), 1);
+            view = image.tre(ID=0); %#ok<NASGU>
+            output = evalc('disp(view)');
+            t.verifySubstring(output, 'J2KLRA');
+            t.verifySubstring(output, 'bitrate');
             t.verifyEqual(numel(parsed.images.data),image.li);
             t.verifyEqual(numel(parsed.images.header),image.lish);
             t.verifyEqual(image.compression.info.tlm,oracle.tlm);

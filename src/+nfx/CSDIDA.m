@@ -26,6 +26,66 @@ classdef (Sealed) CSDIDA < nfx.TRE
         month
         year
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable CSDIDA value
+            %   [OBJ, OK, STATUS] = nfx.CSDIDA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also CSDIDA, CSDIDA.payload
+            arguments
+                data
+            end
+            obj = nfx.CSDIDA();
+            reader = nfx.internal.TREReader(data);
+            [~, reader] = reader.take(9);
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.platform_code = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 99, 1, false);
+            if reader.ok
+                obj.vehicle_id = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 99, 1, false);
+            if reader.ok
+                obj.pass = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 999, 1, false);
+            if reader.ok
+                obj.operation = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.sensor_id = value;
+            end
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.product_id = value;
+            end
+            reader = reader.literal('0000');
+            [value, reader] = reader.text(14, true, false);
+            if reader.ok
+                obj.time = value;
+            end
+            [value, reader] = reader.text(14, true, false);
+            if reader.ok
+                obj.process_time = value;
+            end
+            reader = reader.literal('0001NN');
+            [value, reader] = reader.text(10, true, false);
+            if reader.ok
+                obj.software_version_number = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.CSDIDA());
+        end
+    end
     methods
         function obj = CSDIDA(options) %#codegen
             %CSDIDA - Construct editable dataset identification metadata

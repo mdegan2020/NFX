@@ -48,6 +48,143 @@ classdef (Sealed) BANDSB < nfx.TRE
         num_aux_c
         byte_count
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable BANDSB value
+            %   [OBJ, OK, STATUS] = nfx.BANDSB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also BANDSB, BANDSB.payload
+            arguments
+                data
+            end
+            obj = nfx.BANDSB();
+            reader = nfx.internal.TREReader(data);
+            [count, reader] = reader.number(5, 1, 99999, true);
+            [value, reader] = reader.text(24, true, false);
+            if reader.ok
+                obj.radiometric_quantity = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.radiometric_quantity_unit = value;
+            end
+            [value, reader] = reader.float32(1, -1e38, 1e38);
+            if reader.ok
+                obj.scale_factor = value;
+            end
+            [value, reader] = reader.float32(1, -1e38, 1e38);
+            if reader.ok
+                obj.additive_factor = value;
+            end
+            [value, reader] = reader.dashed(7, .001, 9999.99);
+            if reader.ok
+                obj.row_gsd = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.row_gsd_unit = value;
+            end
+            [value, reader] = reader.dashed(7, .001, 9999.99);
+            if reader.ok
+                obj.col_gsd = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.col_gsd_unit = value;
+            end
+            [value, reader] = reader.dashed(7, .001, 9999.99);
+            if reader.ok
+                obj.spt_resp_row = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.spt_resp_unit_row = value;
+            end
+            [value, reader] = reader.dashed(7, .001, 9999.99);
+            if reader.ok
+                obj.spt_resp_col = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.spt_resp_unit_col = value;
+            end
+            [value, reader] = reader.take(48);
+            if reader.ok
+                obj.data_fld_1 = value;
+            end
+            [mask, reader] = reader.unsigned(4);
+            flags = false(1, 32);
+            if reader.ok
+                flags = bitget(uint32(mask), 1:32) ~= 0;
+                if any(flags(2:6))
+                    reader = reader.fail('InvalidField', 'Reserved mask bits are set.');
+                end
+            end
+            if flags(32)
+                [value, reader] = reader.text(24, true, false);
+                if reader.ok
+                    obj.radiometric_adjustment_surface = value;
+                end
+                [value, reader] = reader.float32(1, -1e38, 1e38);
+                if reader.ok
+                    obj.atmospheric_adjustment_altitude = value;
+                end
+            end
+            if flags(31)
+                [value, reader] = reader.dashed(7, .01, 8999.99);
+                if reader.ok
+                    obj.diameter = value;
+                end
+            end
+            if flags(30)
+                [value, reader] = reader.take(32);
+                if reader.ok
+                    obj.data_fld_2 = value;
+                end
+            end
+            if any(flags(20:25))
+                [value, reader] = reader.text(1, true, false);
+                if reader.ok
+                    obj.wave_length_unit = value;
+                end
+            end
+            widths = [zeros(1, 6) 48 32 24 16 14 16 10 14 16 11 6 16 ...
+                8 14 7 7 7 7 7 5 3 1 50 0 0 0];
+            width = sum(double(flags) .* widths);
+            if reader.ok && count * width > numel(data) - reader.position + 1
+                reader = reader.fail('TruncatedPayload', ...
+                    'Band definitions exceed the remaining payload.');
+            end
+            bands = nfx.SpectralBand.empty(1, 0);
+            if reader.ok
+                bands = repmat(nfx.SpectralBand(), 1, count);
+                for k = 1:count
+                    [bands(k), reader] = readSpectralBand(reader, flags);
+                    if ~reader.ok
+                        break
+                    end
+                end
+            end
+            if flags(1)
+                [bandCount, reader] = reader.count(2, 8, 99);
+                [cubeCount, reader] = reader.count(2, 8, 99);
+                [bandAux, reader] = readBandAuxiliaryB(reader, bandCount, count);
+                [cubeAux, reader] = readBandAuxiliaryC(reader, cubeCount, 1);
+                if reader.ok
+                    obj.aux_b = bandAux;
+                    obj.aux_c = cubeAux;
+                end
+            end
+            if reader.ok
+                obj.band = bands;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.BANDSB());
+        end
+    end
     methods
         function obj = BANDSB(options) %#codegen
             %BANDSB - Construct editable spectral metadata
@@ -120,7 +257,7 @@ classdef (Sealed) BANDSB < nfx.TRE
             report = addIssue(report,~quantityUnit(obj.radiometric_quantity,obj.radiometric_quantity_unit), ...
                 'QuantityUnit','radiometric_quantity_unit','The unit must describe the specified radiometric quantity.',reference);
             numbers = [obj.scale_factor obj.additive_factor];
-            report = addIssue(report,any(isnan(numbers) | (numbers ~= 0 & abs(numbers) < 1e-38)), ...
+            report = addIssue(report,any(isnan(numbers) | (numbers ~= 0 & abs(numbers) < double(single(1e-38)))), ...
                 'BinaryFloatRange','scale_factor/additive_factor','Supply zero or finite magnitudes from 1e-38 to 1e38.',reference);
             spatial = [obj.row_gsd obj.col_gsd obj.spt_resp_row obj.spt_resp_col];
             units = {obj.row_gsd_unit,obj.col_gsd_unit,obj.spt_resp_unit_row,obj.spt_resp_unit_col};
@@ -130,7 +267,7 @@ classdef (Sealed) BANDSB < nfx.TRE
             end
             within = strcmp(strtrim(char(obj.radiometric_adjustment_surface)),'WITHIN ATMOSPHERE');
             altitude = obj.atmospheric_adjustment_altitude;
-            report = addIssue(report,(within && (isnan(altitude) || (altitude ~= 0 && abs(altitude) < 1e-38))) || ...
+            report = addIssue(report,(within && (isnan(altitude) || (altitude ~= 0 && abs(altitude) < double(single(1e-38))))) || ...
                 (~within && ~isnan(altitude)),'AdjustmentAltitude','atmospheric_adjustment_altitude', ...
                 'Supply altitude only for WITHIN ATMOSPHERE; use NaN otherwise.',reference);
             report = addIssue(report,~isempty(char(obj.radiometric_adjustment_surface)) && ...

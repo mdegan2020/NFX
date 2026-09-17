@@ -41,6 +41,276 @@ classdef File
         contextDefinitions
     end
     methods
+        function [tre, ok, status] = FCRNSA(obj, index, options) %#codegen
+            %FCRNSA - Retrieve an editable copy of a direct FCRNSA attachment
+            %   [TRE, OK, STATUS] = OBJ.FCRNSA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.FCRNSA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar FCRNSA and OK=false.
+            %
+            %   See also tre, treCount, nfx.FCRNSA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FCRNSA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MIMCSA(obj, index, options) %#codegen
+            %MIMCSA - Retrieve an editable copy of a direct MIMCSA attachment
+            %   [TRE, OK, STATUS] = OBJ.MIMCSA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.MIMCSA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar MIMCSA and OK=false.
+            %
+            %   See also tre, treCount, nfx.MIMCSA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MIMCSA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSDIDA(obj, index, options) %#codegen
+            %CSDIDA - Retrieve an editable copy of a direct CSDIDA attachment
+            %   [TRE, OK, STATUS] = OBJ.CSDIDA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.CSDIDA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar CSDIDA and OK=false.
+            %
+            %   See also tre, treCount, nfx.CSDIDA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSDIDA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = TMINTA(obj, index, options) %#codegen
+            %TMINTA - Retrieve an editable copy of a direct TMINTA attachment
+            %   [TRE, OK, STATUS] = OBJ.TMINTA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.TMINTA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar TMINTA and OK=false.
+            %
+            %   See also tre, treCount, nfx.TMINTA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.TMINTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CAMSDA(obj, index, options) %#codegen
+            %CAMSDA - Retrieve an editable copy of a direct CAMSDA attachment
+            %   [TRE, OK, STATUS] = OBJ.CAMSDA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.CAMSDA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar CAMSDA and OK=false.
+            %
+            %   See also tre, treCount, nfx.CAMSDA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CAMSDA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MTIMFA(obj, index, options) %#codegen
+            %MTIMFA - Retrieve an editable copy of a direct MTIMFA attachment
+            %   [TRE, OK, STATUS] = OBJ.MTIMFA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.MTIMFA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar MTIMFA and OK=false.
+            %
+            %   See also tre, treCount, nfx.MTIMFA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MTIMFA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MICIDA(obj, index, options) %#codegen
+            %MICIDA - Retrieve an editable copy of a direct MICIDA attachment
+            %   [TRE, OK, STATUS] = OBJ.MICIDA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.MICIDA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar MICIDA and OK=false.
+            %
+            %   See also tre, treCount, nfx.MICIDA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MICIDA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MATESA(obj, index, options) %#codegen
+            %MATESA - Retrieve an editable copy of a direct MATESA attachment
+            %   [TRE, OK, STATUS] = OBJ.MATESA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.MATESA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar MATESA and OK=false.
+            %
+            %   See also tre, treCount, nfx.MATESA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MATESA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ILLUMB(obj, index, options) %#codegen
+            %ILLUMB - Retrieve an editable copy of a direct ILLUMB attachment
+            %   [TRE, OK, STATUS] = OBJ.ILLUMB(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.ILLUMB(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar ILLUMB and OK=false.
+            %
+            %   See also tre, treCount, nfx.ILLUMB.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ILLUMB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSEXRB(obj, index, options) %#codegen
+            %CSEXRB - Retrieve an editable copy of a direct CSEXRB attachment
+            %   [TRE, OK, STATUS] = OBJ.CSEXRB(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.CSEXRB(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar CSEXRB and OK=false.
+            %
+            %   See also tre, treCount, nfx.CSEXRB.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSEXRB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = FREESA(obj, index, options) %#codegen
+            %FREESA - Retrieve an editable copy of a direct FREESA attachment
+            %   [TRE, OK, STATUS] = OBJ.FREESA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.FREESA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar FREESA and OK=false.
+            %
+            %   See also tre, treCount, nfx.FREESA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FREESA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = FSYNWA(obj, index, options) %#codegen
+            %FSYNWA - Retrieve an editable copy of a direct FSYNWA attachment
+            %   [TRE, OK, STATUS] = OBJ.FSYNWA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.FSYNWA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar FSYNWA and OK=false.
+            %
+            %   See also tre, treCount, nfx.FSYNWA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FSYNWA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = FASYWA(obj, index, options) %#codegen
+            %FASYWA - Retrieve an editable copy of a direct FASYWA attachment
+            %   [TRE, OK, STATUS] = OBJ.FASYWA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.FASYWA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar FASYWA and OK=false.
+            %
+            %   See also tre, treCount, nfx.FASYWA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FASYWA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CONTXA(obj, index, options) %#codegen
+            %CONTXA - Retrieve an editable copy of a direct CONTXA attachment
+            %   [TRE, OK, STATUS] = OBJ.CONTXA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.CONTXA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar CONTXA and OK=false.
+            %
+            %   See also tre, treCount, nfx.CONTXA.deserialize
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CONTXA(), index, options.ID);
+        end
+
+        function [count, ok, status] = treCount(obj, tag) %#codegen
+            %treCount - Count direct logical TRE attachments
+            %   N = OBJ.treCount(TAG) counts matching logical attachments.
+            %   N = OBJ.treCount() counts all types, including continuations
+            %   as one attachment. Wrapper children are inspected separately.
+            %
+            %   See also tre, tre_ids, tre_records
+            arguments
+                obj (1,1) nfx.File
+                tag = ''
+            end
+            [count, ok, status] = countTRE(obj.tre_records, tag);
+        end
+
+        function [record, ok, status] = tre(obj, index, options) %#codegen
+            %tre - Inspect one logical attachment through a scalar view
+            %   [RECORD, OK, STATUS] = OBJ.tre(INDEX) selects all TRE types
+            %   in insertion order. INDEX defaults to 1. OBJ.tre(ID=ID)
+            %   selects a stable attachment identity. Failure returns a
+            %   default scalar nfx.TRERecord and OK=false.
+            %
+            %   See also nfx.TRERecord, treCount
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [record, ok, status] = viewTRE( ...
+                obj.tre_records, index, options.ID);
+        end
+    end
+    methods
         function obj = File(options) %#codegen
             %FILE - Construct an empty file
             arguments

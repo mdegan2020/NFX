@@ -45,6 +45,95 @@ classdef (Sealed) RSMECB < nfx.TRE
         ign
         npar
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMECB value
+            %   [OBJ, OK, STATUS] = nfx.RSMECB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMECB, RSMECB.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMECB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.tid = value;
+            end
+            [indirect, reader] = reader.choice('YN');
+            [unmodeled, reader] = reader.choice('YN');
+            if strcmp(indirect, 'Y')
+                [original, reader] = reader.number(2, 1, 53, true);
+                [count, reader] = reader.count(2, 25, 36);
+                [date, reader] = reader.text(8);
+                [parameters, reader] = readRSMParameters(reader);
+                subgroup = struct('errcvg', [], 'tcdf', NaN, ...
+                    'correlation', nfx.RSMCorrelation());
+                groups = repmat(subgroup, 1, count);
+                for k = 1:count
+                    [size, reader] = reader.number(2, 1, 53, true);
+                    [values, reader] = reader.numbers(size * (size + 1) / 2, ...
+                        21, -9.99999999999999e99, 9.99999999999999e99);
+                    if reader.ok
+                        matrix = zeros(size, size);
+                        at = 1;
+                        for row = 1:size
+                            width = size - row + 1;
+                            matrix(row, row:size) = values(at:at + width - 1);
+                            at = at + width;
+                        end
+                        groups(k).errcvg = matrix + triu(matrix, 1).';
+                    end
+                    [groups(k).tcdf, reader] = reader.number(1, 0, 2, true);
+                    [groups(k).correlation, reader] = readRSMCorrelation(reader, '');
+                end
+                [values, reader] = reader.numbers(parameters.npar * original, ...
+                    21, -9.99999999999999e99, 9.99999999999999e99);
+                if reader.ok
+                    obj.parameters = parameters;
+                    obj.cvdate = date;
+                    obj.subgroups = groups;
+                    obj.map = reshape(values, original, parameters.npar).';
+                end
+            end
+            if strcmp(unmodeled, 'Y')
+                [value, reader] = reader.number( ...
+                    21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+                if reader.ok
+                    obj.urr = value;
+                end
+                [value, reader] = reader.number( ...
+                    21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+                if reader.ok
+                    obj.urc = value;
+                end
+                [value, reader] = reader.number( ...
+                    21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+                if reader.ok
+                    obj.ucc = value;
+                end
+                [row, reader] = readRSMCorrelation(reader, '');
+                [column, reader] = readRSMCorrelation(reader, row.acsmc);
+                if reader.ok
+                    obj.row_correlation = row;
+                    obj.column_correlation = column;
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMECB());
+        end
+    end
     methods
         function obj = RSMECB(options) %#codegen
             %RSMECB - Construct editable covariance metadata

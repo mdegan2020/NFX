@@ -26,6 +26,54 @@ classdef (Sealed) MATESA < nfx.TRE
         num_groups
         num_mates
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable MATESA value
+            %   [OBJ, OK, STATUS] = nfx.MATESA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also MATESA, MATESA.payload
+            arguments
+                data
+            end
+            obj = nfx.MATESA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(42, true, true);
+            if reader.ok
+                obj.cur_source = value;
+            end
+            [value, reader] = reader.text(16, true, true);
+            if reader.ok
+                obj.cur_mate_type = value;
+            end
+            [width, reader] = reader.count(4, 1, 9999);
+            [identifier, reader] = reader.text(width, false, true);
+            [count, reader] = reader.count(4, 28, 9999);
+            mate = struct('source', '', 'mate_type', '', 'mate_id', '');
+            group = struct('relationship', '', 'mates', repmat(mate, 1, 0));
+            groups = repmat(group, 1, count);
+            for k = 1:count
+                [groups(k).relationship, reader] = reader.text(24, true, true);
+                [number, reader] = reader.count(4, 62, 9999);
+                mates = repmat(mate, 1, number);
+                for j = 1:number
+                    [mates(j).source, reader] = reader.text(42, true, true);
+                    [mates(j).mate_type, reader] = reader.text(16, true, true);
+                    [width, reader] = reader.count(4, 1, 9999);
+                    [mates(j).mate_id, reader] = reader.text(width, false, true);
+                end
+                groups(k).mates = mates;
+            end
+            if reader.ok
+                obj.cur_file_id = identifier;
+                obj.groups = groups;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.MATESA());
+        end
+    end
     methods
         function obj = MATESA(options) %#codegen
             %MATESA - Construct editable grouped relationship metadata

@@ -114,6 +114,99 @@ classdef (Sealed) SENSRB < nfx.TRE
         uncertainty_data {mustBeUncertainty} = struct('uncertainty_first_type',{},'uncertainty_second_type',{},'uncertainty_value',{})
         additional_parameter_data {mustBeAdditional} = struct('parameter_name',{},'parameter_size',{},'parameter_value',{})
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode one complete SENSRB payload
+            %   [OBJ, OK, STATUS] = nfx.SENSRB.deserialize(PAYLOAD)
+            %   returns an independent scalar value. Failure returns the
+            %   default scalar and OK=false. Use deserializeRecords for
+            %   a logical attachment containing continuation instances.
+            %
+            %   See also SENSRB.deserializeRecords, SENSRB.physicalRecords
+            arguments
+                data
+            end
+            reader = nfx.internal.TREReader(data);
+            if ~reader.ok
+                obj = nfx.SENSRB();
+                ok = false;
+                status = decodeStatus(reader.code, ...
+                    reader.message, reader.position);
+                return
+            end
+            records = struct('tag', 'SENSRB', 'payload', data);
+            [obj, ok, status] = nfx.SENSRB.deserializeRecords(records);
+        end
+
+        function [obj, ok, status] = deserializeRecords(records) %#codegen
+            %deserializeRecords - Reconstruct a logical sensor attachment
+            %   [OBJ, OK, STATUS] = deserializeRecords(RECORDS) accepts
+            %   physical records in their stored order. Every continuation
+            %   must have the minimum repeated reference/position payload.
+            %   Encoded time-series chunks remain ordered groups; original
+            %   boundaries within split input groups are not on the wire.
+            %
+            %   See also SENSRB.deserialize, ImageSegment.SENSRB
+            arguments
+                records
+            end
+            obj = nfx.SENSRB();
+            ok = false;
+            status = decodeStatus('InvalidPayload', ...
+                'Supply a nonempty row of SENSRB tag/payload records.');
+            if ~isstruct(records) || ~isrow(records) || isempty(records) || ...
+                    ~all(isfield(records, {'tag', 'payload'}))
+                return
+            end
+            for k = 1:numel(records)
+                if ~ischar(records(k).tag) || ...
+                        ~strcmp(records(k).tag, 'SENSRB')
+                    return
+                end
+            end
+            [obj, reader] = readSensorPayload( ...
+                records(1).payload, 'G', 'DEG', false);
+            for k = 2:numel(records)
+                if ~reader.ok
+                    break
+                end
+                [part, child] = readSensorPayload(records(k).payload, ...
+                    obj.geodetic_type, obj.angular_unit, true);
+                if ~child.ok
+                    reader = reader.fail(child.code, child.message);
+                    break
+                end
+                obj.time_stamped_data = ...
+                    [obj.time_stamped_data part.time_stamped_data];
+            end
+            if reader.ok
+                [encoded, report] = encodeSensor(obj);
+                if ~report.valid
+                    reader = reader.fail('InvalidMetadata', ...
+                        report.issues(1).message);
+                elseif numel(encoded) ~= numel(records)
+                    reader = reader.fail('InvalidContinuation', ...
+                        'Sensor instances do not form one encoded group.');
+                else
+                    for k = 1:numel(records)
+                        if ~isequal(encoded(k).payload, records(k).payload)
+                            reader = reader.fail('NoncanonicalPayload', ...
+                                'Sensor data or continuation context differs.');
+                            break
+                        end
+                    end
+                end
+            end
+            ok = reader.ok;
+            if ok
+                status = decodeStatus();
+            else
+                obj = nfx.SENSRB();
+                status = decodeStatus(reader.code, ...
+                    reader.message, reader.position);
+            end
+        end
+    end
     methods
         function obj = SENSRB(options) %#codegen
             %SENSRB - Construct editable sensor metadata

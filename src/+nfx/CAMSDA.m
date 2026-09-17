@@ -28,6 +28,51 @@ classdef (Sealed) CAMSDA < nfx.TRE
     properties (Access = private)
         totalSets = NaN
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable CAMSDA value
+            %   [OBJ, OK, STATUS] = nfx.CAMSDA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also CAMSDA, CAMSDA.payload
+            arguments
+                data
+            end
+            obj = nfx.CAMSDA();
+            reader = nfx.internal.TREReader(data);
+            [total, reader] = reader.number(3, 1, 999, true);
+            [count, reader] = reader.count(3, 187, 534);
+            [first, reader] = reader.number(3, 1, 999, true);
+            camera = struct('camera_id', '', 'camera_desc', '', 'layer_id', '', ...
+                'idlvl', NaN, 'ialvl', NaN, 'iloc', [0 0], ...
+                'nrows', NaN, 'ncols', NaN);
+            sets = repmat(struct('cameras', repmat(camera, 1, 0)), 1, count);
+            for k = 1:count
+                [number, reader] = reader.count(3, 184, 543);
+                cameras = repmat(camera, 1, number);
+                for j = 1:number
+                    [cameras(j).camera_id, reader] = reader.text(36);
+                    [cameras(j).camera_desc, reader] = reader.text(80);
+                    [cameras(j).layer_id, reader] = reader.text(36);
+                    [cameras(j).idlvl, reader] = reader.number(3, 1, 999, true);
+                    [cameras(j).ialvl, reader] = reader.number(3, 0, 998, true);
+                    [cameras(j).iloc, reader] = reader.numbers(2, 5, 0, 99999, true);
+                    [cameras(j).nrows, reader] = reader.number(8, 1, 99999999, true);
+                    [cameras(j).ncols, reader] = reader.number(8, 1, 99999999, true);
+                end
+                sets(k).cameras = cameras;
+            end
+            if reader.ok
+                obj.num_camera_sets = total;
+                obj.first_camera_set_in_tre = first;
+                obj.camera_sets = sets;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.CAMSDA());
+        end
+    end
     methods
         function obj = CAMSDA(options) %#codegen
             %CAMSDA - Construct editable camera-set definitions

@@ -24,6 +24,88 @@ classdef (Sealed) FCRNSA < nfx.TRE
         llcrn_lon {mustBeMetadata(llcrn_lon, -179.99999, 180, 0)} = NaN
         llcrn_ht {mustBeMetadata(llcrn_ht, -610, 10668, 0)} = NaN
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable FCRNSA value
+            %   [OBJ, OK, STATUS] = nfx.FCRNSA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also FCRNSA, FCRNSA.payload
+            arguments
+                data
+            end
+            obj = nfx.FCRNSA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.predict_corners = value;
+            end
+            [value, reader] = reader.number( ...
+                9, -90, 90, 0, false);
+            if reader.ok
+                obj.ulcrn_lat = value;
+            end
+            [value, reader] = reader.number( ...
+                10, -179.99999, 180, 0, false);
+            if reader.ok
+                obj.ulcrn_lon = value;
+            end
+            [value, reader] = reader.number( ...
+                8, -610, 10668, 0, false);
+            if reader.ok
+                obj.ulcrn_ht = value;
+            end
+            [value, reader] = reader.number( ...
+                9, -90, 90, 0, false);
+            if reader.ok
+                obj.urcrn_lat = value;
+            end
+            [value, reader] = reader.number( ...
+                10, -179.99999, 180, 0, false);
+            if reader.ok
+                obj.urcrn_lon = value;
+            end
+            [value, reader] = reader.number( ...
+                8, -610, 10668, 0, false);
+            if reader.ok
+                obj.urcrn_ht = value;
+            end
+            [value, reader] = reader.number( ...
+                9, -90, 90, 0, false);
+            if reader.ok
+                obj.lrcrn_lat = value;
+            end
+            [value, reader] = reader.number( ...
+                10, -179.99999, 180, 0, false);
+            if reader.ok
+                obj.lrcrn_lon = value;
+            end
+            [value, reader] = reader.number( ...
+                8, -610, 10668, 0, false);
+            if reader.ok
+                obj.lrcrn_ht = value;
+            end
+            [value, reader] = reader.number( ...
+                9, -90, 90, 0, false);
+            if reader.ok
+                obj.llcrn_lat = value;
+            end
+            [value, reader] = reader.number( ...
+                10, -179.99999, 180, 0, false);
+            if reader.ok
+                obj.llcrn_lon = value;
+            end
+            [value, reader] = reader.number( ...
+                8, -610, 10668, 0, false);
+            if reader.ok
+                obj.llcrn_ht = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.FCRNSA());
+        end
+    end
     methods
         function obj = FCRNSA(options) %#codegen
             %FCRNSA - Construct editable corner metadata

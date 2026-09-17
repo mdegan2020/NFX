@@ -58,6 +58,150 @@ classdef (Sealed) RSMPCA < nfx.TRE
         cdpwrz
         cdtrms
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMPCA value
+            %   [OBJ, OK, STATUS] = nfx.RSMPCA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMPCA, RSMPCA.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMPCA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.rsn = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.csn = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rfep = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cfep = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rnrmo = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cnrmo = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xnrmo = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ynrmo = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.znrmo = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.rnrmsf = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.cnrmsf = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xnrmsf = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ynrmsf = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.znrmsf = value;
+            end
+            [powers, reader] = reader.numbers(3, 1, 0, 5, true);
+            [count, reader] = reader.count(3, 21, 216);
+            [values, reader] = reader.numbers(count, 21, ...
+                -9.99999999999999e99, 9.99999999999999e99);
+            if reader.ok
+                if prod(powers + 1) ~= count
+                    reader = reader.fail('InvalidCount', ...
+                        'Polynomial dimensions disagree with the coefficient count.');
+                else
+                    obj.rnpcf = reshape(values, powers + 1);
+                end
+            end
+            [powers, reader] = reader.numbers(3, 1, 0, 5, true);
+            [count, reader] = reader.count(3, 21, 216);
+            [values, reader] = reader.numbers(count, 21, ...
+                -9.99999999999999e99, 9.99999999999999e99);
+            if reader.ok
+                if prod(powers + 1) ~= count
+                    reader = reader.fail('InvalidCount', ...
+                        'Polynomial dimensions disagree with the coefficient count.');
+                else
+                    obj.rdpcf = reshape(values, powers + 1);
+                end
+            end
+            [powers, reader] = reader.numbers(3, 1, 0, 5, true);
+            [count, reader] = reader.count(3, 21, 216);
+            [values, reader] = reader.numbers(count, 21, ...
+                -9.99999999999999e99, 9.99999999999999e99);
+            if reader.ok
+                if prod(powers + 1) ~= count
+                    reader = reader.fail('InvalidCount', ...
+                        'Polynomial dimensions disagree with the coefficient count.');
+                else
+                    obj.cnpcf = reshape(values, powers + 1);
+                end
+            end
+            [powers, reader] = reader.numbers(3, 1, 0, 5, true);
+            [count, reader] = reader.count(3, 21, 216);
+            [values, reader] = reader.numbers(count, 21, ...
+                -9.99999999999999e99, 9.99999999999999e99);
+            if reader.ok
+                if prod(powers + 1) ~= count
+                    reader = reader.fail('InvalidCount', ...
+                        'Polynomial dimensions disagree with the coefficient count.');
+                else
+                    obj.cdpcf = reshape(values, powers + 1);
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMPCA());
+        end
+    end
     methods
         function obj = RSMPCA(options) %#codegen
             %RSMPCA - Construct editable section coefficients

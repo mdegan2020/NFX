@@ -11,6 +11,9 @@ classdef SensorFieldTest < NfxTest
             t.verifyEqual(out.series.type,field.type); t.verifyEqual(out.series.time,-0.5);
             t.verifyEqual(out.pixels.type,field.type); t.verifyEqual(out.pixels.row,1.25);
             t.verifyEqual(out.pixels.column,-0.75); t.verifyEqual(out.series.value,out.pixels.value);
+            [decoded,ok,status] = nfx.SENSRB.deserialize(value.payload());
+            t.assertTrue(ok,status.message);
+            t.verifyEqual(decoded.payload(),value.payload());
             if isnumeric(field.sample)
                 t.verifyEqual(str2double(out.series.value),field.sample,'AbsTol',1e-10);
             else

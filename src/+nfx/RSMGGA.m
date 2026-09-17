@@ -45,6 +45,146 @@ classdef (Sealed) RSMGGA < nfx.TRE
         tnumrd
         tnumcd
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMGGA value
+            %   [OBJ, OK, STATUS] = nfx.RSMGGA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMGGA, RSMGGA.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMGGA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.ggrsn = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 256, 1, false);
+            if reader.ok
+                obj.ggcsn = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ggrfep = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ggcfep = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 0, 3, 1, true);
+            if reader.ok
+                obj.intord = value;
+            end
+            [count, reader] = reader.count(3, 14, 999);
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.deltaz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.deltax = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.deltay = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.zpln1 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xipln1 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.yipln1 = value;
+            end
+            [value, reader] = reader.number( ...
+                9, -99999999, 99999999, 1, false);
+            if reader.ok
+                obj.refrow = value;
+            end
+            [value, reader] = reader.number( ...
+                9, -99999999, 99999999, 1, false);
+            if reader.ok
+                obj.refcol = value;
+            end
+            [rowWidth, reader] = reader.number(2, 3, 11, true);
+            [columnWidth, reader] = reader.number(2, 3, 11, true);
+            [value, reader] = reader.number( ...
+                1, 1, 3, 1, false);
+            if reader.ok
+                obj.fnumrd = value;
+            end
+            [value, reader] = reader.number( ...
+                1, 1, 3, 1, false);
+            if reader.ok
+                obj.fnumcd = value;
+            end
+            plane = struct('ixo', 0, 'iyo', 0, 'rcoord', [], 'ccoord', []);
+            planes = repmat(plane, 1, count);
+            for k = 2:count
+                [planes(k).ixo, reader] = reader.number(4, -999, 999, true);
+                [planes(k).iyo, reader] = reader.number(4, -999, 999, true);
+            end
+            for k = 1:count
+                [rows, reader] = reader.number(3, 2, 999, true);
+                [columns, reader] = reader.number(3, 2, 999, true);
+                if reader.ok
+                    [raw, reader] = reader.take( ...
+                        rows * columns * (rowWidth + columnWidth));
+                end
+                if ~reader.ok
+                    break
+                end
+                points = nfx.internal.TREReader(raw);
+                rcoord = zeros(rows, columns);
+                ccoord = zeros(rows, columns);
+                for x = 1:rows
+                    for y = 1:columns
+                        [rcoord(x, y), points] = points.number( ...
+                            rowWidth, 0, 1e11 - 1, true, true);
+                        [ccoord(x, y), points] = points.number( ...
+                            columnWidth, 0, 1e11 - 1, true, true);
+                    end
+                end
+                if ~points.ok
+                    reader = reader.fail(points.code, points.message);
+                end
+                planes(k).rcoord = rcoord / 10^obj.fnumrd;
+                planes(k).ccoord = ccoord / 10^obj.fnumcd;
+            end
+            if reader.ok
+                obj.planes = planes;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMGGA());
+        end
+    end
     methods
         function obj = RSMGGA(options) %#codegen
             %RSMGGA - Construct editable grid metadata

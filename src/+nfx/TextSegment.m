@@ -27,6 +27,72 @@ classdef TextSegment
         store = nfx.internal.TREStore()
     end
     methods
+        function [tre, ok, status] = FCRNSA(obj, index, options) %#codegen
+            %FCRNSA - Retrieve an editable copy of a direct FCRNSA attachment
+            %   [TRE, OK, STATUS] = OBJ.FCRNSA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.FCRNSA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar FCRNSA and OK=false.
+            %
+            %   See also tre, treCount, nfx.FCRNSA.deserialize
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FCRNSA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = FREESA(obj, index, options) %#codegen
+            %FREESA - Retrieve an editable copy of a direct FREESA attachment
+            %   [TRE, OK, STATUS] = OBJ.FREESA(INDEX) selects the INDEXth
+            %   logical occurrence in insertion order; INDEX defaults to 1.
+            %   OBJ.FREESA(ID=ID) selects its stable attachment identity.
+            %   Failure returns a default scalar FREESA and OK=false.
+            %
+            %   See also tre, treCount, nfx.FREESA.deserialize
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FREESA(), index, options.ID);
+        end
+
+        function [count, ok, status] = treCount(obj, tag) %#codegen
+            %treCount - Count direct logical TRE attachments
+            %   N = OBJ.treCount(TAG) counts matching logical attachments.
+            %   N = OBJ.treCount() counts all types, including continuations
+            %   as one attachment. Wrapper children are inspected separately.
+            %
+            %   See also tre, tre_ids, tre_records
+            arguments
+                obj (1,1) nfx.TextSegment
+                tag = ''
+            end
+            [count, ok, status] = countTRE(obj.tre_records, tag);
+        end
+
+        function [record, ok, status] = tre(obj, index, options) %#codegen
+            %tre - Inspect one logical attachment through a scalar view
+            %   [RECORD, OK, STATUS] = OBJ.tre(INDEX) selects all TRE types
+            %   in insertion order. INDEX defaults to 1. OBJ.tre(ID=ID)
+            %   selects a stable attachment identity. Failure returns a
+            %   default scalar nfx.TRERecord and OK=false.
+            %
+            %   See also nfx.TRERecord, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [record, ok, status] = viewTRE( ...
+                obj.tre_records, index, options.ID);
+        end
+    end
+    methods
         function obj = TextSegment(data, options) %#codegen
             %TextSegment - Construct normalized text and its metadata
             arguments

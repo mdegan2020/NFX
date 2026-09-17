@@ -51,6 +51,71 @@ file.write('example.ntf');
 - `validate()` returns `valid`, `scope`, and `issues`. Each issue includes an identifier, field location, message, and specification reference. `rpc.ascii()`, `rpc.payload()`, and `rpc.bytes()` expose the ASCII payload, payload bytes, and framed TRE bytes respectively.
 - `write()` validates first and prepares a temporary file beside the destination. Replacing an existing file requires `Overwrite=true`. Failed preparation leaves the destination intact and cleans up temporary output. Concurrent writers to the same destination require caller coordination.
 
+## Inspecting attached TREs
+
+Each supported concrete TRE has `deserialize(payload)`. Owners select the
+decoder through a method named for the type:
+
+```matlab
+rpc = image.RPC00B;
+[rpc, found, status] = image.RPC00B(ID=image.tre_ids(1));
+
+for index = 1:image.treCount('FREESA')
+    freeSpace = image.FREESA(index);
+    disp(freeSpace.count);
+end
+
+disp(image.tre(1));
+```
+
+`image.RPC00B(2)` selects the second **RPC00B logical attachment**, in surviving
+insertion order. `ID=` selects an attachment identity, which survives removal
+of earlier entries. `treCount()` counts all directly attached types.
+`image.tre(index)` selects across all types and returns one scalar
+`nfx.TRERecord`. Its `disp` decodes a temporary value, shows bounded field
+contents, and summarizes large arrays and nested objects. `tre_records`
+continues to return the original homogeneous structs and payload bytes.
+
+Typed retrieval and deserialization return `[object, ok, status]`. A missing,
+invalid, or unsupported result returns a **fresh default scalar of the concrete
+class** and `ok=false`. Check `ok` before using required metadata. Expected
+lookup and parsing failures use status checks without `try/catch`. Status has
+`code`, `message`, and `offset` fields; offsets identify the parser position
+where available. `NotFound` and `InvalidSelector` distinguish lookup failures.
+
+Decoded objects are independent editable values at their **encoded precision**.
+Editing one leaves the stored snapshot unchanged. To replace an attachment,
+remove its ID and add the edited copy; the new attachment receives a new ID
+and goes at the end. Deserializers cover the layouts NFX emits and require
+byte-identical re-encoding. They return failure for unsupported layouts or
+noncanonical payloads rather than silently normalizing them.
+
+Files, text segments, and wrappers provide the same access pattern for their
+supported TRE types. Wrapper access inspects direct children; frame/context
+resolution remains a separate API. Use `getCONTXA`, `getFSYNWA`, and
+`getFASYWA` on decoded wrappers to avoid MATLAB's reserved constructor names.
+Child IDs are local to the reconstructed wrapper; IDs are not encoded in NITF.
+
+SENSRB continuation instances sharing one attachment ID count as one logical
+record. `image.SENSRB` reconstructs all samples in order. For physical records
+outside an owner, use `nfx.SENSRB.deserializeRecords(records)`. Encoded chunks
+remain separate ordered `time_stamped_data` groups: the wire data does not
+retain the original input group boundaries. The complete logical object
+re-encodes to the same physical instances. Encoded sentinel categories use
+`NaN` for unknown values, `10` for BANDSB NIIRS greater than 9.9, and `1e-100`
+for a SENSRB positive standard deviation encoded as underflow zero.
+
+Compressed images expose their derived original NPJE/EPJE record through
+`image.J2KLRA`; its reserved attachment ID is zero. The returned copy is
+editable, while the stored record remains derived from compression.
+ENGRDA and general-purpose NITF file parsing are outside this increment.
+
+Run `addpath('src', 'examples'); inspectionExample();` for a complete example.
+The core storage stays homogeneous, typed methods have concrete return classes,
+and the tag-based display dispatcher returns no heterogeneous object. This
+preserves the Coder design intent; no MATLAB Coder license is available and
+compiled compatibility has not been tested.
+
 ## Text and support data
 
 ```matlab

@@ -23,6 +23,58 @@ classdef (Sealed) MTIMFA < nfx.TRE
         num_cameras_defined
         num_temp_blocks
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable MTIMFA value
+            %   [OBJ, OK, STATUS] = nfx.MTIMFA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also MTIMFA, MTIMFA.payload
+            arguments
+                data
+            end
+            obj = nfx.MTIMFA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(36, true, false);
+            if reader.ok
+                obj.layer_id = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 1, 999, 1, false);
+            if reader.ok
+                obj.camera_set_index = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 1, 999999, 1, false);
+            if reader.ok
+                obj.time_interval_index = value;
+            end
+            [count, reader] = reader.count(3, 39, 999);
+            block = struct('start_timestamp', '', 'end_timestamp', '', ...
+                'image_seg_index', NaN);
+            camera = struct('camera_id', '', 'temporal_blocks', repmat(block, 1, 0));
+            cameras = repmat(camera, 1, count);
+            for k = 1:count
+                [cameras(k).camera_id, reader] = reader.text(36);
+                [blocks, reader] = reader.count(3, 51, 999);
+                values = repmat(block, 1, blocks);
+                for j = 1:blocks
+                    [values(j).start_timestamp, reader] = reader.text(24);
+                    [values(j).end_timestamp, reader] = reader.text(24);
+                    [values(j).image_seg_index, reader] = ...
+                        reader.number(3, 1, 999, true, true);
+                end
+                cameras(k).temporal_blocks = values;
+            end
+            if reader.ok
+                obj.cameras = cameras;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.MTIMFA());
+        end
+    end
     methods
         function obj = MTIMFA(options) %#codegen
             %MTIMFA - Construct editable camera-to-block mappings

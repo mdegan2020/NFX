@@ -19,6 +19,37 @@ classdef (Sealed) TMINTA < nfx.TRE
     properties (Dependent, SetAccess = private)
         num_time_int
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable TMINTA value
+            %   [OBJ, OK, STATUS] = nfx.TMINTA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also TMINTA, TMINTA.payload
+            arguments
+                data
+            end
+            obj = nfx.TMINTA();
+            reader = nfx.internal.TREReader(data);
+            [count, reader] = reader.count(4, 54, 1851);
+            entry = struct('time_interval_index', NaN, ...
+                'start_timestamp', '', 'end_timestamp', '');
+            entries = repmat(entry, 1, count);
+            for k = 1:count
+                [entries(k).time_interval_index, reader] = ...
+                    reader.number(6, 0, 999999, true);
+                [entries(k).start_timestamp, reader] = reader.text(24);
+                [entries(k).end_timestamp, reader] = reader.text(24);
+            end
+            if reader.ok
+                obj.intervals = entries;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.TMINTA());
+        end
+    end
     methods
         function obj = TMINTA(intervals) %#codegen
             %TMINTA - Construct editable interval definitions

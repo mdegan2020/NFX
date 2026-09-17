@@ -164,4 +164,45 @@ classdef (Sealed) RPC00B < nfx.TRE
             value = char(payload(obj));
         end
     end
+
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %DESERIALIZE - Recover editable RPC00B metadata from its payload
+            %   OBJ = DESERIALIZE(DATA) decodes a uint8 payload without its
+            %   tag/length envelope. Failure returns a default scalar RPC00B.
+            %
+            %   [OBJ,OK] = DESERIALIZE(...) also reports decoding success.
+            %
+            %   [OBJ,OK,STATUS] = DESERIALIZE(...) also returns a diagnostic
+            %   code, message and one-based payload cursor. No parsing error
+            %   is thrown. Values retain the precision of their encoding.
+            arguments
+                data
+            end
+            obj = nfx.RPC00B();
+            reader = nfx.internal.TREReader(data);
+            reader = reader.literal('1');
+            [obj.err_bias, reader] = reader.number(7, 0, 9999.99);
+            [obj.err_rand, reader] = reader.number(7, 0, 9999.99);
+            [obj.line_off, reader] = reader.number(6, 0, 999999, true);
+            [obj.samp_off, reader] = reader.number(5, 0, 99999, true);
+            [obj.lat_off, reader] = reader.number(8, -90, 90);
+            [obj.long_off, reader] = reader.number(9, -180, 180);
+            [obj.height_off, reader] = reader.number(5, -9999, 9999, true);
+            [obj.line_scale, reader] = reader.number(6, 1, 999999, true);
+            [obj.samp_scale, reader] = reader.number(5, 1, 99999, true);
+            [obj.lat_scale, reader] = reader.number(8, -90, 90);
+            [obj.long_scale, reader] = reader.number(9, -180, 180);
+            [obj.height_scale, reader] = reader.number(5, -9999, 9999, true);
+            [coefficients, reader] = reader.numbers(80, 12);
+            if reader.ok
+                obj.line_num_coeff = coefficients(1:20);
+                obj.line_den_coeff = coefficients(21:40);
+                obj.samp_num_coeff = coefficients(41:60);
+                obj.samp_den_coeff = coefficients(61:80);
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RPC00B());
+        end
+    end
 end

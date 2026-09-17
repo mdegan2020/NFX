@@ -24,6 +24,43 @@ classdef (Sealed) RSMAPB < nfx.TRE
     properties (Dependent, SetAccess = private)
         npar
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMAPB value
+            %   [OBJ, OK, STATUS] = nfx.RSMAPB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMAPB, RSMAPB.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMAPB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.tid = value;
+            end
+            [parameters, reader] = readRSMParameters(reader);
+            [values, reader] = reader.numbers(parameters.npar, 21, ...
+                -9.99999999999999e99, 9.99999999999999e99);
+            if reader.ok
+                obj.parameters = parameters;
+                obj.parval = values;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMAPB());
+        end
+    end
     methods
         function obj = RSMAPB(options) %#codegen
             %RSMAPB - Construct editable RSM adjustments

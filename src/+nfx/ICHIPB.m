@@ -37,6 +37,134 @@ classdef (Sealed) ICHIPB < nfx.TRE
         fi_row {mustBeMetadata(fi_row, 0, 99999999, 1)} = 0
         fi_col {mustBeMetadata(fi_col, 0, 99999999, 1)} = 0
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable ICHIPB value
+            %   [OBJ, OK, STATUS] = nfx.ICHIPB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also ICHIPB, ICHIPB.payload
+            arguments
+                data
+            end
+            obj = nfx.ICHIPB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.number( ...
+                2, 0, 1, 1, false);
+            if reader.ok
+                obj.xfrm_flag = value;
+            end
+            [value, reader] = reader.number( ...
+                10, 0, 9999.99999, 0, false);
+            if reader.ok
+                obj.scale_factor = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 1, 1, false);
+            if reader.ok
+                obj.anamrph_corr = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 99, 1, false);
+            if reader.ok
+                obj.scanblk_num = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_row_11 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_col_11 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_row_12 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_col_12 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_row_21 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_col_21 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_row_22 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.op_col_22 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_row_11 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_col_11 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_row_12 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_col_12 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_row_21 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_col_21 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_row_22 = value;
+            end
+            [value, reader] = reader.number( ...
+                12, 0, 99999999.999, 0, false);
+            if reader.ok
+                obj.fi_col_22 = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 0, 99999999, 1, false);
+            if reader.ok
+                obj.fi_row = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 0, 99999999, 1, false);
+            if reader.ok
+                obj.fi_col = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.ICHIPB());
+        end
+    end
     methods
         function obj = ICHIPB(options) %#codegen
             %ICHIPB - Construct editable chip mapping metadata

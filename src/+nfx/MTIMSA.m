@@ -39,6 +39,88 @@ classdef (Sealed) MTIMSA < nfx.TRE
     properties (Access = private)
         deltaWidth = NaN
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable MTIMSA value
+            %   [OBJ, OK, STATUS] = nfx.MTIMSA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also MTIMSA, MTIMSA.payload
+            arguments
+                data
+            end
+            obj = nfx.MTIMSA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.number( ...
+                3, 1, 999, 1, false);
+            if reader.ok
+                obj.image_seg_index = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 99, 1, false);
+            if reader.ok
+                obj.geocoords_static = value;
+            end
+            [value, reader] = reader.text(36, true, false);
+            if reader.ok
+                obj.layer_id = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 999, 1, false);
+            if reader.ok
+                obj.camera_set_index = value;
+            end
+            [value, reader] = reader.text(36, true, false);
+            if reader.ok
+                obj.camera_id = value;
+            end
+            [value, reader] = reader.number( ...
+                6, 0, 999999, 1, false);
+            if reader.ok
+                obj.time_interval_index = value;
+            end
+            [value, reader] = reader.number( ...
+                3, 0, 999, 1, false);
+            if reader.ok
+                obj.temp_block_index = value;
+            end
+            [value, reader] = reader.ue13();
+            if reader.ok
+                obj.nominal_frame_rate = value;
+            end
+            [value, reader] = reader.number( ...
+                9, 1, 999999999, 1, true);
+            if reader.ok
+                obj.reference_frame_num = value;
+            end
+            [value, reader] = reader.text(24, true, false);
+            if reader.ok
+                obj.base_timestamp = value;
+            end
+            [multiplier, reader] = reader.unsigned(8);
+            [width, reader] = reader.unsigned(1);
+            [frames, reader] = reader.unsigned(4);
+            [count, reader] = reader.unsigned(4);
+            if reader.ok
+                if multiplier == 0 || frames == 0 || width < 1 || width > 8
+                    reader = reader.fail('InvalidNumber', ...
+                        'Timing multiplier, frame count and width must be valid.');
+                else
+                    [deltas, reader] = reader.unsigned(double(width), double(count));
+                    if reader.ok
+                        obj.dt_multiplier = multiplier;
+                        obj.dt_size = double(width);
+                        obj.number_frames = double(frames);
+                        obj.dt = deltas;
+                    end
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.MTIMSA());
+        end
+    end
     methods
         function obj = MTIMSA(options) %#codegen
             %MTIMSA - Construct editable timing metadata without type conversion

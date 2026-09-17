@@ -103,6 +103,428 @@ classdef (Sealed) RSMIDA < nfx.TRE
         svz {mustBeRSMNumber} = NaN
         saz {mustBeRSMNumber} = NaN
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMIDA value
+            %   [OBJ, OK, STATUS] = nfx.RSMIDA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMIDA, RSMIDA.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMIDA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.isid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.sid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.stid = value;
+            end
+            [value, reader] = reader.number( ...
+                4, 0, 9999, 1, true);
+            if reader.ok
+                obj.year = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 1, 12, 1, true);
+            if reader.ok
+                obj.month = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 1, 31, 1, true);
+            if reader.ok
+                obj.day = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 23, 1, true);
+            if reader.ok
+                obj.hour = value;
+            end
+            [value, reader] = reader.number( ...
+                2, 0, 59, 1, true);
+            if reader.ok
+                obj.minute = value;
+            end
+            [value, reader] = reader.number( ...
+                9, 0, 60.999999, 0, true);
+            if reader.ok
+                obj.second = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 1, 99999999, 1, true);
+            if reader.ok
+                obj.nrg = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 1, 99999999, 1, true);
+            if reader.ok
+                obj.ncg = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.trg = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.tcg = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.grndd = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xuor = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.yuor = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.zuor = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xuxr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xuyr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.xuzr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.yuxr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.yuyr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.yuzr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.zuxr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.zuyr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.zuzr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v1x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v1y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v1z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v2x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v2y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v2z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v3x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v3y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v3z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v4x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v4y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v4z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v5x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v5y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v5z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v6x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v6y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v6z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v7x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v7y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v7z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v8x = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v8y = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.v8z = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grpx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grpy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.grpz = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 1, 99999999, 1, true);
+            if reader.ok
+                obj.fullr = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 1, 99999999, 1, true);
+            if reader.ok
+                obj.fullc = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 0, 99999999, 1, false);
+            if reader.ok
+                obj.minr = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 0, 99999999, 1, false);
+            if reader.ok
+                obj.maxr = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 0, 99999999, 1, false);
+            if reader.ok
+                obj.minc = value;
+            end
+            [value, reader] = reader.number( ...
+                8, 0, 99999999, 1, false);
+            if reader.ok
+                obj.maxc = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ie0 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ier = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iec = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ierr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ierc = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iecc = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.ia0 = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iar = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iac = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iarr = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iarc = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.iacc = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.spx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.svx = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.sax = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.spy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.svy = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.say = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.spz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.svz = value;
+            end
+            [value, reader] = reader.number( ...
+                21, -9.99999999999999e99, 9.99999999999999e99, false, true);
+            if reader.ok
+                obj.saz = value;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMIDA());
+        end
+    end
     methods
         function obj = RSMIDA(options) %#codegen
             %RSMIDA - Construct editable identification and domain metadata

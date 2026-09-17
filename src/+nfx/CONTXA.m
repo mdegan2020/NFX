@@ -23,6 +23,46 @@ classdef (Sealed) CONTXA < nfx.MetadataWrapper
     properties (Dependent, SetAccess = private)
         index_list_length
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable CONTXA value
+            %   [OBJ, OK, STATUS] = nfx.CONTXA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also CONTXA, CONTXA.payload
+            arguments
+                data
+            end
+            obj = nfx.CONTXA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(2, true, false);
+            if reader.ok
+                obj.context_type = value;
+            end
+            [value, reader] = reader.text(1, true, false);
+            if reader.ok
+                obj.aggregation_mode = value;
+            end
+            [width, reader] = reader.count(4, 1, 9999);
+            [indices, reader] = reader.text(width, false);
+            if reader.ok
+                obj.index_list = indices;
+            end
+            [records, reader] = readWrappedRecords(reader);
+            if reader.ok
+                [valid, childStatus] = validateWrappedRecords(records);
+                if valid
+                    obj = obj.restoreSnapshots(records);
+                else
+                    reader = reader.fail(childStatus.code, childStatus.message);
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.CONTXA());
+        end
+    end
     methods
         function obj = CONTXA(options) %#codegen
             %CONTXA - Construct an editable indexed context

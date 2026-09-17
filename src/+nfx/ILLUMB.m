@@ -84,6 +84,349 @@ classdef (Sealed) ILLUMB < nfx.TRE
         otherRows = repmat(' ',0,40)
         commentRowsValue = repmat(' ',0,80)
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable ILLUMB value
+            %   [OBJ, OK, STATUS] = nfx.ILLUMB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also ILLUMB, ILLUMB.payload
+            arguments
+                data
+            end
+            obj = nfx.ILLUMB();
+            reader = nfx.internal.TREReader(data);
+            [bands, reader] = reader.count(4, 32, 9999);
+            [value, reader] = reader.text(40, true, true);
+            if reader.ok
+                obj.band_unit = value;
+            end
+            lower = zeros(1, bands);
+            upper = zeros(1, bands);
+            for b = 1:bands
+                [lower(b), reader] = reader.number(16, 0, 9.9999999999E99);
+                [upper(b), reader] = reader.number(16, 0, 9.9999999999E99);
+            end
+            [others, reader] = reader.count(2, 40, 99);
+            [names, reader] = reader.textRows(40, others, true);
+            [comments, reader] = reader.count(1, 80, 9);
+            [commentText, reader] = reader.textRows(80, comments, true);
+            if reader.ok
+                obj.lbound = lower;
+                obj.ubound = upper;
+                obj.other_name = names;
+                obj.comment = commentText;
+            end
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.geo_datum = value;
+            end
+            [value, reader] = reader.text(4, true, false);
+            if reader.ok
+                obj.geo_datum_code = value;
+            end
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.ellipsoid_name = value;
+            end
+            [value, reader] = reader.text(3, true, false);
+            if reader.ok
+                obj.ellipsoid_code = value;
+            end
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.vertical_datum_ref = value;
+            end
+            [value, reader] = reader.text(4, true, false);
+            if reader.ok
+                obj.vertical_ref_code = value;
+            end
+            [mask, reader] = reader.unsigned(3);
+            flags = false(1, 24);
+            if reader.ok
+                flags = bitget(uint32(mask), 1:24) ~= 0;
+                if any(flags(1:8))
+                    reader = reader.fail('InvalidField', 'Reserved mask bits are set.');
+                end
+            end
+            if flags(24)
+                [value, reader] = reader.text(40, true, true);
+                if reader.ok
+                    obj.rad_quantity = value;
+                end
+                [value, reader] = reader.text(40, true, true);
+                if reader.ok
+                    obj.radq_unit = value;
+                end
+            end
+            [sets, reader] = reader.count(3, 49, 999);
+            perSet = 49 + 10 * flags(23) + 10 * flags(22) + 6 * flags(21) + ...
+                3 * flags(20) + 10 * others * flags(19) + 10 * flags(18) + ...
+                5 * flags(17) + 21 * flags(16) + 5 * flags(15) + ...
+                21 * flags(14) + 7 * flags(11);
+            perBand = 17 * flags(13) + 17 * flags(12) + 16 * flags(11) + ...
+                17 * others * flags(10) + 33 * flags(9);
+            if reader.ok && sets * (perSet + bands * perBand) > ...
+                    numel(data) - reader.position + 1
+                reader = reader.fail('TruncatedPayload', ...
+                    'Illumination arrays exceed the remaining payload.');
+            end
+            if ~reader.ok
+                sets = 0;
+            end
+            times = repmat(' ', sets, 14);
+            precisions = repmat(6, 6, sets);
+            decoded.target_lat = zeros(1, sets);
+            decoded.target_lon = zeros(1, sets);
+            decoded.target_hgt = zeros(1, sets);
+            decoded.sun_azimuth = [];
+            if flags(23)
+                decoded.sun_azimuth = zeros(1, sets);
+            end
+            decoded.sun_elev = [];
+            if flags(23)
+                decoded.sun_elev = zeros(1, sets);
+            end
+            decoded.moon_azimuth = [];
+            if flags(22)
+                decoded.moon_azimuth = zeros(1, sets);
+            end
+            decoded.moon_elev = [];
+            if flags(22)
+                decoded.moon_elev = zeros(1, sets);
+            end
+            decoded.moon_phase_angle = [];
+            if flags(21)
+                decoded.moon_phase_angle = zeros(1, sets);
+            end
+            decoded.moon_illum_percent = [];
+            if flags(20)
+                decoded.moon_illum_percent = zeros(1, sets);
+            end
+            decoded.other_azimuth = [];
+            if flags(19)
+                decoded.other_azimuth = zeros(others, sets);
+            end
+            decoded.other_elev = [];
+            if flags(19)
+                decoded.other_elev = zeros(others, sets);
+            end
+            decoded.sensor_azimuth = [];
+            if flags(18)
+                decoded.sensor_azimuth = zeros(1, sets);
+            end
+            decoded.sensor_elev = [];
+            if flags(18)
+                decoded.sensor_elev = zeros(1, sets);
+            end
+            decoded.cats_angle = [];
+            if flags(17)
+                decoded.cats_angle = zeros(1, sets);
+            end
+            decoded.sun_glint_lat = [];
+            if flags(16)
+                decoded.sun_glint_lat = zeros(1, sets);
+            end
+            decoded.sun_glint_lon = [];
+            if flags(16)
+                decoded.sun_glint_lon = zeros(1, sets);
+            end
+            decoded.catm_angle = [];
+            if flags(15)
+                decoded.catm_angle = zeros(1, sets);
+            end
+            decoded.moon_glint_lat = [];
+            if flags(14)
+                decoded.moon_glint_lat = zeros(1, sets);
+            end
+            decoded.moon_glint_lon = [];
+            if flags(14)
+                decoded.moon_glint_lon = zeros(1, sets);
+            end
+            decoded.sol_lun_dist_adjust = [];
+            if flags(11)
+                decoded.sol_lun_dist_adjust = zeros(1, sets);
+            end
+            decoded.sun_illum = [];
+            if flags(13)
+                decoded.sun_illum = zeros(bands, sets);
+            end
+            decoded.sun_illum_method = '';
+            if flags(13)
+                decoded.sun_illum_method = repmat('P', bands, sets);
+            end
+            decoded.moon_illum = [];
+            if flags(12)
+                decoded.moon_illum = zeros(bands, sets);
+            end
+            decoded.moon_illum_method = '';
+            if flags(12)
+                decoded.moon_illum_method = repmat('P', bands, sets);
+            end
+            decoded.tot_sunmoon_illum = [];
+            if flags(11)
+                decoded.tot_sunmoon_illum = zeros(bands, sets);
+            end
+            decoded.other_illum = [];
+            if flags(10)
+                decoded.other_illum = zeros(others, bands, sets);
+            end
+            decoded.other_illum_method = '';
+            if flags(10)
+                decoded.other_illum_method = repmat('P', others, bands, sets);
+            end
+            decoded.art_illum_min = [];
+            if flags(9)
+                decoded.art_illum_min = zeros(bands, sets);
+            end
+            decoded.art_illum_max = [];
+            if flags(9)
+                decoded.art_illum_max = zeros(bands, sets);
+            end
+            decoded.art_illum_method = '';
+            if flags(9)
+                decoded.art_illum_method = repmat('P', bands, sets);
+            end
+            for n = 1:sets
+                [times(n, :), reader] = reader.text(14, false);
+                [decoded.target_lat(n), precisions(1, n), reader] = ...
+                    reader.coordinate(10, -90, 90);
+                [decoded.target_lon(n), precisions(2, n), reader] = ...
+                    reader.coordinate(11, -180, 180);
+                [decoded.target_hgt(n), reader] = ...
+                    reader.number(14, -12000, 12000, 0, true);
+                if flags(23)
+                    [decoded.sun_azimuth(n), reader] = ...
+                        reader.dashed(5, 0, 359.9);
+                    [decoded.sun_elev(n), reader] = ...
+                        reader.dashed(5, -90, 90);
+                end
+                if flags(22)
+                    [decoded.moon_azimuth(n), reader] = ...
+                        reader.dashed(5, 0, 359.9);
+                    [decoded.moon_elev(n), reader] = ...
+                        reader.dashed(5, -90, 90);
+                end
+                if flags(21)
+                    [decoded.moon_phase_angle(n), reader] = ...
+                        reader.dashed(6, -180, 180);
+                end
+                if flags(20)
+                    [decoded.moon_illum_percent(n), reader] = ...
+                        reader.dashed(3, 0, 100, true);
+                end
+                if flags(19)
+                    for j = 1:others
+                        [decoded.other_azimuth(j, n), reader] = ...
+                            reader.dashed(5, 0, 359.9);
+                        [decoded.other_elev(j, n), reader] = ...
+                            reader.dashed(5, -90, 90);
+                    end
+                end
+                if flags(18)
+                    [decoded.sensor_azimuth(n), reader] = ...
+                        reader.dashed(5, 0, 359.9);
+                    [decoded.sensor_elev(n), reader] = ...
+                        reader.dashed(5, -90, 90);
+                end
+                if flags(17)
+                    [decoded.cats_angle(n), reader] = ...
+                        reader.dashed(5, 0, 359.9);
+                end
+                if flags(16)
+                    [decoded.sun_glint_lat(n), precisions(3, n), reader] = ...
+                        reader.coordinate(10, -90, 90);
+                    [decoded.sun_glint_lon(n), precisions(4, n), reader] = ...
+                        reader.coordinate(11, -180, 180);
+                end
+                if flags(15)
+                    [decoded.catm_angle(n), reader] = ...
+                        reader.dashed(5, 0, 359.9);
+                end
+                if flags(14)
+                    [decoded.moon_glint_lat(n), precisions(5, n), reader] = ...
+                        reader.coordinate(10, -90, 90);
+                    [decoded.moon_glint_lon(n), precisions(6, n), reader] = ...
+                        reader.coordinate(11, -180, 180);
+                end
+                if flags(11)
+                    [decoded.sol_lun_dist_adjust(n), reader] = ...
+                        reader.dashed(7, 0.7, 1.4);
+                end
+                for b = 1:bands
+                    if flags(13)
+                        [decoded.sun_illum_method(b, n), reader] = reader.choice('PM');
+                        [decoded.sun_illum(b, n), reader] = ...
+                            reader.number(16, 0, 9.9999999999E99, 0, true);
+                    end
+                    if flags(12)
+                        [decoded.moon_illum_method(b, n), reader] = reader.choice('PM');
+                        [decoded.moon_illum(b, n), reader] = ...
+                            reader.number(16, 0, 9.9999999999E99, 0, true);
+                    end
+                    if flags(11)
+                        [decoded.tot_sunmoon_illum(b, n), reader] = ...
+                            reader.number(16, 0, 9.9999999999E99, 0, true);
+                    end
+                    if flags(10)
+                        for j = 1:others
+                            [decoded.other_illum_method(j, b, n), reader] = reader.choice('PM');
+                            [decoded.other_illum(j, b, n), reader] = ...
+                                reader.number(16, 0, 9.9999999999E99, 0, true);
+                        end
+                    end
+                    if flags(9)
+                        [decoded.art_illum_method(b, n), reader] = reader.choice('PM');
+                        [decoded.art_illum_min(b, n), reader] = ...
+                            reader.number(16, 0, 9.9999999999E99, 0, true);
+                        [decoded.art_illum_max(b, n), reader] = ...
+                            reader.number(16, 0, 9.9999999999E99, 0, true);
+                    end
+                end
+                if ~reader.ok
+                    break
+                end
+            end
+            if reader.ok
+                obj.datetime = times;
+                obj.coordinate_precision = precisions;
+                obj.target_lat = decoded.target_lat;
+                obj.target_lon = decoded.target_lon;
+                obj.target_hgt = decoded.target_hgt;
+                obj.sun_azimuth = decoded.sun_azimuth;
+                obj.sun_elev = decoded.sun_elev;
+                obj.moon_azimuth = decoded.moon_azimuth;
+                obj.moon_elev = decoded.moon_elev;
+                obj.moon_phase_angle = decoded.moon_phase_angle;
+                obj.moon_illum_percent = decoded.moon_illum_percent;
+                obj.other_azimuth = decoded.other_azimuth;
+                obj.other_elev = decoded.other_elev;
+                obj.sensor_azimuth = decoded.sensor_azimuth;
+                obj.sensor_elev = decoded.sensor_elev;
+                obj.cats_angle = decoded.cats_angle;
+                obj.sun_glint_lat = decoded.sun_glint_lat;
+                obj.sun_glint_lon = decoded.sun_glint_lon;
+                obj.catm_angle = decoded.catm_angle;
+                obj.moon_glint_lat = decoded.moon_glint_lat;
+                obj.moon_glint_lon = decoded.moon_glint_lon;
+                obj.sol_lun_dist_adjust = decoded.sol_lun_dist_adjust;
+                obj.sun_illum = decoded.sun_illum;
+                obj.sun_illum_method = decoded.sun_illum_method;
+                obj.moon_illum = decoded.moon_illum;
+                obj.moon_illum_method = decoded.moon_illum_method;
+                obj.tot_sunmoon_illum = decoded.tot_sunmoon_illum;
+                obj.other_illum = decoded.other_illum;
+                obj.other_illum_method = decoded.other_illum_method;
+                obj.art_illum_min = decoded.art_illum_min;
+                obj.art_illum_max = decoded.art_illum_max;
+                obj.art_illum_method = decoded.art_illum_method;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.ILLUMB());
+        end
+    end
     methods
         function obj = ILLUMB(options) %#codegen
             %ILLUMB - Construct editable illumination metadata arrays

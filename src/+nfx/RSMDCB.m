@@ -32,6 +32,61 @@ classdef (Sealed) RSMDCB < nfx.TRE
         nimge
         incapd
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable RSMDCB value
+            %   [OBJ, OK, STATUS] = nfx.RSMDCB.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also RSMDCB, RSMDCB.payload
+            arguments
+                data
+            end
+            obj = nfx.RSMDCB();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(80, true, false);
+            if reader.ok
+                obj.iid = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.edition = value;
+            end
+            [value, reader] = reader.text(40, true, false);
+            if reader.ok
+                obj.tid = value;
+            end
+            [rows, reader] = reader.number(2, 1, 36, true);
+            [count, reader] = reader.count(3, 82, 999);
+            blocks = repmat(struct('iidi', '', 'crscov', []), 1, count);
+            columns = zeros(1, count);
+            for k = 1:count
+                [blocks(k).iidi, reader] = reader.text(80);
+                [columns(k), reader] = reader.number(2, 1, 36, true);
+            end
+            [included, reader] = reader.choice('YN');
+            if strcmp(included, 'Y')
+                [parameters, reader] = readRSMParameters(reader);
+                if reader.ok
+                    obj.parameters = parameters;
+                end
+            end
+            for k = 1:count
+                [values, reader] = reader.numbers(rows * columns(k), 21, ...
+                    -9.99999999999999e99, 9.99999999999999e99);
+                if reader.ok
+                    blocks(k).crscov = reshape(values, columns(k), rows).';
+                end
+            end
+            if reader.ok
+                obj.blocks = blocks;
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.RSMDCB());
+        end
+    end
     methods
         function obj = RSMDCB(options) %#codegen
             %RSMDCB - Construct editable direct covariance blocks

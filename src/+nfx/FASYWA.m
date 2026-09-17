@@ -17,6 +17,41 @@ classdef (Sealed) FASYWA < nfx.MetadataWrapper
         start_timestamp {mustBeAscii(start_timestamp,24)} = ''
         end_timestamp {mustBeAscii(end_timestamp,24)} = ''
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data) %#codegen
+            %deserialize - Decode an independent editable FASYWA value
+            %   [OBJ, OK, STATUS] = nfx.FASYWA.deserialize(PAYLOAD)
+            %   reads a uint8 row without its tag/length envelope. Failure
+            %   returns a default scalar OBJ and a diagnostic STATUS.
+            %   Encoded values retain their stored precision.
+            %
+            %   See also FASYWA, FASYWA.payload
+            arguments
+                data
+            end
+            obj = nfx.FASYWA();
+            reader = nfx.internal.TREReader(data);
+            [value, reader] = reader.text(24, true, false);
+            if reader.ok
+                obj.start_timestamp = value;
+            end
+            [value, reader] = reader.text(24, true, false);
+            if reader.ok
+                obj.end_timestamp = value;
+            end
+            [records, reader] = readWrappedRecords(reader);
+            if reader.ok
+                [valid, childStatus] = validateWrappedRecords(records);
+                if valid
+                    obj = obj.restoreSnapshots(records);
+                else
+                    reader = reader.fail(childStatus.code, childStatus.message);
+                end
+            end
+            [obj, ok, status] = finishTREDecode( ...
+                obj, reader, nfx.FASYWA());
+        end
+    end
     methods
         function obj = FASYWA(options) %#codegen
             %FASYWA - Construct an editable asynchronous time association
