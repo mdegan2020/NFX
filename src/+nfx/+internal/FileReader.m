@@ -68,21 +68,64 @@ classdef (Hidden) FileReader
             status = nfx.internal.readStatus();
         end
 
-        function [file, ok, status] = readBytes(data) %#codegen
-            %readBytes - Restore text and support data; pixels follow separately
+        function [file, ok, status] = readBytes(data, maxPixels) %#codegen
+            %readBytes - Restore a complete value from a native byte buffer
+            arguments
+                data
+                maxPixels = 2^28
+            end
             file = nfx.File();
+            if ~isa(maxPixels, 'double') || ~isscalar(maxPixels) || ...
+                    ~isreal(maxPixels) || ~isfinite(maxPixels) || ...
+                    maxPixels < 1 || maxPixels > flintmax || fix(maxPixels) ~= maxPixels
+                ok = false; status = failure('InvalidInput', ...
+                    'MaxPixels must be a positive finite double integer.', NaN, 'file', 0);
+                return
+            end
             [index, ok, status] = nfx.internal.indexNITF(data);
             if ~ok, return; end
             [parts, ok, status] = nfx.internal.FileReader.metadata(data, index);
             if ~ok, return; end
-            if ~isempty(index.images)
-                ok = false; status = failure('UnsupportedFeature', ...
-                    'Image reconstruction is not yet available.', ...
-                    index.images(1).location.headerOffset, 'image', 1);
-                return
+            images = nfx.ImageSegment.empty(1, 0); samples = 0;
+            for k = 1:numel(index.images)
+                entry = index.images(k); records = parts.imageRecords(k).records;
+                if ~strcmp(entry.layout.ic, 'NC')
+                    ok = false; status = failure('UnsupportedFeature', ...
+                        'Compressed image reconstruction is not yet available.', ...
+                        entry.location.dataOffset, 'image', k); return
+                end
+                if any(strcmp({records.tag}, 'J2KLRA'))
+                    ok = false; status = failure('MalformedFile', ...
+                        'J2KLRA requires compressed imagery in the NFX subset.', ...
+                        entry.location.headerOffset, 'image', k); return
+                end
+                if entry.layout.nbpp == 8
+                    [pixels, ok, status] = nfx.internal.readPixels( ...
+                        data, entry, maxPixels - samples, zeros(0, 0, 'uint8'));
+                else
+                    [pixels, ok, status] = nfx.internal.readPixels( ...
+                        data, entry, maxPixels - samples, zeros(0, 0, 'uint16'));
+                end
+                if ~ok, status.index = k; return; end
+                [image, ok, status] = nfx.ImageSegment.restoreRead(pixels, entry.header, records);
+                if ~ok
+                    status.scope = 'image'; status.index = k;
+                    status.offset = entry.location.headerOffset; return
+                end
+                stored = data(entry.location.headerOffset + (1:entry.location.headerLength));
+                restored = image.header.bytes( ...
+                    data(entry.extended.offset + (1:entry.extended.length)), entry.extended.overflow, ...
+                    data(entry.user.offset + (1:entry.user.length)), entry.user.overflow);
+                if ~isequal(stored, restored)
+                    ok = false; status = failure('MalformedFile', ...
+                        'Stored image fields disagree with reconstructed content.', ...
+                        entry.location.headerOffset, 'image', k); return
+                end
+                images(end + 1) = image;
+                samples = samples + numel(pixels);
             end
             file = nfx.File.restoreRead(index.header, ...
-                nfx.ImageSegment.empty(1, 0), parts.texts, parts.des, parts.fileRecords);
+                images, parts.texts, parts.des, parts.fileRecords);
             report = file.validate();
             if ~report.valid
                 file = nfx.File(); ok = false;

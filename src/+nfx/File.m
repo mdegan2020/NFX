@@ -14,6 +14,7 @@ classdef File
     %       removeTRE - Remove a file-level logical TRE attachment
     %       validate  - Check generic NITF rules and requested profiles
     %       write     - Write validated content with destination protection
+    %       read      - Read the supported NFX NITF subset with diagnostics
     %
     %   See also FileHeader, ImageSegment, TextSegment, DESSegment
 
@@ -39,6 +40,29 @@ classdef File
         contextDirty = false
         contextInheritance
         contextDefinitions
+    end
+    methods (Static)
+        function [file, ok, status] = read(filename, options)
+            %read - Reconstruct a supported NFX file with native pixels
+            %   [FILE, OK, STATUS] = nfx.File.read(FILENAME) returns a
+            %   complete editable value. Expected failures return a default
+            %   FILE, OK=false and a diagnostic code/message, source path,
+            %   scope, segment index and zero-based byte offset.
+            %
+            %   ... = nfx.File.read(...,MaxBytes=N,MaxPixels=M) bounds source
+            %   bytes and total decoded samples. Defaults are 2^30 and 2^28.
+            %   This host entry point guarantees the implemented NFX subset;
+            %   it is not a general reader for all legal NITF encodings.
+            %
+            %   See also write, validate, ImageSegment
+            arguments
+                filename
+                options.MaxBytes = 2^30
+                options.MaxPixels = 2^28
+            end
+            [file, ok, status] = nfx.internal.readFile( ...
+                filename, options.MaxBytes, options.MaxPixels);
+        end
     end
     methods (Static, Access = ?nfx.internal.FileReader)
         function obj = restoreRead(header, images, texts, des, records) %#codegen

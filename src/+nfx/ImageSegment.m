@@ -49,6 +49,26 @@ classdef ImageSegment
         stats = struct('bits', 1, 'trailing', 8)
         compressed
     end
+    methods (Static, Access = ?nfx.internal.FileReader)
+        function [obj, ok, status] = restoreRead(data, header, records, compression) %#codegen
+            %restoreRead - Recheck geometry and snapshots after pixel decoding
+            arguments
+                data
+                header
+                records
+                compression = nfx.JPEG2000.empty(1,0)
+            end
+            obj = nfx.ImageSegment(data, header=header);
+            obj.store = nfx.internal.TREStore.fromSnapshots(records);
+            obj.compressed = compression;
+            report = obj.validateStructure(); ok = report.valid;
+            status = nfx.internal.readStatus();
+            if ~ok
+                obj = nfx.ImageSegment(); status.code = 'MalformedFile';
+                status.message = report.issues(1).message;
+            end
+        end
+    end
     methods
         function [tre, ok, status] = CSCRNA(obj, index, options) %#codegen
             %CSCRNA - Retrieve an editable copy of a direct CSCRNA attachment

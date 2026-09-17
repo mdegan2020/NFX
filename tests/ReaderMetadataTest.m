@@ -157,13 +157,13 @@ classdef ReaderMetadataTest < NfxTest
             t.verifyFalse(ok); t.verifySubstring(status.message, 'Duplicate');
         end
 
-        function malformedHeaderAndUnfinishedImagesReturnDefaultFile(t)
+        function malformedHeaderReturnsDefaultFile(t)
             [file, ok, status] = nfx.internal.FileReader.readBytes(uint8('NITF'));
             t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
             t.verifyEmpty(file.images); t.verifyEmpty(file.texts);
             [file, ok, status] = nfx.internal.FileReader.readBytes(literalReaderFile());
-            t.verifyFalse(ok); t.verifyEqual(status.code, 'UnsupportedFeature');
-            t.verifyEmpty(file.images);
+            t.assertTrue(ok, status.message);
+            t.verifyEqual(file.images.data, uint8(197));
         end
 
         function contradictoryComplexityIsNotSilentlyRepaired(t)
