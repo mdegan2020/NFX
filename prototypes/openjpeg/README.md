@@ -13,11 +13,12 @@ license notices. The script prints the executable path. No codec is downloaded
 automatically during ordinary toolbox use or testing.
 
 ```matlab
-addpath('src','examples');
-encoder = fullfile(pwd,'artifacts','openjpeg','2.5.4', ...
-    'openjpeg-v2.5.4-windows-x64','bin','opj_compress.exe');
-[file,metrics] = openjpegExample(encoder);
-file.write(fullfile('artifacts','openjpeg','example.ntf'),Overwrite=true);
+addpath('src', 'examples');
+encoder = fullfile(pwd, 'artifacts', 'openjpeg', '2.5.4', ...
+    'openjpeg-v2.5.4-windows-x64', 'bin', 'opj_compress.exe');
+[file, metrics] = openjpegExample(encoder);
+file.write(fullfile('artifacts', 'openjpeg', 'example.ntf'), ...
+    Overwrite=true);
 disp(metrics)
 ```
 
@@ -25,8 +26,8 @@ For an existing valid still image with right-justified pixels and 1024-square
 blocks:
 
 ```matlab
-image = image.compress(encoder,Profile='EPJE'); % Or 'NPJE' (default)
-file = nfx.File(header=fileHeader)+image;
+image = image.compress(encoder, Profile='EPJE');  % Or 'NPJE' (default)
+file = nfx.File(header=fileHeader) + image;
 file.write('compressed.ntf');
 ```
 
@@ -75,7 +76,7 @@ removed. User TRE attachments retain their IDs, order and removal behavior.
 ## Validation and limits
 
 ```matlab
-results = runTests(OpenJPEG=encoder,Coverage=true);
+results = runTests(OpenJPEG=encoder, Coverage=true);
 ```
 
 Without `OpenJPEG=...` or `NFX_OPENJPEG`, `runTests` explicitly excludes the
@@ -114,7 +115,7 @@ they are individual observations, not controlled performance benchmarks.
 
 ### Initial local observations
 
-`addpath('src','examples'); observations = observeOpenJPEG(encoder);` reproduces
+`addpath('src', 'examples'); observations = observeOpenJPEG(encoder);` reproduces
 these synthetic cases. This run used R2026a Update 4 and one codec thread:
 
 | Synthetic input | Raw size | Profile | Codestream bytes | Encode seconds | Total seconds |

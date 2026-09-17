@@ -23,10 +23,10 @@ pixels = reshape(uint16(1001:1035), 5, 7);
 rpc = nfx.RPC00B(line_off=2, samp_off=3, lat_off=0, long_off=0, ...
     height_off=0, line_scale=2, samp_scale=3, lat_scale=1, ...
     long_scale=1, height_scale=100, ...
-    line_num_coeff=[0 0 1 zeros(1,17)], ...
-    line_den_coeff=[1 zeros(1,19)], ...
-    samp_num_coeff=[0 1 zeros(1,18)], ...
-    samp_den_coeff=[1 zeros(1,19)]);
+    line_num_coeff=[0 0 1 zeros(1, 17)], ...
+    line_den_coeff=[1 zeros(1, 19)], ...
+    samp_num_coeff=[0 1 zeros(1, 18)], ...
+    samp_den_coeff=[1 zeros(1, 19)]);
 
 image = nfx.ImageSegment(pixels, header=nfx.ImageHeader( ...
     iid1='DEMO', idatim='20260915120000', isclas='U', ...
@@ -56,7 +56,7 @@ file.write('example.ntf');
 ```matlab
 text = nfx.TextSegment(sprintf('First line\nSecond line'), ...
     header=nfx.TextHeader(textid='TEXT001', txtdt='20260915120000', ...
-    txtitl='Synthetic text', tsclas='U'));
+        txtitl='Synthetic text', tsclas='U'));
 file = file + text;
 ```
 
@@ -92,8 +92,8 @@ Wrappers support ordered `+` snapshots and `removeTRE`, like their file and imag
 ```matlab
 cameraID = '865efd9c-ef8a-41c3-8244-b885afcc40bf';
 platformID = 'ed8a9ab8-72e2-4165-9979-7e5af54a5b9a';
-coreID = nfx.MICIDA.coreIdentifier(120,{cameraID,platformID});
-identifiers = nfx.MICIDA(cameras=nfx.MICIDA.camera(cameraID,coreID));
+coreID = nfx.MICIDA.coreIdentifier(120, {cameraID, platformID});
+identifiers = nfx.MICIDA(cameras=nfx.MICIDA.camera(cameraID, coreID));
 file = file + identifiers;
 ```
 
@@ -105,10 +105,12 @@ This example uses the published ST 1204.3 example IDs. Usage 120 (`0x78`) declar
 
 ```matlab
 sensor = nfx.SENSRB(sensor='TEST SENSOR', platform='TEST PLATFORM', ...
-    operation_domain='Airborne', start_date='20260915', end_date='20260915', ...
+    operation_domain='Airborne', ...
+    start_date='20260915', end_date='20260915', ...
     start_time=43200, end_time=43201, reference_time=0, ...
     latitude_or_x=40, longitude_or_y=-105, altitude_or_z=1000);
-sensor.time_stamped_data = nfx.SENSRB.timeSeries('06a', [0 1], [40 40.001]);
+sensor.time_stamped_data = nfx.SENSRB.timeSeries( ...
+    '06a', [0 1], [40 40.001]);
 sensor.uncertainty_data = nfx.SENSRB.uncertainty('06a', 0.5);
 image = image + sensor;
 ```
@@ -157,11 +159,11 @@ These checks establish supported encoding and associations, not scientific senso
 `File.validate(SNIP_COMPLIANT=true)` checks supplied metadata against the **SNIP 1.2 CN1 airborne nonrectified MSI** case. Generic NITF validation remains the default. Profile failures carry stable issue identifiers, field locations and specification references. Writing with the same option performs these checks before touching the destination and requires the filename prefix to equal FTITLE, with a `.ntf` extension.
 
 ```matlab
-addpath('src','examples');
+addpath('src', 'examples');
 file = snipExample();               % Synthetic two-band RSM example
 report = file.validate(SNIP_COMPLIANT=true);
 assert(report.valid);
-file.write([file.header.ftitle '.ntf'],SNIP_COMPLIANT=true);
+file.write([file.header.ftitle '.ntf'], SNIP_COMPLIANT=true);
 ```
 
 The supported case uses unclassified, unsigned 8/16-bit still images with supplied D/G geographic corners. Spectral images require CSDIDA at file level and BANDSB, CSCRNA, HISTOA, ILLUMB, ACFTB and AIMIDB at image level. Checks cover placement/counts, known spatial response, band IDs and wavelength order, nanometer ISUBCAT values, acquisition/processing times, registered processing comments, illumination datums and supplied sensor angles. Symmetric bands use CWAVE/FWHM; asymmetric bands use NOM_WAVE/LBOUND/UBOUND. Each image uses one complete BANDSB instance.
