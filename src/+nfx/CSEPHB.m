@@ -41,6 +41,86 @@ classdef (Sealed) CSEPHB < nfx.SensorDES
         accel_provided
         reserved_len
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data, header) %#codegen
+            %deserialize - Restore an independent editable CSEPHB descriptor
+            %   [OBJ, OK, STATUS] = nfx.CSEPHB.deserialize(DATA, HEADER)
+            %   validates the DES payload and its nfx.DESHeader associations.
+            %   Failure returns a default scalar OBJ and a diagnostic.
+            %   No sensor model is fitted or transformed.
+            %
+            %   See also CSEPHB, SensorDES.segment
+            arguments
+                data
+                header
+            end
+            obj = nfx.CSEPHB();
+            [obj, reader] = nfx.SensorDES.readHeader(obj, header);
+            if reader.ok && ~any(obj.desver == [1 2])
+                reader = reader.fail('UnsupportedVersion', 'Unsupported CSEPHB version.');
+            end
+            if ~reader.ok
+                ok = false; status = decodeStatus(reader.code, reader.message, reader.position);
+                obj = nfx.CSEPHB(); return
+            end
+            reader = nfx.internal.TREReader(data, 999999998);
+            [value, reader] = reader.number(1, 0, 1, true);
+            if reader.ok, obj.qual_flag_eph = value; end
+            [value, reader] = reader.number(1, 0, 2, true);
+            if reader.ok, obj.interp_type_eph = value; end
+            if reader.ok && obj.interp_type_eph == 2
+                [value, reader] = reader.number(1, 3, 7, true);
+                if reader.ok, obj.interp_order_eph = value; end
+            end
+            [value, reader] = reader.number(1, 0, 2, true);
+            if reader.ok, obj.ephem_flag = value; end
+            [value, reader] = reader.number(1, 0, 1, true);
+            if reader.ok, obj.eci_ecf_ephem = value; end
+            if reader.ok && obj.eci_ecf_ephem == 0 && obj.desver == 2
+                [earth, reader] = readEarthOrientation(reader);
+                if reader.ok, obj.earth_orientation = earth; end
+            end
+            [value, reader] = reader.number(13, 0.000000001, 999.999999999, false);
+            if reader.ok, obj.dt_ephem = value; end
+            [text, reader] = reader.text(8, false);
+            if reader.ok, obj.date_ephem = text; end
+            [text, reader] = reader.text(16, false);
+            if reader.ok, obj.t0_ephem = text; end
+            [count, reader] = reader.count(5, 36, 99999);
+            [values, reader] = reader.numbers(count * 3, 12, -99999999.99, 99999999.99);
+            if reader.ok
+                obj.ephem_x = values(1:3:end);
+                obj.ephem_y = values(2:3:end);
+                obj.ephem_z = values(3:3:end);
+            end
+            [reserved, reader] = reader.number(9, 0, 999999999, true);
+            reservedStart = reader.position;
+            if reader.ok && reserved > 0
+                reader = reader.literal('011');
+                [length, reader] = reader.number(9, 0, 999999999, true);
+                [acceleration, reader] = reader.choice('YN');
+                stride = 3 + 3 * strcmp(acceleration, 'Y');
+                if reader.ok && (length ~= 1 + count * stride * 12 || reserved ~= length + 12)
+                    reader = reader.fail('InvalidField', 'Velocity area lengths disagree with sample counts.');
+                end
+                [values, reader] = reader.numbers(count * stride, 12, -99999999.99, 99999999.99);
+                if reader.ok
+                    obj.vel_x = values(1:stride:end);
+                    obj.vel_y = values(2:stride:end);
+                    obj.vel_z = values(3:stride:end);
+                    if strcmp(acceleration, 'Y')
+                        obj.accel_x = values(4:stride:end);
+                        obj.accel_y = values(5:stride:end);
+                        obj.accel_z = values(6:stride:end);
+                    end
+                end
+            end
+            if reader.ok && reader.position - reservedStart ~= reserved
+                reader = reader.fail('InvalidField', 'Reserved area length mismatch.');
+            end
+            [obj, ok, status] = finishDESDecode(obj, reader, header, nfx.CSEPHB());
+        end
+    end
     methods
         function obj = CSEPHB(options) %#codegen
             %CSEPHB - Construct editable ephemeris and association metadata

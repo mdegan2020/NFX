@@ -34,6 +34,63 @@ classdef (Sealed) CSATTB < nfx.SensorDES
     properties (Dependent, SetAccess = private)
         num_att
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data, header) %#codegen
+            %deserialize - Restore an independent editable CSATTB descriptor
+            %   [OBJ, OK, STATUS] = nfx.CSATTB.deserialize(DATA, HEADER)
+            %   validates the DES payload and its nfx.DESHeader associations.
+            %   Failure returns a default scalar OBJ and a diagnostic.
+            %   No sensor model is fitted or transformed.
+            %
+            %   See also CSATTB, SensorDES.segment
+            arguments
+                data
+                header
+            end
+            obj = nfx.CSATTB();
+            [obj, reader] = nfx.SensorDES.readHeader(obj, header);
+            if reader.ok && ~any(obj.desver == [1 2])
+                reader = reader.fail('UnsupportedVersion', 'Unsupported CSATTB version.');
+            end
+            if ~reader.ok
+                ok = false; status = decodeStatus(reader.code, reader.message, reader.position);
+                obj = nfx.CSATTB(); return
+            end
+            reader = nfx.internal.TREReader(data, 999999998);
+            [value, reader] = reader.number(1, 0, 1, true);
+            if reader.ok, obj.qual_flag_att = value; end
+            [value, reader] = reader.number(1, 0, 3, true);
+            if reader.ok, obj.interp_type_att = value; end
+            if reader.ok && any(obj.interp_type_att == [2 3])
+                [value, reader] = reader.number(1, 1, 7, true);
+                if reader.ok, obj.interp_order_att = value; end
+            end
+            [value, reader] = reader.number(1, 0, 2, true);
+            if reader.ok, obj.att_type = value; end
+            [value, reader] = reader.number(1, 0, 1, true);
+            if reader.ok, obj.eci_ecf_att = value; end
+            if reader.ok && obj.eci_ecf_att == 0 && obj.desver == 2
+                [earth, reader] = readEarthOrientation(reader);
+                if reader.ok, obj.earth_orientation = earth; end
+            end
+            [value, reader] = reader.number(13, 0.000000001, 999.999999999, false);
+            if reader.ok, obj.dt_att = value; end
+            [text, reader] = reader.text(8, false);
+            if reader.ok, obj.date_att = text; end
+            [text, reader] = reader.text(16, false);
+            if reader.ok, obj.t0_att = text; end
+            [count, reader] = reader.count(5, 72, 99999);
+            [values, reader] = reader.numbers(count * 4, 18, -1, 1);
+            if reader.ok
+                obj.q1 = values(1:4:end);
+                obj.q2 = values(2:4:end);
+                obj.q3 = values(3:4:end);
+                obj.q4 = values(4:4:end);
+            end
+            reader = reader.literal('000000000');
+            [obj, ok, status] = finishDESDecode(obj, reader, header, nfx.CSATTB());
+        end
+    end
     methods
         function obj = CSATTB(options) %#codegen
             %CSATTB - Construct editable attitude and association metadata

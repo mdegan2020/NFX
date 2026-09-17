@@ -56,6 +56,111 @@ classdef (Sealed) CSSFAB < nfx.SensorDES
         telescope_optics_flag
         byte_length
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data, header) %#codegen
+            %deserialize - Restore supplied field-alignment metadata
+            %   [OBJ, OK, STATUS] = nfx.CSSFAB.deserialize(DATA, HEADER)
+            %   validates the bytes and associations. Failure returns a
+            %   default scalar descriptor with an explicit diagnostic.
+            %
+            %   See also CSSFAB, SensorDES.segment
+            arguments
+                data
+                header
+            end
+            obj = nfx.CSSFAB();
+            [obj, reader] = nfx.SensorDES.readHeader(obj, header);
+            if reader.ok && obj.desver ~= 2
+                reader = reader.fail('UnsupportedVersion', 'Unsupported CSSFAB version.');
+            end
+            if ~reader.ok
+                ok = false; status = decodeStatus(reader.code, reader.message, reader.position);
+                obj = nfx.CSSFAB(); return
+            end
+            reader = nfx.internal.TREReader(data, 999999998);
+            [kind, reader] = reader.choice('SF');
+            if reader.ok, obj.sensor_type = kind; end
+            [value, reader] = reader.text(1, false);
+            if reader.ok, obj.band_type = value; end
+            [value, reader] = reader.number(11, 0, 99.99999999, false);
+            if reader.ok, obj.band_wavelength = value; end
+            [count, reader] = reader.count(5, 13, 99999);
+            for k = 1:count
+                band = nfx.SensorBand();
+                [id, reader] = reader.number(5, 1, 99999, true);
+                [rep, reader] = reader.text(2);
+                [subcat, reader] = reader.number(6, 0, 999999, false, true);
+                if ~reader.ok, break, end
+                band.band_index = id; band.irepband = rep; band.isubcat = subcat;
+                obj.bands(end + 1) = band;
+            end
+            [count, reader] = reader.count(3, 26, 999);
+            [value, reader] = reader.number(1, 0, 1, true);
+            if reader.ok, obj.fl_interp = value; end
+            [value, reader] = reader.text(8, false);
+            if reader.ok, obj.foc_length_date = value; end
+            times = zeros(1, count); lengths = zeros(1, count);
+            for k = 1:count
+                [times(k), reader] = reader.number(15, 0, 99999.999999999);
+                [lengths(k), reader] = reader.number(11, 0, 99.99999999);
+            end
+            if reader.ok, obj.foc_length_time = times; obj.foc_length = lengths; end
+            [value, reader] = reader.number(10, -99.999999, 99.999999, false);
+            if reader.ok, obj.ppoff_x = value; end
+            [value, reader] = reader.number(10, -99.999999, 99.999999, false);
+            if reader.ok, obj.ppoff_y = value; end
+            [value, reader] = reader.number(10, -99.999999, 99.999999, false);
+            if reader.ok, obj.ppoff_z = value; end
+            [value, reader] = reader.number(10, -3.1415927, 3.1415927, false);
+            if reader.ok, obj.angoff_x = value; end
+            [value, reader] = reader.number(10, -3.1415927, 3.1415927, false);
+            if reader.ok, obj.angoff_y = value; end
+            [value, reader] = reader.number(10, -3.1415927, 3.1415927, false);
+            if reader.ok, obj.angoff_z = value; end
+            if reader.ok && kind == 'S'
+                [value, reader] = reader.number(12, -99999.99999, 99999.99999, false);
+                if reader.ok, obj.smpl_num_first = value; end
+                [value, reader] = reader.number(11, 0, 99999.99999, false);
+                if reader.ok, obj.delta_smpl_pairs = value; end
+                [count, reader] = reader.count(3, 44, 999);
+                [values, reader] = reader.numbers(count * 4, 11, -99.9999999, 99.9999999);
+                if reader.ok
+                    obj.start_falign_x = values(1:4:end);
+                    obj.start_falign_y = values(2:4:end);
+                    obj.end_falign_x = values(3:4:end);
+                    obj.end_falign_y = values(4:4:end);
+                end
+            elseif reader.ok
+                [count, reader] = reader.count(1, 63, 9);
+                [value, reader] = reader.number(1, 0, 1, true);
+                if reader.ok, obj.field_angle_type = value; end
+                [value, reader] = reader.number(1, 0, 1, true);
+                if reader.ok, obj.fa_interp = value; end
+                if reader.ok && obj.field_angle_type == 0
+                    for k = 1:count
+                        [grid, reader] = readFieldAlignmentGrid(reader);
+                        if ~reader.ok, break, end
+                        obj.fa_grids(end + 1) = grid;
+                    end
+                elseif reader.ok
+                    [transform, reader] = readFiducialTransform(reader);
+                    if reader.ok, obj.fiducial_transform = transform; end
+                    for k = 1:count
+                        [lens, reader] = readInteriorOrientation(reader);
+                        if ~reader.ok, break, end
+                        obj.iop(end + 1) = lens;
+                    end
+                end
+                [flag, reader] = reader.number(1, 0, 2, true);
+                if reader.ok && flag ~= 0
+                    [telescope, reader] = readTelescopeOptics(reader, flag);
+                    if reader.ok, obj.telescope = telescope; end
+                end
+            end
+            reader = reader.literal('000000000');
+            [obj, ok, status] = finishDESDecode(obj, reader, header, nfx.CSSFAB());
+        end
+    end
     methods
         function obj = CSSFAB(options) %#codegen
             %CSSFAB - Construct editable sensor field-alignment metadata

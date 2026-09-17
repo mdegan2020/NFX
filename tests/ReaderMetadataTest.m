@@ -175,7 +175,7 @@ classdef ReaderMetadataTest < NfxTest
             t.verifyEmpty(file.texts);
         end
 
-        function rawSensorNameDoesNotRestoreVerification(t)
+        function validSensorPayloadRestoresVerification(t)
             base = fixtureFile(); source = fixtureCSCSDB().segment();
             file = base + source;
             filename = fullfile(t.folder, 'sensor-des.ntf'); file.write(filename);
@@ -183,7 +183,7 @@ classdef ReaderMetadataTest < NfxTest
             t.assertTrue(ok, status.message);
             t.verifyEqual(parts.des.header, source.header);
             t.verifyEqual(parts.des.data, source.data);
-            t.verifyFalse(parts.des.verifiedSensor());
+            t.verifyTrue(parts.des.verifiedSensor());
         end
     end
 end

@@ -50,6 +50,89 @@ classdef (Sealed) CSCSDB < nfx.SensorDES
         reserved_len
         byte_length
     end
+    methods (Static)
+        function [obj, ok, status] = deserialize(data, header) %#codegen
+            %deserialize - Restore supplied sensor covariance metadata
+            %   [OBJ, OK, STATUS] = nfx.CSCSDB.deserialize(DATA, HEADER)
+            %   validates all conditional groups and associations. Failure
+            %   returns a default scalar descriptor and diagnostic.
+            %
+            %   See also CSCSDB, SensorDES.segment
+            arguments
+                data
+                header
+            end
+            obj = nfx.CSCSDB();
+            [obj, reader] = nfx.SensorDES.readHeader(obj, header);
+            if reader.ok && obj.desver ~= 1
+                reader = reader.fail('UnsupportedVersion', 'Unsupported CSCSDB version.');
+            end
+            if ~reader.ok
+                ok = false; status = decodeStatus(reader.code, reader.message, reader.position);
+                obj = nfx.CSCSDB(); return
+            end
+            reader = nfx.internal.TREReader(data, 999999998);
+            [value, reader] = reader.text(8, false);
+            if reader.ok, obj.cov_version_date = value; end
+            [count, reader] = reader.count(1, 31, 6);
+            for k = 1:count
+                [core, reader] = readSensorErrorCore(reader);
+                if ~reader.ok, break, end
+                obj.cores(end + 1) = core;
+            end
+            [flag, reader] = reader.number(1, 0, 1, true);
+            if reader.ok && flag == 1
+                [pages, reader] = reader.count(2, 11, 99);
+                [lengths, reader] = reader.numbers(pages, 11, 0, 99.99999999);
+                if reader.ok, obj.focal_length_cal = lengths; end
+                [count, reader] = reader.count(2, 33, 11);
+                for k = 1:count
+                    [group, reader] = readCalibrationErrorGroup(reader, pages);
+                    if ~reader.ok, break, end
+                    obj.calibration_groups(end + 1) = group;
+                end
+            end
+            [flag, reader] = reader.number(1, 0, 1, true);
+            if reader.ok && flag == 1
+                [item, reader] = readTimeSyncError(reader);
+                if reader.ok, obj.time_sync = item; end
+            end
+            [flag, reader] = reader.number(1, 0, 1, true);
+            if reader.ok && flag == 1
+                [item, reader] = readUnmodeledErrorGrid(reader);
+                if reader.ok, obj.unmodeled = item; end
+            end
+            [flag, reader] = reader.number(1, 0, 1, true);
+            if reader.ok && flag == 1
+                [count, reader] = reader.count(2, 56, 99);
+                for k = 1:count
+                    [correlation, reader] = readSPDCF(reader);
+                    if ~reader.ok, break, end
+                    obj.spdcf(end + 1) = correlation;
+                end
+            end
+            [flag, reader] = reader.number(1, 0, 1, true);
+            if reader.ok && flag == 1
+                reader = reader.literal('0');
+                [count, reader] = reader.count(4, 21, 9999);
+                [adjustments, reader] = reader.numbers(count, 21, -9.99999999999999e99, 9.99999999999999e99);
+                if reader.ok, obj.adj = adjustments; end
+                [matrix, reader] = readGLASCovariance(reader, count, 1);
+                if reader.ok, obj.errcov_c4 = matrix; end
+            end
+            [reserved, reader] = reader.count(9, 1, 999999999);
+            if reader.ok && reserved > 0
+                reader = reader.literal('011');
+                [length, reader] = reader.number(9, 0, 999999999, true);
+                if reader.ok && (reserved ~= 12 + 2 * obj.num_para || length ~= 2 * obj.num_para)
+                    reader = reader.fail('InvalidField', 'Adjustment correlation area has inconsistent lengths.');
+                end
+                [ids, reader] = reader.numbers(obj.num_para, 2, 1, 99, true);
+                if reader.ok, obj.spdcf_id_adj = ids; end
+            end
+            [obj, ok, status] = finishDESDecode(obj, reader, header, nfx.CSCSDB());
+        end
+    end
     methods
         function obj = CSCSDB(options) %#codegen
             %CSCSDB - Construct editable sensor covariance and associations

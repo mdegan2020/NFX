@@ -10,11 +10,17 @@ classdef (Hidden) TREReader
     end
 
     methods
-        function obj = TREReader(data) %#codegen
+        function obj = TREReader(data, maximum) %#codegen
+            arguments
+                data
+                maximum = 99985
+            end
             if ~isa(data, 'uint8') || ~isrow(data) || ...
-                    isempty(data) || numel(data) > 99985
+                    isempty(data) || ~isscalar(maximum) || ~isreal(maximum) || ...
+                    ~isfinite(maximum) || maximum < 1 || maximum > 999999998 || ...
+                    fix(maximum) ~= maximum || numel(data) > maximum
                 obj = obj.fail('InvalidPayload', ...
-                    'Supply a uint8 row containing 1 to 99985 bytes.');
+                    'Supply a nonempty uint8 row within the payload byte limit.');
                 return
             end
             obj.data = data;

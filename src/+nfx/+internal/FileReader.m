@@ -53,8 +53,8 @@ classdef (Hidden) FileReader
                         parts = emptyParts(); return
                     end
                 else
-                    parts.des(end + 1) = nfx.DESSegment( ...
-                        segmentData(data, entry.location), header=entry.header);
+                    parts.des(end + 1) = restoreDES( ...
+                        segmentData(data, entry.location), entry.header);
                 end
             end
             pointers = pointers(pointers ~= 0);
@@ -147,6 +147,27 @@ end
 
 function bytes = segmentData(data, location) %#codegen
     bytes = data(location.dataOffset + (1:location.dataLength));
+end
+
+function segment = restoreDES(data, header) %#codegen
+    % Generic DESs may use any name. Preserve their bytes without granting
+    % sensor proof unless the complete typed representation validates.
+    % File validation rejects references to unverified sensor support data.
+    segment = nfx.DESSegment(data, header=header);
+    switch header.desid
+        case 'CSATTB'
+            [attitude, ok] = nfx.CSATTB.deserialize(data, header);
+            if ok, segment = attitude.segment(); end
+        case 'CSEPHB'
+            [ephemeris, ok] = nfx.CSEPHB.deserialize(data, header);
+            if ok, segment = ephemeris.segment(); end
+        case 'CSSFAB'
+            [alignment, ok] = nfx.CSSFAB.deserialize(data, header);
+            if ok, segment = alignment.segment(); end
+        case 'CSCSDB'
+            [covariance, ok] = nfx.CSCSDB.deserialize(data, header);
+            if ok, segment = covariance.segment(); end
+    end
 end
 
 function [records, used, ok, status] = ownerRecords( ...

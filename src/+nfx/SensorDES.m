@@ -55,6 +55,47 @@ classdef (Abstract) SensorDES
             value = nfx.DESSegment.fromSensor(payload(obj),subheader(obj));
         end
     end
+    methods (Static, Access = protected)
+        function [obj, reader] = readHeader(obj, header) %#codegen
+            %readHeader - Validate concrete DES identity and common associations
+            reader = nfx.internal.TREReader(uint8(0));
+            if ~isa(header, 'nfx.DESHeader') || ~isscalar(header) || ...
+                    ~strcmp(header.desid, obj.desid) || ~strcmp(header.desclas, 'U')
+                reader = reader.fail('InvalidHeader', ...
+                    'Supply the matching unclassified DESHeader.'); return
+            end
+            obj.desver = header.desver; obj.desclas = header.desclas;
+            reader = nfx.internal.TREReader(header.desshf);
+            [text, reader] = reader.text(36, false);
+            if reader.ok, obj.uuid = text; end
+            [text, reader] = reader.text(3, false);
+            if reader.ok && strcmp(text, 'ALL')
+                obj.all_images = true;
+            elseif reader.ok
+                count = str2double(text);
+                if any(text < '0' | text > '9') || count < 1 || count > 998
+                    reader = reader.fail('InvalidHeader', 'Invalid associated image count.');
+                else
+                    [levels, reader] = reader.numbers(count, 3, 1, 999, true);
+                    if reader.ok, obj.aisdlvl = levels; end
+                end
+            end
+            [count, reader] = reader.count(3, 36, 276);
+            ids = cell(1, count);
+            for k = 1:count, [ids{k}, reader] = reader.text(36, false); end
+            if reader.ok, obj.assoc_elem_uuid = ids; end
+            reader = reader.literal('0000'); reader = reader.finish();
+            if reader.ok
+                report = obj.headerReport();
+                if ~report.valid
+                    reader = reader.fail('InvalidHeader', report.issues(1).message);
+                elseif ~isequal(obj.subheader(), header)
+                    reader = reader.fail('NoncanonicalHeader', ...
+                        'DES subheader is outside the supported NFX encoding.');
+                end
+            end
+        end
+    end
     methods (Access = protected)
         function report = headerReport(obj) %#codegen
             %headerReport - Validate shared metadata without guessing ownership

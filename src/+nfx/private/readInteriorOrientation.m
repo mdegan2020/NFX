@@ -1,0 +1,30 @@
+function [obj, reader] = readInteriorOrientation(reader) %#codegen
+    %readInteriorOrientation - Decode bounded supplied sensor metadata
+    obj = nfx.InteriorOrientation();
+    [value, reader] = reader.number(11, 0, 99.99999999, false);
+    if reader.ok, obj.fl_cal_iop = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.ppo_x0 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.ppo_y0 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.rld_k0 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.rld_k1 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.rld_k2 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.rld_k3 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.dcd_p1 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.dcd_p2 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.dcd_p3 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.ad_a1 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.ad_a2 = value; end
+    [value, reader] = reader.number(21, -9.99999999999999e99, 9.99999999999999e99, false);
+    if reader.ok, obj.radius_of_validity = value; end
+end
