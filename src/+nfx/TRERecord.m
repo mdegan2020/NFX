@@ -20,6 +20,27 @@ classdef (Sealed) TRERecord
         physical_count
         byte_count
     end
+    methods (Static, Access = ?nfx.internal.FileReader)
+        function [ok, status] = checkReadGroup(records, owner) %#codegen
+            %checkReadGroup - Validate supported bytes and their direct owner
+            [ok, status] = validateWrappedRecords(records);
+            if ~ok, return; end
+            tag = records(1).tag; payload = records(1).payload;
+            if strcmp(owner, 'text')
+                legal = strcmp(tag, 'FREESA') || ...
+                    (strcmp(tag, 'FCRNSA') && any(payload(1) == 'YN'));
+            elseif any(strcmp(tag, {'J2KLRA', 'MTIMSA'}))
+                legal = strcmp(owner, 'image');
+            else
+                legal = wrapperLegal(tag, payload, owner);
+            end
+            if ~legal
+                ok = false;
+                status = decodeStatus('InvalidPlacement', ...
+                    'This TRE is not supported on its encoded owner.');
+            end
+        end
+    end
     methods
         function obj = TRERecord(records) %#codegen
             %TRERecord - Capture a homogeneous physical-record group

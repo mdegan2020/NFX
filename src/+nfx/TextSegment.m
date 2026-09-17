@@ -166,6 +166,13 @@ classdef TextSegment
                 'data', 'Text payload must contain 1 to 99998 bytes.', 'JBP 2025.1, Table 5.11-1');
         end
     end
+    methods (Static, Access = ?nfx.internal.FileReader)
+        function obj = restoreRead(data, header, records) %#codegen
+            %restoreRead - Capture validated bytes with fresh local identities
+            obj = nfx.TextSegment(data, header=header);
+            obj.store = nfx.internal.TREStore.fromSnapshots(records);
+        end
+    end
     methods (Access = ?nfx.File)
         function [inline, overflow] = areas(obj) %#codegen
             %AREAS - Select complete inline records within the text header

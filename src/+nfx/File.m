@@ -40,6 +40,14 @@ classdef File
         contextInheritance
         contextDefinitions
     end
+    methods (Static, Access = ?nfx.internal.FileReader)
+        function obj = restoreRead(header, images, texts, des, records) %#codegen
+            %restoreRead - Assemble independently validated imported snapshots
+            obj = nfx.File(header=header);
+            obj.imageValues = images; obj.texts = texts; obj.desValues = des;
+            obj.store = nfx.internal.TREStore.fromSnapshots(records);
+        end
+    end
     methods
         function [tre, ok, status] = FCRNSA(obj, index, options) %#codegen
             %FCRNSA - Retrieve an editable copy of a direct FCRNSA attachment
