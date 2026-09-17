@@ -12,9 +12,13 @@ classdef (Abstract, Hidden) MetadataWrapper < nfx.TRE
         tre_records
     end
     properties (Access = private)
-        store = nfx.internal.TREStore()
+        store
     end
     methods
+        function obj = MetadataWrapper() %#codegen
+            %MetadataWrapper - Initialize the shared snapshot store
+            obj.store = nfx.internal.TREStore();
+        end
         function [tre, ok, status] = getCONTXA(obj, index, options) %#codegen
             %getCONTXA - Retrieve a nested wrapper without constructor ambiguity
             %   [TRE, OK, STATUS] = OBJ.getCONTXA(INDEX) selects a logical

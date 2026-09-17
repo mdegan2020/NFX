@@ -27,7 +27,7 @@ classdef MIECollection
 
     properties
         base_name {mustBeAscii(base_name,240)} = ''
-        header (1,1) nfx.FileHeader = nfx.FileHeader()
+        header (1,1) nfx.FileHeader
         layers {mustBeMIEObjects(layers,'nfx.MIMCSA')} = nfx.MIMCSA.empty(1,0)
         camera_sets {mustBeMIEObjects(camera_sets,'nfx.CAMSDA')} = nfx.CAMSDA.empty(1,0)
         camera_ids {mustBeMIEObjects(camera_ids,'nfx.MICIDA')} = nfx.MICIDA.empty(1,0)
@@ -45,6 +45,7 @@ classdef MIECollection
             arguments
                 options.?nfx.MIECollection
             end
+            obj.header = nfx.FileHeader();
             if isfield(options,'base_name'), obj.base_name = options.base_name; end
             if isfield(options,'header'), obj.header = options.header; end
             if isfield(options,'layers'), obj.layers = options.layers; end

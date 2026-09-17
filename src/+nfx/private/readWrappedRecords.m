@@ -1,7 +1,6 @@
 function [records, reader] = readWrappedRecords(reader) %#codegen
     %readWrappedRecords - Restore envelope boundaries and local identities
-    records = repmat(struct('tag', '      ', ...
-        'payload', zeros(1, 0, 'uint8'), 'id', 0), 1, 0);
+    records = nfx.internal.emptyTRERecords();
     identity = 0;
     while reader.ok && reader.position <= numel(reader.data)
         [tag, reader] = reader.text(6, false);

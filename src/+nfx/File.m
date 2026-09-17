@@ -34,7 +34,7 @@ classdef File
         headerValue
         imageValues
         desValues
-        store = nfx.internal.TREStore()
+        store
         contextIsBound = false
         contextDirty = false
         contextInheritance
@@ -316,6 +316,7 @@ classdef File
             arguments
                 options.header (1,1) nfx.FileHeader = nfx.FileHeader()
             end
+            obj.store = nfx.internal.TREStore();
             obj.headerValue = options.header;
             obj.imageValues = nfx.ImageSegment.empty(1, 0);
             obj.texts = nfx.TextSegment.empty(1, 0);

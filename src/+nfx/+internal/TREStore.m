@@ -1,7 +1,7 @@
 classdef (Hidden) TREStore
     %TREStore - Ordered value snapshots shared by NITF metadata owners
     properties (SetAccess = private)
-        records = repmat(struct('tag', '      ', 'payload', zeros(1,0,'uint8'), 'id', 0), 1, 0)
+        records
     end
     properties (Access = private)
         nextId = 1
@@ -22,6 +22,10 @@ classdef (Hidden) TREStore
         end
     end
     methods
+        function obj = TREStore() %#codegen
+            %TREStore - Initialize variable-length homogeneous snapshots
+            obj.records = nfx.internal.emptyTRERecords();
+        end
         function obj = withJPEG2000(obj,payload)
             %withJPEG2000 - Append a derived record with reserved identity zero
             obj.records(end+1) = struct('tag','J2KLRA','payload',payload,'id',0);

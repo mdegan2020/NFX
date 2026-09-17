@@ -45,9 +45,9 @@ classdef ImageSegment
     properties (Access = private)
         pixels = zeros(0, 0, 'uint8')
         headerValue
-        store = nfx.internal.TREStore()
+        store
         stats = struct('bits', 1, 'trailing', 8)
-        compressed = nfx.JPEG2000.empty(1,0)
+        compressed
     end
     methods
         function [tre, ok, status] = CSCRNA(obj, index, options) %#codegen
@@ -547,6 +547,8 @@ classdef ImageSegment
                 data {mustBePixels} = zeros(0, 0, 'uint8')
                 options.header (1,1) nfx.ImageHeader = nfx.ImageHeader()
             end
+            obj.store = nfx.internal.TREStore();
+            obj.compressed = nfx.JPEG2000.empty(1,0);
             obj.pixels = data;
             obj.stats = pixelStatistics(data);
             obj.headerValue = options.header;

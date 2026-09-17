@@ -16,8 +16,8 @@ classdef MotionBlock
     %   See also MTIMSA, ImageSegment, TMINTA
 
     properties
-        image (1,1) nfx.ImageSegment = nfx.ImageSegment()
-        timing (1,1) nfx.MTIMSA = nfx.MTIMSA()
+        image (1,1) nfx.ImageSegment
+        timing (1,1) nfx.MTIMSA
         start_timestamp {mustBeAscii(start_timestamp,24)} = ''
         end_timestamp {mustBeAscii(end_timestamp,24)} = ''
         available {mustBeLogicalScalar} = true

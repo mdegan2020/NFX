@@ -10,7 +10,7 @@ classdef TextSegment
     %   See also TextHeader, File, FREESA
 
     properties
-        header (1,1) nfx.TextHeader = nfx.TextHeader()
+        header (1,1) nfx.TextHeader
     end
     properties (Dependent)
         data % Normalized standard text
@@ -24,7 +24,7 @@ classdef TextSegment
     end
     properties (Access = private)
         textValue = ''
-        store = nfx.internal.TREStore()
+        store
     end
     methods
         function [tre, ok, status] = FCRNSA(obj, index, options) %#codegen
@@ -99,6 +99,7 @@ classdef TextSegment
                 data = ''
                 options.header (1,1) nfx.TextHeader = nfx.TextHeader()
             end
+            obj.store = nfx.internal.TREStore();
             obj.data = data;
             obj.header = options.header;
         end

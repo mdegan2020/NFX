@@ -78,7 +78,8 @@ classdef ImageHeader
         stats = struct('bits', 1, 'trailing', 8)
         displayLevel = NaN
         defaultDisplayLevel = 1
-        comments = repmat(' ', 0, 80)
+        comments = repmat(' ', 9, 80)
+        commentCount = 0
         bandRepresentations = cell(1,0)
         bandWavelengths = zeros(1,0)
     end
@@ -171,15 +172,18 @@ classdef ImageHeader
         end
         function value = get.icom(obj) %#codegen
             %get.icom - Return padded image comment rows
-            value = obj.comments;
+            value = obj.comments(1:obj.commentCount, :);
         end
         function obj = set.icom(obj, value) %#codegen
             %set.icom - Normalize supplied comment rows
-            obj.comments = commentRows(value);
+            rows = commentRows(value);
+            obj.comments(:) = ' ';
+            obj.commentCount = size(rows, 1);
+            obj.comments(1:obj.commentCount, :) = rows;
         end
         function value = get.nicom(obj) %#codegen
             %get.nicom - Derive the number of comments
-            value = size(obj.comments, 1);
+            value = obj.commentCount;
         end
         function value = get.nbands(obj) %#codegen
             %get.nbands - Resolve the short band-count field
@@ -299,7 +303,7 @@ classdef ImageHeader
                 decimalField(obj.abpp, 2, 0, false) textField(obj.pjust, 1) textField(obj.icords, 1)];
             if ~strcmp(obj.icords, ' '), value = [value textField(obj.igeolo, 60)]; end
             value = [value decimalField(obj.nicom, 1, 0, false) ...
-                reshape(uint8(obj.comments).', 1, []) uint8(obj.ic) uint8(obj.comrat) ...
+                reshape(uint8(obj.icom).', 1, []) uint8(obj.ic) uint8(obj.comrat) ...
                 decimalField(obj.nbands, 1, 0, false)];
             if obj.bandCount > 9
                 value = [value decimalField(obj.bandCount, 5, 0, false)];

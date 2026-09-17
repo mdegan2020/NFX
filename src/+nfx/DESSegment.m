@@ -10,7 +10,7 @@ classdef DESSegment
 
     properties
         data {mustBeByteRow} = zeros(1, 0, 'uint8')
-        header (1,1) nfx.DESHeader = nfx.DESHeader()
+        header (1,1) nfx.DESHeader
     end
     properties (Dependent, SetAccess = private)
         ld % Payload length
@@ -19,7 +19,7 @@ classdef DESSegment
     properties (Access = private)
         sensorVerified = false
         sensorData = zeros(1,0,'uint8')
-        sensorHeader = nfx.DESHeader()
+        sensorHeader
     end
     methods
         function obj = DESSegment(data, options) %#codegen
@@ -28,6 +28,7 @@ classdef DESSegment
                 data {mustBeByteRow} = zeros(1, 0, 'uint8')
                 options.header (1,1) nfx.DESHeader = nfx.DESHeader()
             end
+            obj.sensorHeader = nfx.DESHeader();
             obj.data = data;
             obj.header = options.header;
         end

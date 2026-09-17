@@ -12,8 +12,7 @@ classdef (Sealed) TRERecord
     %   See also ImageSegment.tre, File.tre, MetadataWrapper.tre
 
     properties (SetAccess = private)
-        records = repmat(struct('tag', '      ', ...
-            'payload', zeros(1, 0, 'uint8'), 'id', 0), 1, 0)
+        records
     end
     properties (Dependent, SetAccess = private)
         tag
@@ -25,9 +24,9 @@ classdef (Sealed) TRERecord
         function obj = TRERecord(records) %#codegen
             %TRERecord - Capture a homogeneous physical-record group
             arguments
-                records = repmat(struct('tag', '      ', ...
-                    'payload', zeros(1, 0, 'uint8'), 'id', 0), 1, 0)
+                records = nfx.internal.emptyTRERecords()
             end
+            obj.records = nfx.internal.emptyTRERecords();
             if ~isstruct(records) || ~(isrow(records) || isempty(records)) || ...
                     numel(fieldnames(records)) ~= 3 || ...
                     ~all(isfield(records, {'tag', 'payload', 'id'}))
