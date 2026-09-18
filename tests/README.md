@@ -6,6 +6,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 
 | Suite | Checks |
 | --- | --- |
+| `CoderKitTest` | All portable MATLAB reference probes, independent byte expectations, failure classification, source export, copied-folder execution, hashes and result archives without a Coder license |
 | `TREDeserializeTest`, `TREInspectionTest` | Concrete byte round trips, malformed payloads and selectors, scalar missing results, stable IDs and order, nested wrappers, SENSRB continuations, independent copies, bounded display, and exact uint64 metadata |
 | `ReaderIndexTest`, `NativePixelReaderTest` | Independent literal headers, source bounds, optional fields, B/F/T native samples, partial blocks and malformed layouts |
 | `ReaderMetadataTest`, `FileReadTest` | Complete native file reads, raw snapshots, overflow ownership, continuation groups, independent edits, resource limits and I/O failures |
@@ -43,6 +44,12 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `SNIPProfileTest` | Selected MSI profile, required records, citation bytes, symmetric/asymmetric bands, identity/time/lineage checks, mono/RGB quick looks, crop parents, RSM covariance, ECF frame/scanner GLAS timing, explicit unsupported paths and protected writing |
 
 `helpers/inspectNITF.m` independently parses fixed specification offsets and reconstructs pixels without calling NFX serialization or layout helpers. Fixture RPC values are synthetic; these tests establish encoding behavior, not camera-model accuracy or general NITF/SNIP conformance.
+
+Actual Coder generation runs separately through `runCoderTests`, documented
+in the [portable kit guide](../CODER_TESTS.md). The ordinary regression suite
+checks its MATLAB references and harness only; it does not claim generated
+execution. Missing Coder prerequisites remain incomplete in the portable
+suite, with explicit outcomes and a result archive.
 
 `helpers/inspectContainer.m` walks segment tables and optional fields independently, checks byte lengths and ordering, follows overflow references, and verifies that every overflow DES has exactly one matching owner. Literal tests cover representative headers and both inline/overflow boundaries. Generic synthetic DES fixtures exercise container bytes without claiming a registered support-data model.
 

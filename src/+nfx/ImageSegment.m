@@ -780,17 +780,9 @@ classdef ImageSegment
                     cols = (blockCol-1)*h.nppbh+1:min(blockCol*h.nppbh, h.ncols);
                     for frame = 1:obj.number_frames
                         for band = 1:size(obj.pixels, 3)
-                            % Transpose just this block for row-major storage.
-                            block = zeros(h.nppbh, h.nppbv, 'like', obj.pixels);
-                            block(1:numel(cols), 1:numel(rows)) = obj.pixels(rows, cols, band, frame).';
-                            if isa(block, 'uint16')
-                                buffer = zeros(2, numel(block), 'uint8');
-                                buffer(1,:) = uint8(bitshift(block(:), -8));
-                                buffer(2,:) = uint8(bitand(block(:), uint16(255)));
-                                count = count + writeBytes(fid, buffer);
-                            else
-                                count = count + writeBytes(fid, block);
-                            end
+                            buffer = nfx.internal.pixelBlockBytes(obj.pixels, ...
+                                rows, cols, frame, band, h.nppbh, h.nppbv);
+                            count = count + writeBytes(fid, buffer);
                         end
                     end
                 end

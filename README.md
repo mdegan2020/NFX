@@ -310,3 +310,10 @@ The suite includes independent byte checks, MATLAB reader round trips, metadata 
 Classified products, LUTs, compression beyond the documented C8 prototype, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation is restricted to NFX-MIE-NC1. RPC fitting and evaluation are outside scope.
 
 MATLAB Coder remains a design priority: implementation uses qualified names, applicable `%#codegen` annotations, and native pixel storage. No Coder license is available, and compiled compatibility is **not verified**. Temporary-file creation and publication still need a supported, tested generated-code path. The small `publishCollection` host helper isolates try/catch needed to report partial publication; its callers and metadata/byte paths retain generation intent. R2023b execution is also unverified.
+
+The [portable Coder kit](CODER_TESTS.md) exports source for a separate licensed
+machine and archives concrete compilation/execution results. Run
+`archive = exportCoderTests`, extract that ZIP on the other machine, and run
+`report = runCoderTests`. Return `report.archive` for compatibility analysis.
+`ReferenceOnly=true` checks the MATLAB reference paths without compiling;
+missing prerequisites are recorded separately from passes.
