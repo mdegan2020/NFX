@@ -89,25 +89,35 @@ classdef (Hidden) FileReader
             images = nfx.ImageSegment.empty(1, 0); samples = 0;
             for k = 1:numel(index.images)
                 entry = index.images(k); records = parts.imageRecords(k).records;
+                compression = nfx.JPEG2000.empty(1, 0);
                 if ~strcmp(entry.layout.ic, 'NC')
-                    ok = false; status = failure('UnsupportedFeature', ...
-                        'Compressed image reconstruction is not yet available.', ...
-                        entry.location.dataOffset, 'image', k); return
-                end
-                if any(strcmp({records.tag}, 'J2KLRA'))
-                    ok = false; status = failure('MalformedFile', ...
-                        'J2KLRA requires compressed imagery in the NFX subset.', ...
-                        entry.location.headerOffset, 'image', k); return
-                end
-                if entry.layout.nbpp == 8
-                    [pixels, ok, status] = nfx.internal.readPixels( ...
-                        data, entry, maxPixels - samples, zeros(0, 0, 'uint8'));
+                    if coder.target('MATLAB')
+                        [compression, pixels, ok, status] = nfx.JPEG2000.restoreRead( ...
+                            segmentData(data, entry.location), entry, records, maxPixels - samples);
+                        if ~ok, status.index = k; return; end
+                        records(strcmp({records.tag}, 'J2KLRA')) = [];
+                    else
+                        ok = false; status = failure('UnsupportedFeature', ...
+                            'JPEG2000 decoding requires the MATLAB host codec.', ...
+                            entry.location.dataOffset, 'image', k); return
+                    end
                 else
-                    [pixels, ok, status] = nfx.internal.readPixels( ...
-                        data, entry, maxPixels - samples, zeros(0, 0, 'uint16'));
+                    if any(strcmp({records.tag}, 'J2KLRA'))
+                        ok = false; status = failure('MalformedFile', ...
+                            'J2KLRA requires compressed imagery in the NFX subset.', ...
+                            entry.location.headerOffset, 'image', k); return
+                    end
+                    if entry.layout.nbpp == 8
+                        [pixels, ok, status] = nfx.internal.readPixels( ...
+                            data, entry, maxPixels - samples, zeros(0, 0, 'uint8'));
+                    else
+                        [pixels, ok, status] = nfx.internal.readPixels( ...
+                            data, entry, maxPixels - samples, zeros(0, 0, 'uint16'));
+                    end
                 end
                 if ~ok, status.index = k; return; end
-                [image, ok, status] = nfx.ImageSegment.restoreRead(pixels, entry.header, records);
+                [image, ok, status] = nfx.ImageSegment.restoreRead( ...
+                    pixels, entry.header, records, compression);
                 if ~ok
                     status.scope = 'image'; status.index = k;
                     status.offset = entry.location.headerOffset; return

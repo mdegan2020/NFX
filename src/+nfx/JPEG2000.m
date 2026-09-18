@@ -3,6 +3,7 @@ classdef JPEG2000
     %   OBJ = JPEG2000(DATA,ENCODER) encodes a still uint8 or uint16 array
     %   using the OpenJPEG 2.5.4 Windows executable at ENCODER. DATA uses
     %   rows-by-columns-by-bands order and retains its native precision.
+    %   JPEG2000 with no arguments creates an uninitialized value.
     %
     %   OBJ = JPEG2000(...,Profile=VALUE) selects "NPJE" (default) or
     %   "EPJE". Both use 1024-square tiles, six resolutions and 20 layers.
@@ -28,17 +29,19 @@ classdef JPEG2000
         codestream = zeros(1,0,'uint8') % Raw compressed image bytes
         profile = '' % Validated profile selection
         info = struct() % Structural inspection, not decoder certification
-        metrics = struct() % Timings and storage counts for this encoding
+        metrics = struct() % Encoding metrics; empty fields for imported data
         j2klra = zeros(1,0,'uint8') % Original profile and layer targets
         comrat = '' % Numerically lossless bitrate, one fractional digit
     end
     methods
         function obj = JPEG2000(data, encoder, options)
             arguments
-                data {mustBePixels}
-                encoder {mustBeTextScalar, mustBeNonzeroLengthText}
+                data {mustBePixels} = zeros(0, 0, 'uint8')
+                encoder = ''
                 options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
             end
+            if nargin == 0, return, end
+            mustBeTextScalar(encoder); mustBeNonzeroLengthText(encoder);
             if isempty(data) || ndims(data) > 3 || min(size(data,1),size(data,2)) < 32 || ...
                     size(data,3) > 16384 || ceil(size(data,1)/1024)*ceil(size(data,2)/1024) > 65535
                 error('nfx:JPEG2000Scope','Expected a still image at least 32-by-32, at most 16384 bands and 65535 tiles.');
@@ -57,16 +60,80 @@ classdef JPEG2000
             if ~isequal(obj.info.dimensions,expected) || obj.info.precision ~= precision
                 error('nfx:JPEG2000Geometry','Encoder output disagrees with the supplied pixels.');
             end
-            rate = 8*numel(obj.codestream)/numel(data);
-            if rate > 37
+            [obj.j2klra, obj.comrat, ok] = jpeg2000Metadata( ...
+                obj.profile, size(data, 3), numel(data), numel(obj.codestream));
+            if ~ok
                 error('nfx:JPEG2000Bitrate','Achieved bitrate exceeds the J2KLRA field limit.');
             end
-            obj.comrat = sprintf('N%03.0f',round(10*rate));
-            targets = [.03125 .0625 .125 .25 .5 .6 .7 .8 .9 1 1.1 1.2 1.3 1.5 1.7 2 2.3 2.8 3.5 rate];
-            obj.j2klra = uint8(sprintf('%1d05%05d020',2*strcmp(obj.profile,'EPJE'),size(data,3)));
-            for k = 1:20
-                obj.j2klra = [obj.j2klra uint8(sprintf('%03d%09.6f',k-1,targets(k)))];
+        end
+    end
+    methods (Static, Access = ?nfx.internal.FileReader)
+        function [obj, pixels, ok, status] = restoreRead(data, entry, records, maxPixels)
+            %restoreRead - Validate and decode an existing compression snapshot
+            obj = nfx.JPEG2000.empty(1, 0);
+            pixels = zeros(0, 0, 'uint8'); ok = false;
+            status = nfx.internal.readStatus(); status.scope = 'image';
+            status.offset = entry.location.dataOffset;
+            layout = entry.layout;
+            samples = layout.nrows * layout.ncols * layout.bands;
+            if samples > maxPixels
+                status.code = 'ResourceLimit';
+                status.message = 'Decoded image samples exceed MaxPixels.'; return
             end
+            selected = find(strcmp({records.tag}, 'J2KLRA'));
+            if ~isscalar(selected) || selected ~= numel(records)
+                status.code = 'MalformedFile';
+                status.message = 'A compressed image needs one final original J2KLRA record.';
+                return
+            end
+            [layers, valid, child] = nfx.J2KLRA.deserialize(records(selected).payload);
+            if ~valid || ~any(layers.orig == [0 2])
+                status.code = 'UnsupportedFeature';
+                status.message = ['Only original NPJE/EPJE layer metadata is supported. ' child.message];
+                return
+            end
+            profile = 'NPJE';
+            if layers.orig == 2, profile = 'EPJE'; end
+            % The existing host-only codestream inspector reports exceptions.
+            % Translate them at this codec boundary, outside native parsing.
+            try
+                info = inspectJPEG2000(data, profile);
+            catch exception
+                status.code = 'MalformedFile'; status.message = exception.message;
+                return
+            end
+            if ~strcmp(layout.imode, 'B') || ...
+                    ~isequal(info.dimensions, [layout.nrows layout.ncols layout.bands]) || ...
+                    info.precision ~= layout.nbpp || min(info.dimensions(1:2)) < 32
+                status.code = 'MalformedFile';
+                status.message = 'JPEG2000 geometry disagrees with the image subheader.';
+                return
+            end
+            [payload, comrat, valid] = jpeg2000Metadata( ...
+                profile, layout.bands, samples, numel(data));
+            if ~valid || ~isequal(payload, records(selected).payload) || ...
+                    ~strcmp(comrat, layout.comrat)
+                status.code = 'MalformedFile';
+                status.message = 'Stored J2KLRA or COMRAT disagrees with the codestream.';
+                return
+            end
+            [pixels, ok, child] = nfx.internal.decodeJPEG2000(data);
+            if ~ok
+                status.code = child.code; status.message = child.message; return
+            end
+            if ~(isa(pixels, 'uint8') || isa(pixels, 'uint16')) || ...
+                    8 + 8 * isa(pixels, 'uint16') ~= info.precision || ...
+                    ~isequal([size(pixels, 1) size(pixels, 2) size(pixels, 3)], info.dimensions) || ...
+                    ndims(pixels) > 3
+                pixels = zeros(0, 0, 'uint8'); ok = false;
+                status.code = 'MalformedFile';
+                status.message = 'JPEG2000 decoded samples disagree with the codestream.';
+                return
+            end
+            obj = nfx.JPEG2000(); obj.codestream = data;
+            obj.profile = profile; obj.info = info;
+            obj.j2klra = payload; obj.comrat = comrat;
+            status = nfx.internal.readStatus();
         end
     end
     methods (Static)
