@@ -31,8 +31,9 @@ classdef (Abstract) TRE
             %   A concrete TRE may expand one logical attachment into several
             %   records when its standard defines continuation instances.
             data = payload(obj);
-            if isempty(data) || numel(data) > 99985
-                error('nfx:TRELength', 'TRE payload must contain 1 to 99985 bytes.');
+            limit = 99985 + 3 * strcmp(obj.cetag, 'SECURA');
+            if isempty(data) || numel(data) > limit
+                error('nfx:TRELength', 'TRE payload exceeds its supported physical length.');
             end
             value = struct('tag',obj.cetag,'payload',data);
         end
@@ -48,8 +49,9 @@ classdef (Abstract) TRE
                 obj (1,1) nfx.TRE
             end
             data = payload(obj);
-            if isempty(data) || numel(data) > 99985
-                error('nfx:TRELength', 'TRE payload must contain 1 to 99985 bytes.');
+            limit = 99985 + 3 * strcmp(obj.cetag, 'SECURA');
+            if isempty(data) || numel(data) > limit
+                error('nfx:TRELength', 'TRE payload exceeds its supported physical length.');
             end
             value = [uint8(obj.cetag) decimalField(numel(data), 5, 0, false) data];
         end

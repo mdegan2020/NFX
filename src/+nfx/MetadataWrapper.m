@@ -15,6 +15,159 @@ classdef (Abstract, Hidden) MetadataWrapper < nfx.TRE
         store
     end
     methods
+        function [tre, ok, status] = GEOPSB(obj, index, options) %#codegen
+            %GEOPSB - Retrieve an independent editable GEOPSB value
+            %   [TRE, OK, STATUS] = OBJ.GEOPSB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar GEOPSB and OK=false.
+            %
+            %   See also nfx.GEOPSB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.GEOPSB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = BNDPLC(obj, index, options) %#codegen
+            %BNDPLC - Retrieve an independent editable BNDPLC value
+            %   [TRE, OK, STATUS] = OBJ.BNDPLC(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar BNDPLC and OK=false.
+            %
+            %   See also nfx.BNDPLC.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.BNDPLC(), index, options.ID);
+        end
+
+        function [tre, ok, status] = XMLDCA(obj, index, options) %#codegen
+            %XMLDCA - Retrieve an independent editable XMLDCA value
+            %   [TRE, OK, STATUS] = OBJ.XMLDCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar XMLDCA and OK=false.
+            %
+            %   See also nfx.XMLDCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.XMLDCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SECURA(obj, index, options) %#codegen
+            %SECURA - Retrieve an independent editable SECURA value
+            %   [TRE, OK, STATUS] = OBJ.SECURA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SECURA and OK=false.
+            %
+            %   See also nfx.SECURA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SECURA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIXQLA(obj, index, options) %#codegen
+            %PIXQLA - Retrieve an independent editable PIXQLA value
+            %   [TRE, OK, STATUS] = OBJ.PIXQLA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIXQLA and OK=false.
+            %
+            %   See also nfx.PIXQLA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIXQLA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSCCGA(obj, index, options) %#codegen
+            %CSCCGA - Retrieve an independent editable CSCCGA value
+            %   [TRE, OK, STATUS] = OBJ.CSCCGA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CSCCGA and OK=false.
+            %
+            %   See also nfx.CSCCGA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSCCGA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MSTGTA(obj, index, options) %#codegen
+            %MSTGTA - Retrieve an independent editable MSTGTA value
+            %   [TRE, OK, STATUS] = OBJ.MSTGTA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar MSTGTA and OK=false.
+            %
+            %   See also nfx.MSTGTA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MSTGTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = BLOCKA(obj, index, options) %#codegen
+            %BLOCKA - Retrieve an independent editable BLOCKA value
+            %   [TRE, OK, STATUS] = OBJ.BLOCKA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar BLOCKA and OK=false.
+            %
+            %   See also nfx.BLOCKA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.BLOCKA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ENGRDA(obj, index, options) %#codegen
+            %ENGRDA - Retrieve an independent editable ENGRDA value
+            %   [TRE, OK, STATUS] = OBJ.ENGRDA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ENGRDA and OK=false.
+            %
+            %   See also nfx.ENGRDA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.MetadataWrapper
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ENGRDA(), index, options.ID);
+        end
+
         function obj = MetadataWrapper() %#codegen
             %MetadataWrapper - Initialize the shared snapshot store
             obj.store = nfx.internal.TREStore();
@@ -666,6 +819,7 @@ classdef (Abstract, Hidden) MetadataWrapper < nfx.TRE
             %wrapperReport - Check containment length and supported semantics
             records = obj.store.records;
             report = mergeReport(report, unknownTREReport(records), '');
+            report = mergeReport(report, securityDocumentReport(records, ''), '');
             total = prefixLength;
             largest = 0;
             for k = 1:numel(records)

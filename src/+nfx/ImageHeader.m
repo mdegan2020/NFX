@@ -50,6 +50,7 @@ classdef ImageHeader
         icom % Up to nine image comments, one padded row per comment
         irepband % Cell row of display labels; empty input restores defaults
         isubcat % Double row of wavelengths in nm; NaN encodes spaces
+        isubcat_text % Literal band categories; CLOUD permits CLDPCT
     end
     properties (SetAccess = private)
         nrows = 0 % Significant rows derived from pixels
@@ -82,6 +83,7 @@ classdef ImageHeader
         commentCount = 0
         bandRepresentations = cell(1,0)
         bandWavelengths = zeros(1,0)
+        bandCategories = repmat(' ', 0, 6)
     end
     methods
         function value = get.imode(obj) %#codegen
@@ -117,13 +119,16 @@ classdef ImageHeader
             if isfield(options, 'icom'), obj.icom = options.icom; end
             if isfield(options, 'irepband'), obj.irepband = options.irepband; end
             if isfield(options, 'isubcat'), obj.isubcat = options.isubcat; end
+            if isfield(options, 'isubcat_text'), obj.isubcat_text = options.isubcat_text; end
         end
         function value = get.irepband(obj) %#codegen
             %get.irepband - Resolve default display labels from representation
             value = obj.bandRepresentations;
             if isempty(value)
                 value = repmat({''},1,obj.bandCount);
-                if strcmp(obj.irep,'MONO'), value = repmat({'M'},1,obj.bandCount); end
+                if strcmp(obj.irep,'MONO') && ~strcmp(obj.icat,'CLOUD')
+                    value = repmat({'M'},1,obj.bandCount);
+                end
                 if strcmp(obj.irep,'RGB') && obj.bandCount == 3, value = {'R','G','B'}; end
             end
         end
@@ -146,6 +151,15 @@ classdef ImageHeader
             if any(value < 0), error('nfx:BandWavelengths','Wavelengths must be nonnegative doubles or NaN.'); end
             obj.bandWavelengths = value;
         end
+        function value = get.isubcat_text(obj) %#codegen
+            %get.isubcat_text - Resolve unspecified literal band categories
+            value = obj.bandCategories;
+            if isempty(value), value = repmat(' ', obj.bandCount, 6); end
+        end
+        function obj = set.isubcat_text(obj, value) %#codegen
+            %set.isubcat_text - Preserve bounded six-character band categories
+            obj.bandCategories = metadataRows(value, 6, 99999, false);
+        end
         function value = get.abpp(obj) %#codegen
             %get.abpp - Resolve default significant-bit count
             value = obj.significantBits;
@@ -153,6 +167,10 @@ classdef ImageHeader
             if isnan(value)
                 value = obj.stats.bits;
                 if strcmp(obj.pjust, 'L'), value = obj.nbpp; end
+                if strcmp(obj.icat, 'CLOUD'), value = 8; end
+                if strcmp(obj.icat, 'PIXQUAL')
+                    value = max(value, 2 + 7 * (obj.nbpp == 16));
+                end
             end
         end
         function obj = set.abpp(obj, value) %#codegen
@@ -244,12 +262,13 @@ classdef ImageHeader
             mono = strcmp(obj.irep, 'MONO');
             rgb = strcmp(obj.irep, 'RGB');
             multi = strcmp(obj.irep, 'MULTI');
-            report = addIssue(report, ~(mono || rgb || multi), 'Representation', ...
-                'irep', 'Select MONO, RGB, or MULTI.', reference);
+            quality = strcmp(obj.irep, 'NODISPLY') && strcmp(obj.icat, 'PIXQUAL');
+            report = addIssue(report, ~(mono || rgb || multi || quality), 'Representation', ...
+                'irep', 'Select MONO, RGB, MULTI, or NODISPLY for PIXQUAL.', reference);
             report = addIssue(report, (mono && obj.bandCount ~= 1) || ...
                 (rgb && obj.bandCount ~= 3) || (multi && obj.bandCount < 2), ...
                 'RepresentationBands', 'irep', 'MONO requires one band; RGB three; MULTI at least two.', reference);
-            monoCategories = {'BP','CAT','CCD','DTV','EO','EOVIS','FL','FP','HR', ...
+            monoCategories = {'CLOUD','BP','CAT','CCD','DTV','EO','EOVIS','FL','FP','HR', ...
                 'HS','IR','ISAR','LEG','LWIR','MAP','MRI','MS','MWIR','NIR', ...
                 'OP','PAN','RD','SAR','SL','SWIR','TI','UV','VD','VIS','VNIR','XRAY'};
             rgbCategories = {'CP','EOVIS','DTV','LEG','MAP','OP','PAT','VIS','CCD','MS'};
@@ -258,20 +277,34 @@ classdef ImageHeader
             if endsWith(category,'.M'), category = category(1:end-2); end
             categoryValid = (mono && any(strcmp(category, monoCategories))) || ...
                 (rgb && any(strcmp(category, rgbCategories))) || ...
-                (multi && any(strcmp(category, multiCategories)));
+                (multi && any(strcmp(category, multiCategories))) || quality;
             report = addIssue(report, ~categoryValid, 'Category', 'icat', ...
                 'Select an image category allowed for IREP by JBP Table 5.13-3.', reference);
             labels = obj.irepband; wavelengths = obj.isubcat;
             report = addIssue(report,numel(labels) ~= obj.bandCount || numel(wavelengths) ~= obj.bandCount, ...
                 'BandMetadataCount','irepband/isubcat','Provide one label and wavelength per band, or use empty defaults.',reference);
             for k = 1:numel(labels), labels{k} = strtrim(char(labels{k})); end
-            legal = false;
+            legal = quality && all(ismember(labels, {''}));
             if mono, legal = all(ismember(labels,{'M',''})); end
             if rgb, legal = numel(labels) == 3 && all(ismember({'R','G','B'},labels)); end
             if multi, legal = all(ismember(labels,{'M','R','G','B','N',''})); end
             legal = legal && sum(strcmp(labels,'R')) <= 1 && sum(strcmp(labels,'G')) <= 1 && sum(strcmp(labels,'B')) <= 1;
             report = addIssue(report,~legal,'BandRepresentation','irepband', ...
                 'Use display labels allowed by IREP, with each RGB label at most once; LUT bands are unsupported.',reference);
+            categories = obj.isubcat_text;
+            report = addIssue(report, size(categories, 1) ~= obj.bandCount, ...
+                'BandMetadataCount', 'isubcat_text', ...
+                'Provide one literal category per band or use empty defaults.', ...
+                reference);
+            for k = 1:size(categories, 1)
+                text = strtrim(categories(k, :));
+                report = addIssue(report, ~isempty(text) && ...
+                    (~strcmp(obj.icat, 'CLOUD') || ~strcmp(text, 'CLDPCT') || ...
+                    (k <= numel(wavelengths) && ~isnan(wavelengths(k)))), ...
+                    'BandCategory', 'isubcat/isubcat_text', ...
+                    'CLDPCT is a CLOUD category and cannot also be a wavelength.', ...
+                    reference);
+            end
             for k = 1:numel(wavelengths)
                 if ~isnan(wavelengths(k))
                     encoded = str2double(char(bandDecimal(wavelengths(k),6)));
@@ -311,7 +344,8 @@ classdef ImageHeader
             bandBytes = zeros(1, 13*obj.bandCount, 'uint8');
             labels = obj.irepband; wavelengths = obj.isubcat;
             for k = 1:obj.bandCount
-                wavelength = textField('',6);
+                categories = obj.isubcat_text;
+                wavelength = uint8(categories(k, :));
                 if ~isnan(wavelengths(k)), wavelength = bandDecimal(wavelengths(k),6); end
                 bandBytes(13*k-12:13*k) = [textField(labels{k}, 2) wavelength uint8('N   0')];
             end

@@ -27,6 +27,57 @@ classdef TextSegment
         store
     end
     methods
+        function [tre, ok, status] = XMLDCA(obj, index, options) %#codegen
+            %XMLDCA - Retrieve an independent editable XMLDCA value
+            %   [TRE, OK, STATUS] = OBJ.XMLDCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar XMLDCA and OK=false.
+            %
+            %   See also nfx.XMLDCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.XMLDCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SECURA(obj, index, options) %#codegen
+            %SECURA - Retrieve an independent editable SECURA value
+            %   [TRE, OK, STATUS] = OBJ.SECURA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SECURA and OK=false.
+            %
+            %   See also nfx.SECURA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SECURA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ENGRDA(obj, index, options) %#codegen
+            %ENGRDA - Retrieve an independent editable ENGRDA value
+            %   [TRE, OK, STATUS] = OBJ.ENGRDA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ENGRDA and OK=false.
+            %
+            %   See also nfx.ENGRDA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ENGRDA(), index, options.ID);
+        end
+
         function [tre, ok, status] = FCRNSA(obj, index, options) %#codegen
             %FCRNSA - Retrieve an editable copy of a direct FCRNSA attachment
             %   [TRE, OK, STATUS] = OBJ.FCRNSA(INDEX) selects the INDEXth
@@ -162,6 +213,7 @@ classdef TextSegment
             %VALIDATE - Check metadata and byte-length limits
             report = newReport('NITF 2.1 text segment');
             report = mergeReport(report, unknownTREReport(obj.store.records), 'tre_records.');
+            report = mergeReport(report, securityDocumentReport(obj.store.records, ''), '');
             report = mergeReport(report, validate(obj.header), 'header.');
             report = addIssue(report, obj.lt < 1 || obj.lt > 99998, 'TextLength', ...
                 'data', 'Text payload must contain 1 to 99998 bytes.', 'JBP 2025.1, Table 5.11-1');

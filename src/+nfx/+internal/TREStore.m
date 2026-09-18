@@ -66,6 +66,12 @@ classdef (Hidden) TREStore
         function obj = attach(obj, tre, owner) %#codegen
             %ATTACH - Validate placement and capture the supplied record
             switch class(tre)
+                case {'nfx.PIXQLA','nfx.CSCCGA','nfx.MSTGTA','nfx.BLOCKA'}
+                    legal = strcmp(owner, 'image');
+                case {'nfx.GEOPSB','nfx.BNDPLC'}
+                    legal = any(strcmp(owner, {'file','image'}));
+                case {'nfx.XMLDCA','nfx.SECURA','nfx.ENGRDA'}
+                    legal = any(strcmp(owner, {'file','image','text'}));
                 case {'nfx.RPC00B','nfx.CSCRNA','nfx.ICHIPB','nfx.MTIMSA','nfx.AIMIDB','nfx.ACFTB','nfx.HISTOA','nfx.BANDSB','nfx.SENSRB', ...
                         'nfx.RSMIDA','nfx.RSMPCA','nfx.RSMPIA','nfx.RSMGGA','nfx.RSMGIA','nfx.RSMAPB','nfx.RSMECB','nfx.RSMDCB', ...
                         'nfx.CSRLSB','nfx.CSWRPB'}

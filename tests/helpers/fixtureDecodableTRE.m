@@ -1,6 +1,9 @@
 function value = fixtureDecodableTRE(tag)
     %fixtureDecodableTRE - Supply synthetic values for concrete reader tests
     switch tag
+        case {'GEOPSB','BNDPLC','XMLDCA','SECURA','PIXQLA','CSCCGA', ...
+                'MSTGTA','BLOCKA','ENGRDA'}
+            value = fixtureAdditionalTRE(tag);
         case 'RPC00B'
             value = fixtureRPC();
         case 'ACFTB'

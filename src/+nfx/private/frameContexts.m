@@ -119,7 +119,7 @@ end
 function selected = precedence(nodes,states,selected) %#codegen
     %precedence - Preserve augment/partial records and resolve scalar overrides
     keep = true(size(selected));
-    scalar = {'RPC00B','CSCRNA','ICHIPB','CSEXRB','CSRLSB','CSWRPB', ...
+    scalar = {'GEOPSB','BNDPLC','PIXQLA','CSCCGA','RPC00B','CSCRNA','ICHIPB','CSEXRB','CSRLSB','CSWRPB', ...
         'RSMIDA','RSMPIA','RSMGIA','RSMAPB','RSMECB'};
     for a = 1:numel(selected)
         i = selected(a);
@@ -167,7 +167,8 @@ function [selected,report] = crossFileSelection(nodes,selected,report) %#codegen
             if first.source == second.source || ~strcmp(first.tag,second.tag), continue; end
             if ~knownTRE(first.tag), continue; end
             if isequal(first.payload,second.payload), keep(b) = false; continue; end
-            augment = any(strcmp(first.tag,{'FREESA','MATESA','ILLUMB','FCRNSA'}));
+            augment = any(strcmp(first.tag,{'FREESA','MATESA','ILLUMB','FCRNSA', ...
+                'ENGRDA','XMLDCA','SECURA','MSTGTA','BLOCKA'}));
             sections = any(strcmp(first.tag,{'RSMPCA','RSMGGA'})) && ~isequal(first.payload(121:126),second.payload(121:126));
             report = issue(report,~augment && ~sections,'CrossFilePrecedence', ...
                 'Overlapping metadata from different files have no defined byte-offset order; supply an unambiguous set.');

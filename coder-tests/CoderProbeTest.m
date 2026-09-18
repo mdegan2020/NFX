@@ -3,7 +3,7 @@ classdef CoderProbeTest < matlab.unittest.TestCase
     %   Invoke through runCoderTests to supply the portable result session.
     properties (TestParameter)
         probe = {'storage', 'rpc', 'timing', 'groups', 'native8', ...
-            'native16', 'file8', 'file16', 'mixed'}
+            'native16', 'file8', 'file16', 'engineering', 'mixed'}
         phase = {'reference', 'mex', 'standalone_c', 'standalone_cpp', ...
             'noheap_c', 'noheap_cpp'}
     end

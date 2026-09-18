@@ -65,6 +65,7 @@ Outputs must match MATLAB and independent expected values or byte layouts.
 | RPC | `nfxCoderRPC` | Concrete deserialize/serialize, malformed and empty payloads, status/default values, snapshot independence |
 | Timing | `nfxCoderTiming` | Empty and varying delta vectors, exact `uint64` above `flintmax` and at its maximum, literal big-endian bytes |
 | Groups | `nfxCoderGroups` | 0/1/10001 SENSRB module-12 samples, continuation groups, wrapper children, typed lookup, copy independence and removal |
+| Engineering | `nfxCoderEngineering` | 1–3 homogeneous ENGRDA entries with different shapes, types and payload lengths; typed uint16 matrix recovery and snapshot independence |
 | Native byte paths | `nfxCoderNative8`, `nfxCoderNative16` | Separate primitive types, text-only and multiple-image files, B/F/T blocking, multiple frames/bands, padding, independent pixel bytes and header metadata |
 | File integration | `nfxCoderFile8`, `nfxCoderFile16` | Full in-memory reader, derived file headers, same native fixtures, malformed-file status |
 | Mixed types | `nfxCoderMixed` | Different-size `uint8` and `uint16` images in one file object, with both types preserved |

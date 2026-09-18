@@ -11,6 +11,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `ReaderIndexTest`, `NativePixelReaderTest` | Independent literal headers, source bounds, optional fields, B/F/T native samples, partial blocks and malformed layouts |
 | `ReaderMetadataTest`, `FileReadTest` | Complete native file reads, raw snapshots, overflow ownership, continuation groups, independent edits, resource limits and I/O failures |
 | `UnknownTRETest` | Opaque snapshots, owner/area preservation, wrappers, overflow, removal, incomplete semantic reports and independent DES invariants |
+| `AdditionalTRETest` | Independent bytes for nine extensions, polygon topology, quality/cloud relationships, engineering types, XML CRC, SECURA envelope limits and file round trips |
 | `SensorDESReadTest` | Typed DES variants, header/payload agreement, raw-versus-verified trust, shared model associations and malformed support data |
 | `JPEG2000ReadTest` | Native backend pixels, both profiles, untouched codestream preservation, missing/failing codecs and detected corruption warnings |
 | `CollectionReadTest`, `CollectionManifestReadTest` | Complete collections and explicit lists, exact timing above flintmax, cross-file contexts, quick looks, missing/unavailable blocks, 650 members and FILE002 |
@@ -135,6 +136,21 @@ The unknown-TRE milestone passed a fresh full run of **1,960 tests** on
 R2026a Update 4, including OpenJPEG and the 650-member collection case.
 All changed MATLAB files passed Code Analyzer. The coverage percentages
 above describe earlier milestones; coverage was not remeasured for this run.
+
+The additional-TRE milestone passed a fresh full run of **2,150 tests** on
+R2026a Update 4, including OpenJPEG and the 650-member collection case.
+All 60 changed MATLAB files passed Code Analyzer. A fresh GPT-6 Astra Extra
+High review identified polygon precision, engineering character-set and
+cloud-reference issues; fixes and regression tests passed follow-up review.
+
+The additional-TRE focused coverage run passed **190 tests** and exercised
+**1,482 of 1,542 new source lines (96.11%)**. It includes independent field
+bytes for all nine extensions, the published STANAG CRC vector, owner and
+wrapper access, raw/native engineering conversions, physical length limits,
+polygon topology, cloud references and quality-image associations. Uncovered
+lines are mainly constructor alternatives and defensive formatting/input
+branches. This percentage covers the newly added source files, not the
+entire repository or every possible metadata combination.
 
 ## Memory observation
 

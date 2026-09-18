@@ -82,6 +82,91 @@ classdef File
         end
     end
     methods
+        function [tre, ok, status] = GEOPSB(obj, index, options) %#codegen
+            %GEOPSB - Retrieve an independent editable GEOPSB value
+            %   [TRE, OK, STATUS] = OBJ.GEOPSB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar GEOPSB and OK=false.
+            %
+            %   See also nfx.GEOPSB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.GEOPSB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = BNDPLC(obj, index, options) %#codegen
+            %BNDPLC - Retrieve an independent editable BNDPLC value
+            %   [TRE, OK, STATUS] = OBJ.BNDPLC(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar BNDPLC and OK=false.
+            %
+            %   See also nfx.BNDPLC.deserialize, treCount
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.BNDPLC(), index, options.ID);
+        end
+
+        function [tre, ok, status] = XMLDCA(obj, index, options) %#codegen
+            %XMLDCA - Retrieve an independent editable XMLDCA value
+            %   [TRE, OK, STATUS] = OBJ.XMLDCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar XMLDCA and OK=false.
+            %
+            %   See also nfx.XMLDCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.XMLDCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SECURA(obj, index, options) %#codegen
+            %SECURA - Retrieve an independent editable SECURA value
+            %   [TRE, OK, STATUS] = OBJ.SECURA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SECURA and OK=false.
+            %
+            %   See also nfx.SECURA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SECURA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ENGRDA(obj, index, options) %#codegen
+            %ENGRDA - Retrieve an independent editable ENGRDA value
+            %   [TRE, OK, STATUS] = OBJ.ENGRDA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ENGRDA and OK=false.
+            %
+            %   See also nfx.ENGRDA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.File
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ENGRDA(), index, options.ID);
+        end
+
         function [tre, ok, status] = FCRNSA(obj, index, options) %#codegen
             %FCRNSA - Retrieve an editable copy of a direct FCRNSA attachment
             %   [TRE, OK, STATUS] = OBJ.FCRNSA(INDEX) selects the INDEXth
@@ -658,6 +743,17 @@ classdef File
                 report = mergeReport(report,child,'');
                 if child.valid
                     report = mergeReport(report,contextImageReport(contexts,plan.images),'');
+                    report = mergeReport(report, supportFileReport( ...
+                        contexts, plan.images, plan.positions), '');
+                    for c = 1:numel(contexts)
+                        report = mergeReport(report, geoOwnerReport( ...
+                            contexts(c).file_records, ...
+                            nfx.internal.emptyTRERecords()), ...
+                            sprintf('contexts(%d).file.', c));
+                        report = mergeReport(report, geoOwnerReport( ...
+                            contexts(c).records, contexts(c).file_records), ...
+                            sprintf('contexts(%d).', c));
+                    end
                     for c = 1:numel(contexts)
                         coverage = unknownTREReport(contexts(c).file_records);
                         report = mergeReport(report, coverage, '');
@@ -711,9 +807,13 @@ classdef File
             for k = 1:h.numdes
                 report = mergeReport(report, validate(plan.des(k)), sprintf('des(%d).', k));
             end
+            report = mergeReport(report, geoOwnerReport( ...
+                obj.store.records, nfx.internal.emptyTRERecords()), 'file.');
+            report = mergeReport(report, securityFileReport( ...
+                obj.store.records, plan.images, obj.texts, h), '');
             if snip
                 report = addIssue(report, ~report.complete, 'IncompleteMetadata', ...
-                    'tre_records', 'Unknown TREs prevent complete profile validation.', ...
+                    'tre_records', 'Unverified metadata prevents complete profile validation.', ...
                     'NFX supported SNIP scope');
                 report.scope = 'NITF 2.1 + SNIP 1.2 CN1 airborne nonrectified MSI';
                 if report.valid

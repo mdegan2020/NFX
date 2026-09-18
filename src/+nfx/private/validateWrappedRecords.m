@@ -29,6 +29,24 @@ function [ok, status] = validateWrappedRecords(records) %#codegen
             continue
         end
         switch tag
+            case 'GEOPSB'
+                [~, ok, status] = nfx.GEOPSB.deserialize(selected(1).payload);
+            case 'BNDPLC'
+                [~, ok, status] = nfx.BNDPLC.deserialize(selected(1).payload);
+            case 'XMLDCA'
+                [~, ok, status] = nfx.XMLDCA.deserialize(selected(1).payload);
+            case 'SECURA'
+                [~, ok, status] = nfx.SECURA.deserialize(selected(1).payload);
+            case 'PIXQLA'
+                [~, ok, status] = nfx.PIXQLA.deserialize(selected(1).payload);
+            case 'CSCCGA'
+                [~, ok, status] = nfx.CSCCGA.deserialize(selected(1).payload);
+            case 'MSTGTA'
+                [~, ok, status] = nfx.MSTGTA.deserialize(selected(1).payload);
+            case 'BLOCKA'
+                [~, ok, status] = nfx.BLOCKA.deserialize(selected(1).payload);
+            case 'ENGRDA'
+                [~, ok, status] = nfx.ENGRDA.deserialize(selected(1).payload);
             case 'ACFTB '
                 [~, ok, status] = nfx.ACFTB.deserialize(selected(1).payload);
             case 'AIMIDB'

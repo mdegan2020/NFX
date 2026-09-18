@@ -53,6 +53,29 @@ function values = cases(name, folder)
                     'independent', true, 'removed', true);
                 values(end + 1) = makeCase(sprintf('samples%d', count), {count}, expected);
             end
+        case 'engineering'
+            for count = 1:3
+                data = uint16([1 256; 65535 2]);
+                prefix = uint8(['Sensor' repmat(' ', 1, 14) ...
+                    sprintf('%03d', count)]);
+                payload = [prefix uint8('01A00020002I2UD00000004') ...
+                    uint8([0 1 1 0 255 255 0 2])];
+                counts = 4;
+                if count >= 2
+                    payload = [payload uint8('04Text00030001A1UD00000003NFX')];
+                    counts(end + 1) = 3;
+                end
+                if count == 3
+                    payload = [payload uint8('03Raw00010001I3UD00000001') ...
+                        uint8([128 0 1])];
+                    counts(end + 1) = 1;
+                end
+                expected = struct('ok', true, 'matrix', data, ...
+                    'counts', counts, 'payload', payload, ...
+                    'missing', true, 'independent', true);
+                values(end + 1) = makeCase(sprintf('entries%d', count), ...
+                    {data, count}, expected);
+            end
         case {'native8', 'native16', 'file8', 'file16'}
             values = nfxkit.nativeCases(name, folder);
         case 'mixed'

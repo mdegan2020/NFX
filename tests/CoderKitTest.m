@@ -2,7 +2,7 @@ classdef CoderKitTest < NfxTest
     %CoderKitTest - Verify the portable harness without requiring a Coder license
     properties (TestParameter)
         probe = {'storage', 'rpc', 'timing', 'groups', 'native8', ...
-            'native16', 'file8', 'file16', 'mixed'}
+            'native16', 'file8', 'file16', 'engineering', 'mixed'}
     end
     methods (TestClassSetup)
         function kitPath(testCase)
@@ -108,10 +108,10 @@ classdef CoderKitTest < NfxTest
             testCase.verifyEqual(path, oldPath);
             testCase.verifyEqual(getenv('NFX_CODER_RUN'), oldEnvironment);
             testCase.verifyTrue(report.allRequestedPassed);
-            testCase.verifyEqual(report.referencePasses, 9);
+            testCase.verifyEqual(report.referencePasses, 10);
             testCase.verifyEqual(report.mexPasses, 0);
-            testCase.verifyEqual(nnz(strcmp({report.phaseResults.outcome}, 'not_requested')), 45);
-            testCase.verifyEqual(numel(report.tests), 54);
+            testCase.verifyEqual(nnz(strcmp({report.phaseResults.outcome}, 'not_requested')), 50);
+            testCase.verifyEqual(numel(report.tests), 60);
             contents = fullfile(testCase.folder, 'results'); mkdir(contents);
             unzip(report.archive, contents);
             testCase.verifyTrue(isfile(fullfile(contents, 'SUMMARY.md')));

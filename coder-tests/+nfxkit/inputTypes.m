@@ -9,6 +9,8 @@ function types = inputTypes(name)
         case 'timing'
             types = {coder.typeof(uint64(0), [1 4], [false true]), uint64(1)};
         case 'groups', types = {0};
+        case 'engineering'
+            types = {coder.typeof(uint16(0), [8 8], [true true]), 0};
         case {'native8', 'native16', 'file8', 'file16'}, types = {raw};
         case 'mixed'
             types = {coder.typeof(uint8(0), [4 5], [true true]), ...

@@ -232,10 +232,13 @@ function [entry, reader] = imageHeader(data, location, index) %#codegen
     end
     if ~reader.ok, return; end
     labels = repmat({''}, 1, bands); wavelengths = NaN(1, bands);
+    categories = repmat(' ', bands, 6);
     for k = 1:bands
         [labels{k}, reader] = reader.text(2);
         [text, reader] = reader.text(6, false);
-        if reader.ok && ~all(text == ' ')
+        if reader.ok && strcmp(text, 'CLDPCT')
+            categories(k, :) = text;
+        elseif reader.ok && ~all(text == ' ')
             number = str2double(text);
             if ~isreal(number) || ~isfinite(number) || number < 0 || number > 999999
                 reader = reader.fail('MalformedFile', 'Invalid ISUBCAT wavelength.');
@@ -247,6 +250,7 @@ function [entry, reader] = imageHeader(data, location, index) %#codegen
         if ~reader.ok, return; end
     end
     entry.header.irepband = labels; entry.header.isubcat = wavelengths;
+    entry.header.isubcat_text = categories;
     reader = reader.expect('0', 'ISYNC');
     [entry.layout.imode, reader] = reader.text(1, false);
     if reader.ok && ~any(strcmp(entry.layout.imode, {'B', 'F', 'T'}))

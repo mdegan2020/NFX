@@ -104,6 +104,10 @@ function valid = leafLegal(tag,payload,scope,aggregate,asynchronous) %#codegen
         return
     end
     switch tag
+        case {'PIXQLA','CSCCGA','MSTGTA','BLOCKA'}
+            valid = scope == 2 && ~aggregate;
+        case {'GEOPSB','BNDPLC','XMLDCA','SECURA','ENGRDA'}
+            valid = true;
         case {'RPC00B','CSCRNA','ICHIPB','BANDSB','HISTOA','ACFTB ','AIMIDB', ...
                 'SENSRB','RSMIDA','RSMPCA','RSMPIA','RSMGGA','RSMGIA','RSMAPB','RSMECB','RSMDCB', ...
                 'CSRLSB','CSWRPB'}

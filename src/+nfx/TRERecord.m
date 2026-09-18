@@ -29,7 +29,7 @@ classdef (Sealed) TRERecord
             if ~knownTRE(tag)
                 legal = true;
             elseif strcmp(owner, 'text')
-                legal = strcmp(tag, 'FREESA') || ...
+                legal = any(strcmp(tag, {'FREESA','XMLDCA','SECURA','ENGRDA'})) || ...
                     (strcmp(tag, 'FCRNSA') && any(payload(1) == 'YN'));
             elseif any(strcmp(tag, {'J2KLRA', 'MTIMSA'}))
                 legal = strcmp(owner, 'image');

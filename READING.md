@@ -43,10 +43,17 @@ destinations require `Overwrite=true`. Validation runs again before writing.
 
 ## Supported content
 
+The [additional TRE guide](TRE_SUPPORT.md) lists the newer concrete schemas.
+SECURA retains document bytes and validates its envelope, but external
+security-document validation remains incomplete. Such files expose
+`SecurityDocumentUnchecked` and `metadata_complete=false`, even if every
+tag is recognized. Their valid stored content can still be rewritten.
+
 | Content | Reading behavior |
 | --- | --- |
 | Uncompressed imagery | Blocked B/F/T layouts, native unsigned samples, bands, frames, edge padding, multiple images |
 | Image metadata | Comments, band fields, corners, stored ABPP/PJUST and display relationships |
+| Quality/cloud imagery | Still unsigned PIXQUAL masks, CLOUD binary/percentage grids, PIXQLA associations and CSCCGA metadata |
 | TREs | Concrete types and opaque unknown tags; repeated records, SENSRB continuation groups, wrappers and overflow ownership |
 | Text | Supported STA text and subheaders, including text-only files |
 | Generic DESs | Exact payload and supported subheader bytes; no semantic claim about arbitrary registered data |

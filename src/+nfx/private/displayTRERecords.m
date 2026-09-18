@@ -1,6 +1,24 @@
 function displayTRERecords(records) %#codegen
     %displayTRERecords - Dispatch only presentation by the encoded tag
     switch records(1).tag
+        case 'GEOPSB'
+            showGEOPSB(records);
+        case 'BNDPLC'
+            showBNDPLC(records);
+        case 'XMLDCA'
+            showXMLDCA(records);
+        case 'SECURA'
+            showSECURA(records);
+        case 'PIXQLA'
+            showPIXQLA(records);
+        case 'CSCCGA'
+            showCSCCGA(records);
+        case 'MSTGTA'
+            showMSTGTA(records);
+        case 'BLOCKA'
+            showBLOCKA(records);
+        case 'ENGRDA'
+            showENGRDA(records);
         case 'ACFTB '
             showACFTB(records);
         case 'AIMIDB'
@@ -949,4 +967,155 @@ function showTMINTA(records) %#codegen
         return
     end
     printTREField('intervals', obj.intervals);
+end
+
+function showGEOPSB(records) %#codegen
+    %showGEOPSB - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.GEOPSB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('typ', obj.typ);
+    printTREField('uni', obj.uni);
+    printTREField('dag', obj.dag);
+    printTREField('dcd', obj.dcd);
+    printTREField('ell', obj.ell);
+    printTREField('elc', obj.elc);
+    printTREField('dvr', obj.dvr);
+    printTREField('vdcdvr', obj.vdcdvr);
+    printTREField('sda', obj.sda);
+    printTREField('vdcsda', obj.vdcsda);
+    printTREField('zor', obj.zor);
+    printTREField('grd', obj.grd);
+    printTREField('grn', obj.grn);
+    printTREField('zna', obj.zna);
+end
+
+function showBNDPLC(records) %#codegen
+    %showBNDPLC - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.BNDPLC(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('rings', obj.rings);
+end
+
+function showXMLDCA(records) %#codegen
+    %showXMLDCA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.XMLDCA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('trecrc', obj.trecrc);
+    printTREField('tredata', obj.tredata);
+    printTREField('treshft', obj.treshft);
+    printTREField('treshdt', obj.treshdt);
+    printTREField('treshrp', obj.treshrp);
+    printTREField('treshsi', obj.treshsi);
+    printTREField('treshsv', obj.treshsv);
+    printTREField('treshsd', obj.treshsd);
+    printTREField('treshtn', obj.treshtn);
+    printTREField('treshlpg', obj.treshlpg);
+    printTREField('treshlpt', obj.treshlpt);
+    printTREField('treshli', obj.treshli);
+    printTREField('treshlin', obj.treshlin);
+    printTREField('treshabs', obj.treshabs);
+end
+
+function showSECURA(records) %#codegen
+    %showSECURA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.SECURA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('fdattim', obj.fdattim);
+    printTREField('formatver', obj.formatver);
+    printTREField('secflds', obj.secflds);
+    printTREField('secstd', obj.secstd);
+    printTREField('seccomp', obj.seccomp);
+    printTREField('security', obj.security);
+end
+
+function showPIXQLA(records) %#codegen
+    %showPIXQLA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.PIXQLA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('aisdlvl', obj.aisdlvl);
+    printTREField('all_images', obj.all_images);
+    printTREField('pq_condition', obj.pq_condition);
+end
+
+function showCSCCGA(records) %#codegen
+    %showCSCCGA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.CSCCGA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('ccg_source', obj.ccg_source);
+    printTREField('reg_sensor', obj.reg_sensor);
+    printTREField('origin_line', obj.origin_line);
+    printTREField('origin_sample', obj.origin_sample);
+    printTREField('as_cell_size', obj.as_cell_size);
+    printTREField('cs_cell_size', obj.cs_cell_size);
+    printTREField('ccg_max_line', obj.ccg_max_line);
+    printTREField('ccg_max_sample', obj.ccg_max_sample);
+end
+
+function showMSTGTA(records) %#codegen
+    %showMSTGTA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.MSTGTA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('tgt_num', obj.tgt_num);
+    printTREField('tgt_id', obj.tgt_id);
+    printTREField('tgt_be', obj.tgt_be);
+    printTREField('tgt_pri', obj.tgt_pri);
+    printTREField('tgt_req', obj.tgt_req);
+    printTREField('tgt_ltiov', obj.tgt_ltiov);
+    printTREField('tgt_type', obj.tgt_type);
+    printTREField('tgt_coll', obj.tgt_coll);
+    printTREField('tgt_cat', obj.tgt_cat);
+    printTREField('tgt_utc', obj.tgt_utc);
+    printTREField('tgt_elev', obj.tgt_elev);
+    printTREField('tgt_elev_unit', obj.tgt_elev_unit);
+    printTREField('tgt_loc', obj.tgt_loc);
+end
+
+function showBLOCKA(records) %#codegen
+    %showBLOCKA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.BLOCKA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('block_instance', obj.block_instance);
+    printTREField('n_gray', obj.n_gray);
+    printTREField('l_lines', obj.l_lines);
+    printTREField('layover_angle', obj.layover_angle);
+    printTREField('shadow_angle', obj.shadow_angle);
+    printTREField('frlc_loc', obj.frlc_loc);
+    printTREField('lrlc_loc', obj.lrlc_loc);
+    printTREField('lrfc_loc', obj.lrfc_loc);
+    printTREField('frfc_loc', obj.frfc_loc);
+end
+
+function showENGRDA(records) %#codegen
+    %showENGRDA - Decode one statically typed temporary for display
+    [obj, ok, status] = readTRE(records, nfx.ENGRDA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('resrc', obj.resrc);
+    printTREField('redata', obj.redata);
 end

@@ -3,6 +3,8 @@ function report = contextImageReport(contexts,images) %#codegen
     report = newReport('Effective image metadata');
     for k = 1:numel(contexts)
         records = contexts(k).records; header = images(contexts(k).image).header;
+        report = mergeReport(report, ...
+            supportImageReport(records, images(contexts(k).image)), '');
         coverage = unknownTREReport(records);
         inherited = unknownTREReport(contexts(k).file_records);
         report = mergeReport(report, coverage, '');
