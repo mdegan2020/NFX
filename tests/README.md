@@ -7,6 +7,12 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | Suite | Checks |
 | --- | --- |
 | `TREDeserializeTest`, `TREInspectionTest` | Concrete byte round trips, malformed payloads and selectors, scalar missing results, stable IDs and order, nested wrappers, SENSRB continuations, independent copies, bounded display, and exact uint64 metadata |
+| `ReaderIndexTest`, `NativePixelReaderTest` | Independent literal headers, source bounds, optional fields, B/F/T native samples, partial blocks and malformed layouts |
+| `ReaderMetadataTest`, `FileReadTest` | Complete native file reads, raw snapshots, overflow ownership, continuation groups, independent edits, resource limits and I/O failures |
+| `SensorDESReadTest` | Typed DES variants, header/payload agreement, raw-versus-verified trust, shared model associations and malformed support data |
+| `JPEG2000ReadTest` | Native backend pixels, both profiles, untouched codestream preservation, missing/failing codecs and detected corruption warnings |
+| `CollectionReadTest`, `CollectionManifestReadTest` | Complete collections and explicit lists, exact timing above flintmax, cross-file contexts, quick looks, missing/unavailable blocks, 650 members and FILE002 |
+| `ReaderAcceptanceTest` | Supported RSM/ECF GLAS SNIP round trips, profile boundaries, preserving unrelated content during image edits and the public reading example |
 | `RPC00BTest` | Exact field widths, signs, coefficient order, rounding, exponent limits, unset values, strict types, and nonzero normalization |
 | `HeaderTest` | Required metadata, ASCII, dates, classification, representations, derived layout, and data replacement |
 | `CompositionTest` | Value snapshots, native pixels, attachment IDs, removal/order, duplicates, TRE framing, and unsupported content |
@@ -46,7 +52,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 
 GLAS/GFM tests use literal field expectations, `inspectCSEXRB`, a separate full-covariance cursor oracle, and complete file reconstruction through `inspectContainer`. The latter walks both user-defined and extended areas and verifies each overflow owner. Tests include scanner/framer products and a standalone synthetic example. They do not evaluate GSET/PMA/DGA scientific conformance or geolocation accuracy. The optional current CSCSDB adjustment-correlation area is tested against its explicit byte-count markers; the contradictory packing/minimum-length statements remain documented and cannot establish profile conformance.
 
-`helpers/decodeMotion.m` reconstructs native motion frames from literal NITF offsets and an independent block/frame/band loop. Motion tests use exact small byte strings and multiple native types; MATLAB reader round trips cover still and quick-look products because the legacy reader does not establish multi-frame MIE correctness. Timing expectations include separately calculated integer products above 2^53 and UINT64_MAX. The large manifest case reconstructs 420 complete filename entries across multiple text segments. A real read-only later destination exercises partial publication while preserving the prior manifest.
+`helpers/decodeMotion.m` reconstructs native motion frames from literal NITF offsets and an independent block/frame/band loop. Motion tests use exact small byte strings and multiple native types; MATLAB reader round trips cover still and quick-look products because the legacy reader does not establish multi-frame MIE correctness. Timing expectations include separately calculated integer products above 2^53 and UINT64_MAX. The writer manifest test checks 420 filename entries; the reader integration test writes and reads 650 members across FILE001/FILE002. The latter takes several minutes on the development machine. A real read-only later destination exercises partial publication while preserving the prior manifest.
 
 ## Profile requirements and test mapping
 
@@ -77,7 +83,7 @@ Reference decisions:
 - The current Appendix M explicit CSCSDB adjustment-correlation fields conflict with older zero-reserved packing/minimum-length statements. Generic bytes follow the counted field definitions. That optional area fails the sole GLAS SNIP path until the conflict is resolved.
 - CSDIDA Appendix AS identifies 9I as airborne/WAMI and AU as Aurora. The selected airborne profile uses 9I; other airborne registrations require a verified catalog update.
 
-`MIECollection.validate` checks the complete NFX-MIE-NC1 collection, including generated imagery and manifest distinctions. `File.validate` alone checks an individual generic NITF file; it cannot establish a complete external collection. Profile checks do not prove scientific calibration/geolocation, truthful provider declarations, actual image-center targeting, inherited parent metadata or external certification. SENSRB-only SNIP mensuration remains blocked by the unavailable NGA profile; independent RSM/ECF GLAS cases are implemented.
+`MIECollection.validate` checks the complete NFX-MIE-NC1 collection, including generated imagery and manifest distinctions. `File.validate` alone checks an individual generic NITF file; it cannot establish a complete external collection. An individually imported NFX MIE member exposes stored content with `context_complete=false` and requires `MIECollection.read` before full context/model validation or writing. Profile checks do not prove scientific calibration/geolocation, truthful provider declarations, actual image-center targeting, inherited parent metadata or external certification. SENSRB-only SNIP mensuration remains blocked by the unavailable NGA profile; independent RSM/ECF GLAS cases are implemented.
 
 ## Coverage review
 
@@ -101,6 +107,16 @@ The final profile milestone's 1,013-test run measured 8,544 of 8,584 executable 
 
 Review branches as well as line percentages: a one-line conditional can count as covered even when its body was skipped. Tests cover valid/invalid reports, native uint8/uint16 paths, block/representation choices, and the filesystem error paths above. Measured decision/condition coverage requires the separately licensed [MATLAB Test coverage metrics](https://www.mathworks.com/help/matlab/ref/matlab.unittest.plugins.codecoverageplugin.forfolder.html), which are unavailable in the development installation. Platform crashes, power loss, and simultaneous publication by other processes are not simulated; publication is not claimed to be a crash-safe transaction.
 
+The bounded-reader acceptance run passed all 1,924 tests, including the
+OpenJPEG cases and the separately completed 650-member collection case.
+The remaining suite was rerun with coverage: 15,328 of 15,640 executable
+implementation lines (98.005%). The large split-list case is retained in the
+normal `runTests` suite; its earlier passing result was reused for this
+acceptance run because the later change only added image replacement.
+Reader tests include native and compressed products, canonical payload
+preservation, supported RSM/ECF GLAS SNIP products, complete collection
+contexts, explicit pending local contexts, source budgets and malformed data.
+
 ## Memory observation
 
 On Windows MATLAB:
@@ -110,7 +126,7 @@ addpath('tests');
 observations = measureMemory();
 ```
 
-This creates an 8192 Ã— 8192 uint16 image (128 MiB), observes process memory before/after attachment, metadata/TRE edits, file composition, validation, and writing, then removes its output. These observations can miss transient peaks and are not performance assertions. Pixel writes use block-sized native arrays and byte buffers; metadata operations do not intentionally copy or convert the whole image.
+This creates an 8192 × 8192 uint16 image (128 MiB), observes process memory before/after attachment, metadata/TRE edits, file composition, validation, and writing, then removes its output. These observations can miss transient peaks and are not performance assertions. Pixel writes use block-sized native arrays and byte buffers; metadata operations do not intentionally copy or convert the whole image.
 
 The final R2026a Update 4 observation allocated 134,217,728 image bytes and observed the same 128 MiB process-memory increase. Subsequent attachment, metadata edits, composition, validation and writing showed no additional retained process-memory increase in that run. The output was 134,219,626 bytes. These are pre/post observations from a warmed session, not peak-allocation bounds or performance guarantees.
 

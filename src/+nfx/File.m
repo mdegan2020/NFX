@@ -11,6 +11,7 @@ classdef File
     %
     %   FILE functions:
     %       plus      - Append a segment or TRE value snapshot
+    %       replaceImage - Replace one image while retaining other content
     %       removeTRE - Remove a file-level logical TRE attachment
     %       validate  - Check generic NITF rules and requested profiles
     %       write     - Write validated content with destination protection
@@ -439,6 +440,25 @@ classdef File
             else
                 error('nfx:SegmentType', 'Append an NFX image, text, DES, or supported TRE.');
             end
+        end
+        function obj = replaceImage(obj, index, image) %#codegen
+            %replaceImage - Replace one image snapshot in its existing slot
+            %   OBJ = replaceImage(OBJ, INDEX, IMAGE) retains every other
+            %   image, text, DES and file-level TRE. IMAGE is copied by value.
+            %   Validate the resulting file before writing. For inherited
+            %   MIE metadata, edit the collection and replan instead.
+            %
+            %   See also images, plus, MIECollection.plan
+            arguments
+                obj (1,1) nfx.File
+                index {mustBeMetadata(index,1,999,1), mustBeFinite}
+                image (1,1) nfx.ImageSegment
+            end
+            if index > numel(obj.imageValues)
+                error('nfx:ImageIndex', 'Select an existing image segment.');
+            end
+            obj.imageValues(index) = image;
+            obj.contextDirty = obj.contextIsBound;
         end
         function obj = removeTRE(obj, id) %#codegen
             %removeTRE - Remove a file-header logical attachment by ID

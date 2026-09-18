@@ -80,6 +80,18 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             t.verifyEmpty(copy.images);
         end
 
+        function replacingImportedImagePreservesItsCompressedSnapshot(t)
+            path = fullfile(t.folder, 'original.ntf'); t.sampleFile.write(path);
+            [copy, ok, status] = nfx.File.read(path); t.assertTrue(ok, status.message);
+            image = copy.images; image.header.icom = 'Updated compressed metadata';
+            edited = copy.replaceImage(1, image);
+            destination = fullfile(t.folder, 'copy.ntf'); edited.write(destination);
+            parsed = inspectContainer(destination);
+            t.verifyEqual(parsed.images.data, t.sampleFile.images.compression.codestream);
+            t.verifyEqual(edited.images.J2KLRA().payload(), copy.images.J2KLRA().payload());
+            t.verifyEqual(edited.images.data, copy.images.data);
+        end
+
         function headerAndCodestreamContradictionsFail(t, corruption)
             path = fullfile(t.folder, 'bad.ntf'); t.sampleFile.write(path);
             raw = readBytes(path); [index, ok] = nfx.internal.indexNITF(raw);

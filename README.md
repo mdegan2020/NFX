@@ -1,10 +1,10 @@
 # NFX — NITF File eXchange
 
-A MATLAB toolbox for constructing and writing NITF files through a compact object-oriented API in the `nfx` namespace.
+A MATLAB toolbox for constructing, reading, and writing NITF files through a compact object-oriented API in the `nfx` namespace.
 
 NFX writes NITF 2.1 files with multiple uncompressed blocked images, standard text segments, and data extension segments (DESs). Images support dense real `uint8` and `uint16` pixels, explicit unclassified metadata, and MONO, RGB, or MULTI representation. Blocks default to 1024 × 1024; partial edge blocks are zero padded. Concrete spectral, airborne, motion timing, and wrapper TREs complement RPC00B and FREESA. Oversized metadata areas use derived `TRE_OVERFLOW` DESs.
 
-Targets MATLAB R2023b and newer; tested locally on R2026a. Writing requires base MATLAB. Reader round-trip tests also require Image Processing Toolbox. No GDAL or NITRO dependency.
+Targets MATLAB R2023b and newer; tested locally on R2026a. Native reading and writing use base MATLAB. The regression suite also requires Image Processing Toolbox for independent MathWorks reader checks. No GDAL or NITRO dependency.
 
 An optional [OpenJPEG prototype](prototypes/openjpeg/README.md) adds Windows-only
 lossless NPJE/EPJE JPEG 2000 still-image segments. It requires the pinned
@@ -39,6 +39,34 @@ report = file.validate();
 assert(report.valid);
 file.write('example.ntf');
 ```
+
+## Reading
+
+```matlab
+[file, ok, status] = nfx.File.read('example.ntf');
+if ok
+    pixels = file.images(1).data;
+    [rpc, found] = file.images(1).RPC00B;
+else
+    fprintf('%s: %s\n', status.code, status.message);
+end
+```
+
+The bounded reader supports the layouts NFX writes: native still/motion
+pixels, multiple images, text, TREs/wrappers/overflow, generic and typed sensor
+DESs, and existing lossless NPJE/EPJE segments. JPEG2000 decoding uses MATLAB;
+reading and unchanged-codestream rewriting require no OpenJPEG encoder.
+
+`nfx.MIECollection.read(manifest)` restores a complete collection. Pass an
+explicit cell or string vector of paths for a manifest-free collection.
+`File.read` can inspect each member individually; `context_complete=false`
+marks collection metadata that still needs binding before effective metadata,
+full validation, or writing. Complete collection reads resolve those links.
+
+See the [reader guide](READING.md) for resource limits, diagnostics,
+preservation rules, and examples. Run `readingExample(folder)` from the
+examples path for a synthetic read/edit/write demonstration. It uses
+`file.replaceImage(index, image)` to retain the other segments and metadata.
 
 ## API behavior
 
@@ -108,7 +136,7 @@ for a SENSRB positive standard deviation encoded as underflow zero.
 Compressed images expose their derived original NPJE/EPJE record through
 `image.J2KLRA`; its reserved attachment ID is zero. The returned copy is
 editable, while the stored record remains derived from compression.
-ENGRDA and general-purpose NITF file parsing are outside this increment.
+ENGRDA and unrestricted external NITF parsing remain outside this scope.
 
 Run `addpath('src', 'examples'); inspectionExample();` for a complete example.
 The core storage stays homogeneous, typed methods have concrete return classes,
@@ -279,6 +307,6 @@ results = runTests(Coverage=true);
 
 The suite includes independent byte checks, MATLAB reader round trips, metadata and layout boundaries, snapshot/removal behavior, and injected filesystem failures. Reports go under ignored `coverage/`; generated files use temporary fixtures. See [test and compatibility notes](tests/README.md).
 
-Classified products, LUTs, compression, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation is restricted to NFX-MIE-NC1. RPC fitting and evaluation are outside scope.
+Classified products, LUTs, compression beyond the documented C8 prototype, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation is restricted to NFX-MIE-NC1. RPC fitting and evaluation are outside scope.
 
 MATLAB Coder remains a design priority: implementation uses qualified names, applicable `%#codegen` annotations, and native pixel storage. No Coder license is available, and compiled compatibility is **not verified**. Temporary-file creation and publication still need a supported, tested generated-code path. The small `publishCollection` host helper isolates try/catch needed to report partial publication; its callers and metadata/byte paths retain generation intent. R2023b execution is also unverified.
