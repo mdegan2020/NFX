@@ -68,18 +68,19 @@ classdef (Hidden) FileReader
             status = nfx.internal.readStatus();
         end
 
-        function [file, ok, status] = readBytes(data, maxPixels) %#codegen
+        function [file, ok, status] = readBytes(data, maxPixels, resolve) %#codegen
             %readBytes - Restore a complete value from a native byte buffer
             arguments
                 data
                 maxPixels = 2^28
+                resolve = true
             end
             file = nfx.File();
             if ~isa(maxPixels, 'double') || ~isscalar(maxPixels) || ...
                     ~isreal(maxPixels) || ~isfinite(maxPixels) || ...
-                    maxPixels < 1 || maxPixels > flintmax || fix(maxPixels) ~= maxPixels
+                    maxPixels < 0 || maxPixels > flintmax || fix(maxPixels) ~= maxPixels
                 ok = false; status = failure('InvalidInput', ...
-                    'MaxPixels must be a positive finite double integer.', NaN, 'file', 0);
+                    'MaxPixels must be a nonnegative finite double integer.', NaN, 'file', 0);
                 return
             end
             [index, ok, status] = nfx.internal.indexNITF(data);
@@ -134,9 +135,15 @@ classdef (Hidden) FileReader
                 images(end + 1) = image;
                 samples = samples + numel(pixels);
             end
+            tags = {parts.fileRecords.tag};
+            pending = all(ismember({'MIMCSA','CAMSDA','MICIDA','TMINTA'}, tags));
             file = nfx.File.restoreRead(index.header, ...
-                images, parts.texts, parts.des, parts.fileRecords);
-            report = file.validate();
+                images, parts.texts, parts.des, parts.fileRecords, pending);
+            if resolve && ~pending
+                report = file.validate();
+            else
+                report = file.validateReadStructure();
+            end
             if ~report.valid
                 file = nfx.File(); ok = false;
                 status = failure('MalformedFile', report.issues(1).message, 0, 'file', 0);
@@ -144,6 +151,8 @@ classdef (Hidden) FileReader
                 file = nfx.File(); ok = false;
                 status = failure('MalformedFile', ...
                     'Stored file structure disagrees with reconstructed content.', 0, 'file', 0);
+            else
+                status.context_complete = ~pending;
             end
         end
     end

@@ -109,6 +109,46 @@ classdef MIECollection
             published = publishCollection(files,paths,order,options.Overwrite);
         end
     end
+    methods (Static)
+        function [collection, ok, status] = read(source, options)
+            %read - Restore a complete explicitly named MIE collection
+            %   [OBJ, OK, STATUS] = nfx.MIECollection.read(MANIFEST) reads
+            %   the FILEnnn lists relative to their manifest directory.
+            %   Supply a cell or string vector of filenames for an explicit
+            %   collection, including one without a manifest. List order
+            %   does not matter. Directories are never scanned for members.
+            %
+            %   MaxBytes and MaxPixels bound aggregate bytes and decoded
+            %   samples; defaults are 2^30 and 2^28. MaxFiles defaults to
+            %   10000. Failure returns a default scalar and diagnostic.
+            %
+            %   See also File.read, plan, write
+            arguments
+                source
+                options.MaxBytes = 2^30
+                options.MaxPixels = 2^28
+                options.MaxFiles = 10000
+            end
+            [collection, ok, status] = nfx.internal.CollectionReader.read( ...
+                source, options.MaxBytes, options.MaxPixels, options.MaxFiles);
+        end
+    end
+    methods (Static, Access = ?nfx.internal.CollectionReader)
+        function [definitions, report] = readDefinitions(obj)
+            %readDefinitions - Validate imported collection definitions
+            [definitions, report] = mieCollectionDefinitions(obj);
+        end
+        function [files, report] = bindReadFiles(files)
+            %bindReadFiles - Validate imports against their complete context
+            inputs = collectionContextInputs(files);
+            report = newReport('NFX-MIE-NC1 imported collection');
+            for k = 1:numel(files)
+                files(k).file = bindContext(files(k).file, inputs(k));
+                report = mergeReport(report, validate(files(k).file), ...
+                    sprintf('files(%.0f).', k));
+            end
+        end
+    end
     methods (Access = private)
         function [files,report] = completePlan(obj) %#codegen
             %completePlan - Bind all collection contexts before file preflight

@@ -27,6 +27,7 @@ classdef File
         tre_ids % File-level logical attachment IDs
         tre_tags % File-level logical attachment tags
         tre_records % File-level physical record snapshots
+        context_complete % False until imported MIE context is bound
     end
     properties (SetAccess = private)
         texts % Text snapshots in insertion order
@@ -36,6 +37,7 @@ classdef File
         imageValues
         desValues
         store
+        contextPending = false
         contextIsBound = false
         contextDirty = false
         contextInheritance
@@ -54,7 +56,11 @@ classdef File
             %   This host entry point guarantees the implemented NFX subset;
             %   it is not a general reader for all legal NITF encodings.
             %
-            %   See also write, validate, ImageSegment
+            %   Imported MIE files have CONTEXT_COMPLETE=false until read
+            %   through MIECollection.read. Their stored content is available;
+            %   validation, writing and effective metadata need the collection.
+            %
+            %   See also write, validate, ImageSegment, MIECollection.read
             arguments
                 filename
                 options.MaxBytes = 2^30
@@ -64,10 +70,11 @@ classdef File
                 filename, options.MaxBytes, options.MaxPixels);
         end
     end
-    methods (Static, Access = ?nfx.internal.FileReader)
-        function obj = restoreRead(header, images, texts, des, records) %#codegen
+    methods (Static, Access = {?nfx.internal.FileReader, ?nfx.internal.CollectionReader})
+        function obj = restoreRead(header, images, texts, des, records, pending) %#codegen
             %restoreRead - Assemble independently validated imported snapshots
-            obj = nfx.File(header=header);
+            if nargin < 6, pending = false; end
+            obj = nfx.File(header=header); obj.contextPending = pending;
             obj.imageValues = images; obj.texts = texts; obj.desValues = des;
             obj.store = nfx.internal.TREStore.fromSnapshots(records);
         end
@@ -453,75 +460,11 @@ classdef File
                 obj (1,1) nfx.File
                 options.SNIP_COMPLIANT (1,1) {mustBeA(options.SNIP_COMPLIANT, 'logical')} = false
             end
-            [h, plan] = layout(obj);
-            report = newReport('NITF 2.1');
-            report = mergeReport(report, validate(h), 'header.');
-            report = addIssue(report,obj.contextDirty,'CollectionContextChanged','collection', ...
-                'Edit the source collection and replan after changing a file with inherited collection metadata.', ...
-                'NFX-MIE-NC1 collection snapshot integrity');
-            reference = 'JBP 2025.1, 5.11 and 5.14';
-            report = addIssue(report, h.numi+h.numt+h.numdes == 0, 'SegmentCount', ...
-                'images/texts/des', 'Attach at least one data segment.', reference);
-            levels = zeros(1, h.numi);
-            for k = 1:h.numi
-                levels(k) = plan.images(k).header.idlvl;
-                report = mergeReport(report, validateStructure(plan.images(k)), sprintf('images(%d).', k));
-            end
-            [contexts,child] = resolveContexts(obj,h,plan);
-            report = mergeReport(report,child,'');
-            if child.valid
-                report = mergeReport(report,contextImageReport(contexts,plan.images),'');
-                for c = 1:numel(contexts)
-                    report = mergeReport(report,glasHeaderContextReport(contexts(c).file_records,plan.des), ...
-                        sprintf('contexts(%.0f).file.',c));
-                end
-                views = contextViews(contexts,plan.images);
-                positions = plan.positions([contexts.image],:);
-                report = mergeReport(report,rsmFileReport(views,positions),'rsm.');
-                report = mergeReport(report,glasFileReport(obj.store.records,views,plan.des,positions),'glas.');
-            end
-            report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
-                'images.header.idlvl', 'Display levels must be unique across all images.', reference);
-            for k = 1:h.numi
-                parent = plan.images(k).header.ialvl;
-                timing = plan.images(k).tre_records;
-                for j = find(strcmp({timing.tag},'MTIMSA'))
-                    report = addIssue(report,str2double(char(timing(j).payload(1:3))) ~= k, ...
-                        'MotionSegmentIndex',sprintf('images(%d).MTIMSA',k), ...
-                        'MTIMSA image index must identify its owning segment.', ...
-                        'NGA.STND.0044 1.3.3, 6.9.2.3');
-                end
-                report = addIssue(report, parent ~= 0 && ~any(levels == parent), ...
-                    'DisplayAttachment', sprintf('images(%d).header.ialvl', k), ...
-                    'Attachment level must identify an image in this file.', reference);
-                report = addIssue(report, any(plan.positions(k,:) < 0), 'DisplayLocation', ...
-                    sprintf('images(%d).header.iloc', k), ...
-                    'The absolute image position must remain in the nonnegative CCS quadrant.', ...
-                    'JBP 2025.1, 4.5.2 requirements 008 and 009');
-                im = plan.images(k).header;
-                report = addIssue(report,h.clevel >= 51 && ...
-                    (max(plan.positions(k,:)+[im.nrows im.ncols]) > 99999999 || ...
-                    min(im.nrows,im.ncols) > 65536 || size(plan.images(k).data,3) > 999), ...
-                    'MotionComplexity',sprintf('images(%d)',k), ...
-                    'The image exceeds the supported MIE complexity-level limits.', ...
-                    'NGA.STND.0044 1.3.3, Table 15');
-            end
-            for k = 1:h.numt
-                report = mergeReport(report, validate(obj.texts(k)), sprintf('texts(%d).', k));
-                parent = obj.texts(k).header.txtalvl;
-                report = addIssue(report, parent ~= 0 && ~any(levels == parent), ...
-                    'TextAttachment', sprintf('texts(%d).header.txtalvl', k), ...
-                    'Text attachment must identify an image in this file or be zero.', reference);
-            end
-            for k = 1:h.numdes
-                report = mergeReport(report, validate(plan.des(k)), sprintf('des(%d).', k));
-            end
-            if options.SNIP_COMPLIANT
-                report.scope = 'NITF 2.1 + SNIP 1.2 CN1 airborne nonrectified MSI';
-                if report.valid
-                    report = mergeReport(report,snipReport(h,plan.images,obj.texts,obj.store.records,plan.des),'');
-                end
-            end
+            report = validateCore(obj, options.SNIP_COMPLIANT, true);
+        end
+        function value = get.context_complete(obj) %#codegen
+            %get.context_complete - Identify unresolved imported contexts
+            value = ~obj.contextPending && ~obj.contextDirty;
         end
         function [records,fileRecords] = effectiveTREs(obj,imageIndex,frameIndex) %#codegen
             %effectiveTREs - Inspect effective image metadata in physical order
@@ -536,6 +479,7 @@ classdef File
                 imageIndex {mustBeMetadata(imageIndex,1,999,1),mustBeFinite}
                 frameIndex {mustBeMetadata(frameIndex,1,4294967295,1),mustBeFinite} = 1
             end
+            if obj.contextPending, error('nfx:CollectionContextRequired','Use MIECollection.read to resolve inherited metadata.'); end
             if obj.contextDirty, error('nfx:CollectionContextChanged','Replan inherited metadata from the source collection.'); end
             [h,plan] = layout(obj);
             if imageIndex > numel(plan.images) || frameIndex > plan.images(imageIndex).number_frames
@@ -624,10 +568,92 @@ classdef File
         function obj = bindContext(obj,input) %#codegen
             %bindContext - Capture validated collection catalogs by value
             obj.contextInheritance = input.nodes; obj.contextDefinitions = input.catalog;
-            obj.contextIsBound = true; obj.contextDirty = false;
+            obj.contextIsBound = true; obj.contextDirty = false; obj.contextPending = false;
+        end
+    end
+    methods (Access = ?nfx.internal.FileReader)
+        function report = validateReadStructure(obj) %#codegen
+            %validateReadStructure - Check stored content before context binding
+            report = validateCore(obj, false, false);
         end
     end
     methods (Access = private)
+        function report = validateCore(obj, snip, resolve) %#codegen
+            [h, plan] = layout(obj);
+            report = newReport('NITF 2.1');
+            report = mergeReport(report, validate(h), 'header.');
+            report = addIssue(report,obj.contextDirty,'CollectionContextChanged','collection', ...
+                'Edit the source collection and replan after changing a file with inherited collection metadata.', ...
+                'NFX-MIE-NC1 collection snapshot integrity');
+            reference = 'JBP 2025.1, 5.11 and 5.14';
+            report = addIssue(report, h.numi+h.numt+h.numdes == 0, 'SegmentCount', ...
+                'images/texts/des', 'Attach at least one data segment.', reference);
+            levels = zeros(1, h.numi);
+            for k = 1:h.numi
+                levels(k) = plan.images(k).header.idlvl;
+                report = mergeReport(report, validateStructure(plan.images(k)), sprintf('images(%d).', k));
+            end
+            if resolve
+                report = addIssue(report,obj.contextPending,'CollectionContextRequired','collection', ...
+                    'Read the complete MIE collection before resolving inherited metadata.', ...
+                    'NFX collection read contract');
+                [contexts,child] = resolveContexts(obj,h,plan);
+                report = mergeReport(report,child,'');
+                if child.valid
+                    report = mergeReport(report,contextImageReport(contexts,plan.images),'');
+                    for c = 1:numel(contexts)
+                        report = mergeReport(report,glasHeaderContextReport(contexts(c).file_records,plan.des), ...
+                            sprintf('contexts(%.0f).file.',c));
+                    end
+                    views = contextViews(contexts,plan.images);
+                    positions = plan.positions([contexts.image],:);
+                    report = mergeReport(report,rsmFileReport(views,positions),'rsm.');
+                    report = mergeReport(report,glasFileReport(obj.store.records,views,plan.des,positions),'glas.');
+                end
+            end
+            report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
+                'images.header.idlvl', 'Display levels must be unique across all images.', reference);
+            for k = 1:h.numi
+                parent = plan.images(k).header.ialvl;
+                timing = plan.images(k).tre_records;
+                for j = find(strcmp({timing.tag},'MTIMSA'))
+                    report = addIssue(report,str2double(char(timing(j).payload(1:3))) ~= k, ...
+                        'MotionSegmentIndex',sprintf('images(%d).MTIMSA',k), ...
+                        'MTIMSA image index must identify its owning segment.', ...
+                        'NGA.STND.0044 1.3.3, 6.9.2.3');
+                end
+                report = addIssue(report, parent ~= 0 && ~any(levels == parent), ...
+                    'DisplayAttachment', sprintf('images(%d).header.ialvl', k), ...
+                    'Attachment level must identify an image in this file.', reference);
+                report = addIssue(report, any(plan.positions(k,:) < 0), 'DisplayLocation', ...
+                    sprintf('images(%d).header.iloc', k), ...
+                    'The absolute image position must remain in the nonnegative CCS quadrant.', ...
+                    'JBP 2025.1, 4.5.2 requirements 008 and 009');
+                im = plan.images(k).header;
+                report = addIssue(report,h.clevel >= 51 && ...
+                    (max(plan.positions(k,:)+[im.nrows im.ncols]) > 99999999 || ...
+                    min(im.nrows,im.ncols) > 65536 || size(plan.images(k).data,3) > 999), ...
+                    'MotionComplexity',sprintf('images(%d)',k), ...
+                    'The image exceeds the supported MIE complexity-level limits.', ...
+                    'NGA.STND.0044 1.3.3, Table 15');
+            end
+            for k = 1:h.numt
+                report = mergeReport(report, validate(obj.texts(k)), sprintf('texts(%d).', k));
+                parent = obj.texts(k).header.txtalvl;
+                report = addIssue(report, parent ~= 0 && ~any(levels == parent), ...
+                    'TextAttachment', sprintf('texts(%d).header.txtalvl', k), ...
+                    'Text attachment must identify an image in this file or be zero.', reference);
+            end
+            for k = 1:h.numdes
+                report = mergeReport(report, validate(plan.des(k)), sprintf('des(%d).', k));
+            end
+            if snip
+                report.scope = 'NITF 2.1 + SNIP 1.2 CN1 airborne nonrectified MSI';
+                if report.valid
+                    report = mergeReport(report,snipReport(h,plan.images,obj.texts,obj.store.records,plan.des),'');
+                end
+            end
+        end
         function [contexts,report] = resolveContexts(obj,header,plan) %#codegen
             %resolveContexts - Combine local bytes with captured foreign scopes
             nodes = contextNodes(contextAreas(header,plan));
