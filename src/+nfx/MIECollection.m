@@ -39,6 +39,9 @@ classdef MIECollection
         manifest {mustBeLogicalScalar} = true
         manifest_mtimfa {mustBeLogicalScalar} = false
     end
+    properties (Access = private)
+        importedLayouts = struct('filename', {}, 'file', {}, 'images', {})
+    end
     methods
         function obj = MIECollection(options) %#codegen
             %MIECollection - Construct editable collection definitions
@@ -134,6 +137,13 @@ classdef MIECollection
         end
     end
     methods (Static, Access = ?nfx.internal.CollectionReader)
+        function obj = captureReadLayouts(obj, files)
+            %captureReadLayouts - Retain imported metadata area boundaries
+            for k = 1:numel(files)
+                obj.importedLayouts(k) = treLayout( ...
+                    files(k).file, files(k).filename);
+            end
+        end
         function [definitions, report] = readDefinitions(obj)
             %readDefinitions - Validate imported collection definitions
             [definitions, report] = mieCollectionDefinitions(obj);
@@ -155,6 +165,15 @@ classdef MIECollection
             [files,report] = mieCollectionPlan(obj);
             report.scope = 'NFX-MIE-NC1 complete collection';
             if ~report.valid, return; end
+            for k = 1:numel(files)
+                for j = 1:numel(obj.importedLayouts)
+                    if strcmp(files(k).filename, obj.importedLayouts(j).filename)
+                        files(k).file = restoreTRELayout( ...
+                            files(k).file, obj.importedLayouts(j));
+                        break
+                    end
+                end
+            end
             inputs = collectionContextInputs(files);
             for k = 1:numel(files)
                 if inputs(k).required, files(k).file = bindContext(files(k).file,inputs(k)); end

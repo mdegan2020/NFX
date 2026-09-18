@@ -161,16 +161,18 @@ classdef TextSegment
         function report = validate(obj) %#codegen
             %VALIDATE - Check metadata and byte-length limits
             report = newReport('NITF 2.1 text segment');
+            report = mergeReport(report, unknownTREReport(obj.store.records), 'tre_records.');
             report = mergeReport(report, validate(obj.header), 'header.');
             report = addIssue(report, obj.lt < 1 || obj.lt > 99998, 'TextLength', ...
                 'data', 'Text payload must contain 1 to 99998 bytes.', 'JBP 2025.1, Table 5.11-1');
         end
     end
     methods (Static, Access = ?nfx.internal.FileReader)
-        function obj = restoreRead(data, header, records) %#codegen
+        function obj = restoreRead(data, header, records, packing) %#codegen
             %restoreRead - Capture validated bytes with fresh local identities
+            if nargin < 4, packing = [-1 -1 0]; end
             obj = nfx.TextSegment(data, header=header);
-            obj.store = nfx.internal.TREStore.fromSnapshots(records);
+            obj.store = nfx.internal.TREStore.fromSnapshots(records, packing);
         end
     end
     methods (Access = ?nfx.File)

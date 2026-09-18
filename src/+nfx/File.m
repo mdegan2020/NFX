@@ -72,12 +72,13 @@ classdef File
         end
     end
     methods (Static, Access = {?nfx.internal.FileReader, ?nfx.internal.CollectionReader})
-        function obj = restoreRead(header, images, texts, des, records, pending) %#codegen
+        function obj = restoreRead(header, images, texts, des, records, pending, packing) %#codegen
             %restoreRead - Assemble independently validated imported snapshots
             if nargin < 6, pending = false; end
+            if nargin < 7, packing = [-1 -1 0]; end
             obj = nfx.File(header=header); obj.contextPending = pending;
             obj.imageValues = images; obj.texts = texts; obj.desValues = des;
-            obj.store = nfx.internal.TREStore.fromSnapshots(records);
+            obj.store = nfx.internal.TREStore.fromSnapshots(records, packing);
         end
     end
     methods
@@ -476,6 +477,9 @@ classdef File
             %   nonrectified MSI case with supplied RSM or ECF GLAS metadata.
             %   These checks do not establish scientific accuracy or certify
             %   a product. Unsupported profile paths produce explicit errors.
+            %   Unknown TREs produce warnings and COMPLETE=false. Their
+            %   affected model relationships remain unverified; ordinary
+            %   writing preserves these opaque records. SNIP rejects them.
             arguments
                 obj (1,1) nfx.File
                 options.SNIP_COMPLIANT (1,1) {mustBeA(options.SNIP_COMPLIANT, 'logical')} = false
@@ -578,6 +582,21 @@ classdef File
         end
     end
     methods (Hidden)
+        function headers = storedSubheaders(obj)
+            %storedSubheaders - Serialize owner headers for reader comparison
+            [~, plan] = layout(obj);
+            item = struct('data', zeros(1, 0, 'uint8'));
+            headers = repmat(item, 1, numel(plan.images) + numel(obj.texts));
+            for k = 1:numel(plan.images)
+                headers(k).data = subheader(plan.images(k), ...
+                    plan.imageAreas(k).data, plan.imageOverflow(k), ...
+                    plan.imageUserAreas(k).data, plan.imageUserOverflow(k));
+            end
+            for k = 1:numel(obj.texts)
+                headers(numel(plan.images) + k).data = subheader( ...
+                    obj.texts(k), plan.textAreas(k).data, plan.textOverflow(k));
+            end
+        end
         function [nodes,catalog] = contextState(obj) %#codegen
             %contextState - Expose immutable metadata for collection preflight
             [h,plan] = layout(obj); nodes = contextNodes(contextAreas(h,plan));
@@ -585,6 +604,23 @@ classdef File
         end
     end
     methods (Access = ?nfx.MIECollection)
+        function hint = treLayout(obj, filename) %#codegen
+            %treLayout - Capture owner partitions without retaining pixels
+            item = obj.store.layoutHint();
+            hint = struct('filename', filename, 'file', item, ...
+                'images', repmat(item, 1, numel(obj.imageValues)));
+            for k = 1:numel(obj.imageValues)
+                hint.images(k) = treLayout(obj.imageValues(k));
+            end
+        end
+        function obj = restoreTRELayout(obj, hint) %#codegen
+            %restoreTRELayout - Restore partitions for unchanged owner bytes
+            obj.store = obj.store.restoreLayout(hint.file);
+            for k = 1:min(numel(obj.imageValues), numel(hint.images))
+                obj.imageValues(k) = restoreTRELayout( ...
+                    obj.imageValues(k), hint.images(k));
+            end
+        end
         function obj = bindContext(obj,input) %#codegen
             %bindContext - Capture validated collection catalogs by value
             obj.contextInheritance = input.nodes; obj.contextDefinitions = input.catalog;
@@ -601,6 +637,7 @@ classdef File
         function report = validateCore(obj, snip, resolve) %#codegen
             [h, plan] = layout(obj);
             report = newReport('NITF 2.1');
+            report = mergeReport(report, unknownTREReport(obj.store.records), 'tre_records.');
             report = mergeReport(report, validate(h), 'header.');
             report = addIssue(report,obj.contextDirty,'CollectionContextChanged','collection', ...
                 'Edit the source collection and replan after changing a file with inherited collection metadata.', ...
@@ -622,13 +659,20 @@ classdef File
                 if child.valid
                     report = mergeReport(report,contextImageReport(contexts,plan.images),'');
                     for c = 1:numel(contexts)
+                        coverage = unknownTREReport(contexts(c).file_records);
+                        report = mergeReport(report, coverage, '');
+                        if ~coverage.complete, continue; end
                         report = mergeReport(report,glasHeaderContextReport(contexts(c).file_records,plan.des), ...
                             sprintf('contexts(%.0f).file.',c));
                     end
                     views = contextViews(contexts,plan.images);
                     positions = plan.positions([contexts.image],:);
-                    report = mergeReport(report,rsmFileReport(views,positions),'rsm.');
-                    report = mergeReport(report,glasFileReport(obj.store.records,views,plan.des,positions),'glas.');
+                    if report.complete
+                        report = mergeReport(report,rsmFileReport(views,positions),'rsm.');
+                    end
+                    report = mergeReport(report,glasFileReport( ...
+                        obj.store.records,views,plan.des,positions, ...
+                        report.complete),'glas.');
                 end
             end
             report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
@@ -668,6 +712,9 @@ classdef File
                 report = mergeReport(report, validate(plan.des(k)), sprintf('des(%d).', k));
             end
             if snip
+                report = addIssue(report, ~report.complete, 'IncompleteMetadata', ...
+                    'tre_records', 'Unknown TREs prevent complete profile validation.', ...
+                    'NFX supported SNIP scope');
                 report.scope = 'NITF 2.1 + SNIP 1.2 CN1 airborne nonrectified MSI';
                 if report.valid
                     report = mergeReport(report,snipReport(h,plan.images,obj.texts,obj.store.records,plan.des),'');

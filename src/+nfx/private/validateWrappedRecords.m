@@ -92,9 +92,8 @@ function [ok, status] = validateWrappedRecords(records) %#codegen
             case 'TMINTA'
                 [~, ok, status] = nfx.TMINTA.deserialize(selected(1).payload);
             otherwise
-                ok = false;
-                status = decodeStatus('UnsupportedTRE', ...
-                    'No concrete decoder supports this wrapped TRE.');
+                % Framing was checked by the reader. Keep unknown bytes.
+                ok = true;
         end
         if ~ok
             return

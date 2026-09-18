@@ -665,6 +665,7 @@ classdef (Abstract, Hidden) MetadataWrapper < nfx.TRE
         function report = wrapperReport(obj,report,prefixLength) %#codegen
             %wrapperReport - Check containment length and supported semantics
             records = obj.store.records;
+            report = mergeReport(report, unknownTREReport(records), '');
             total = prefixLength;
             largest = 0;
             for k = 1:numel(records)

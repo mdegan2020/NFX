@@ -6,24 +6,25 @@ classdef (Hidden) FileReader
             parts = emptyParts();
             used = false(1, numel(index.des));
             pointers = [index.extended.overflow index.user.overflow];
-            [parts.fileRecords, used, ok, status] = ownerRecords( ...
+            [parts.fileRecords, used, ok, status, parts.filePacking] = ownerRecords( ...
                 data, index, index.extended, index.user, 'file', 0, used);
             if ~ok, parts = emptyParts(); return; end
             parts.imageRecords = repmat(struct('records', ...
-                nfx.internal.emptyTRERecords()), 1, numel(index.images));
+                nfx.internal.emptyTRERecords(), 'packing', [-1 -1 0]), 1, numel(index.images));
             for k = 1:numel(index.images)
                 entry = index.images(k);
                 pointers = [pointers entry.extended.overflow entry.user.overflow]; %#ok<AGROW>
-                [records, used, ok, status] = ownerRecords(data, index, ...
+                [records, used, ok, status, packing] = ownerRecords(data, index, ...
                     entry.extended, entry.user, 'image', k, used);
                 if ~ok, parts = emptyParts(); return; end
                 parts.imageRecords(k).records = records;
+                parts.imageRecords(k).packing = packing;
             end
             for k = 1:numel(index.texts)
                 entry = index.texts(k);
                 pointers(end + 1) = entry.extended.overflow;
                 absent = struct('offset', 0, 'length', 0, 'overflow', 0);
-                [records, used, ok, status] = ownerRecords(data, index, ...
+                [records, used, ok, status, packing] = ownerRecords(data, index, ...
                     entry.extended, absent, 'text', k, used);
                 if ~ok, parts = emptyParts(); return; end
                 raw = segmentData(data, entry.location);
@@ -34,7 +35,7 @@ classdef (Hidden) FileReader
                         entry.location.dataOffset, 'text', k);
                     parts = emptyParts(); return
                 end
-                text = nfx.TextSegment.restoreRead(char(raw), entry.header, records);
+                text = nfx.TextSegment.restoreRead(char(raw), entry.header, records, packing);
                 if ~isequal(uint8(text.data), raw)
                     ok = false; status = failure('UnsupportedFeature', ...
                         'STA line endings are outside the NFX encoding.', ...
@@ -118,7 +119,7 @@ classdef (Hidden) FileReader
                 end
                 if ~ok, status.index = k; return; end
                 [image, ok, status] = nfx.ImageSegment.restoreRead( ...
-                    pixels, entry.header, records, compression);
+                    pixels, entry.header, records, compression, parts.imageRecords(k).packing);
                 if ~ok
                     status.scope = 'image'; status.index = k;
                     status.offset = entry.location.headerOffset; return
@@ -138,7 +139,7 @@ classdef (Hidden) FileReader
             tags = {parts.fileRecords.tag};
             pending = all(ismember({'MIMCSA','CAMSDA','MICIDA','TMINTA'}, tags));
             file = nfx.File.restoreRead(index.header, ...
-                images, parts.texts, parts.des, parts.fileRecords, pending);
+                images, parts.texts, parts.des, parts.fileRecords, pending, parts.filePacking);
             if resolve && ~pending
                 report = file.validate();
             else
@@ -153,6 +154,7 @@ classdef (Hidden) FileReader
                     'Stored file structure disagrees with reconstructed content.', 0, 'file', 0);
             else
                 status.context_complete = ~pending;
+                status.metadata_complete = report.complete;
             end
         end
     end
@@ -160,7 +162,8 @@ end
 
 function parts = emptyParts() %#codegen
     parts = struct('fileRecords', nfx.internal.emptyTRERecords(), ...
-        'imageRecords', repmat(struct('records', nfx.internal.emptyTRERecords()), 1, 0), ...
+        'filePacking', [-1 -1 0], ...
+        'imageRecords', repmat(struct('records', nfx.internal.emptyTRERecords(), 'packing', [-1 -1 0]), 1, 0), ...
         'texts', nfx.TextSegment.empty(1, 0), 'des', nfx.DESSegment.empty(1, 0));
 end
 
@@ -189,13 +192,14 @@ function segment = restoreDES(data, header) %#codegen
     end
 end
 
-function [records, used, ok, status] = ownerRecords( ...
+function [records, used, ok, status, packing] = ownerRecords( ...
         data, index, extended, user, owner, item, used) %#codegen
     records = nfx.internal.emptyTRERecords(); offsets = zeros(1, 0);
     names = {'XHD', 'UDHD'};
     if strcmp(owner, 'image'), names = {'IXSHD', 'UDID'};
     elseif strcmp(owner, 'text'), names = {'TXSHD', ''};
     end
+    packing = [0 0 0];
     areas = [extended user];
     overflow = zeros(1, 0, 'uint8'); overflowArea = 0;
     overflowOffset = 0;
@@ -206,6 +210,8 @@ function [records, used, ok, status] = ownerRecords( ...
         [records, offsets, ok, status] = appendArea( ...
             data, areas(a).offset, areas(a).length, records, offsets, owner, item);
         if ~ok, return; end
+        packing(a) = numel(records);
+        if a == 2, packing(a) = packing(a) - packing(1); end
         pointer = areas(a).overflow;
         if pointer == 0, continue; end
         if pointer > numel(index.des) || used(pointer)
@@ -243,7 +249,8 @@ function [records, used, ok, status] = ownerRecords( ...
             return
         end
     end
-    store = nfx.internal.TREStore.fromSnapshots(records);
+    packing(3) = double(overflowArea == 2);
+    store = nfx.internal.TREStore.fromSnapshots(records, packing);
     if strcmp(owner, 'text')
         [expectedExtended, expectedOverflow] = store.areas(9713);
         expectedUser = zeros(1, 0, 'uint8'); overflowUser = false;
@@ -269,7 +276,7 @@ function [records, offsets, ok, status] = appendArea( ...
     while reader.ok && reader.position <= reader.last
         at = reader.position - 1;
         [tag, reader] = reader.text(6, false);
-        [count, reader] = reader.integer(5, 1, 99985);
+        [count, reader] = reader.integer(5, 1, 99999);
         [payload, reader] = reader.take(count);
         if ~reader.ok, break; end
         continuation = strcmp(tag, 'SENSRB') && payload(1) == 'N';

@@ -1,5 +1,12 @@
-function report = glasFileReport(fileRecords,images,des,positions) %#codegen
+function report = glasFileReport(fileRecords,images,des,positions,complete) %#codegen
     %glasFileReport - Bind verified sensor DESs to current image contexts
+    arguments
+        fileRecords
+        images
+        des
+        positions
+        complete = true
+    end
     report = newReport('GLAS/GFM file associations');
     report = glasIssue(report,sum(strcmp({fileRecords.tag},'CSEXRB')) > 1, ...
         'GLASMultiplicity','CSEXRB','The file header permits at most one CSEXRB record.');
@@ -16,6 +23,8 @@ function report = glasFileReport(fileRecords,images,des,positions) %#codegen
                 'GLASDuplicateDES','des.uuid','Every typed sensor DES in the file must have a distinct UUID.');
         end
     end
+    % These DES invariants do not depend on unknown TRE semantics.
+    if ~complete, return; end
     for k = 1:numel(fileRecords)
         if strcmp(fileRecords(k).tag,'CSEXRB')
             plane = glasImageInfo(fileRecords(k).payload);

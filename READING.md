@@ -47,7 +47,7 @@ destinations require `Overwrite=true`. Validation runs again before writing.
 | --- | --- |
 | Uncompressed imagery | Blocked B/F/T layouts, native unsigned samples, bands, frames, edge padding, multiple images |
 | Image metadata | Comments, band fields, corners, stored ABPP/PJUST and display relationships |
-| TREs | Supported concrete types, repeated records, SENSRB continuation groups, wrappers and overflow ownership |
+| TREs | Concrete types and opaque unknown tags; repeated records, SENSRB continuation groups, wrappers and overflow ownership |
 | Text | Supported STA text and subheaders, including text-only files |
 | Generic DESs | Exact payload and supported subheader bytes; no semantic claim about arbitrary registered data |
 | GLAS/GFM DESs | Typed CSATTB, CSEPHB, CSSFAB and CSCSDB layouts already supported by the writer |
@@ -56,8 +56,10 @@ destinations require `Overwrite=true`. Validation runs again before writing.
 
 Lengths, counts, conditional headers and source bounds are checked before
 content is reconstructed. Supplied structural values must agree with the
-decoded data. Supported TRE encodings and metadata packing follow the NFX
-writer's canonical rules. Unknown TREs, unsupported layouts and conflicting
+decoded data. Known TRE payloads follow the NFX writer's canonical rules.
+Imported metadata retains its original extended/user/overflow partition
+until attachments change. One overflow area per owner is supported; generic
+DESs precede overflow DESs in owner order. Unsupported layouts and conflicting
 fields produce a diagnostic instead of silently dropping or repairing data.
 
 TRE payloads, generic DES payloads and untouched compressed codestreams are
@@ -69,6 +71,45 @@ A recognized sensor DES name alone does not establish typed validity. Its
 complete payload and association header must decode and validate before NFX
 restores sensor verification. Otherwise it remains generic raw support data;
 a model that requires that unverified descriptor fails full validation.
+
+## Unknown TREs
+
+An unrecognized tag is retained as an opaque `tre_record`: its six-character
+tag, exact `uint8` payload, owner and insertion order survive reading and
+writing. This also applies to unknown children of supported wrappers and to
+overflow records. Opaque payloads can contain up to 99,999 bytes. Known
+wrappers retain their existing size limits. Malformed envelopes, invalid
+overflow pointers and malformed **known** payloads still fail reading.
+
+`status.metadata_complete` is false when unknown TREs are present. Validation
+reports also expose `complete=false` and `UnknownTRE` warnings. `valid=true`
+then means the checked container and known fields pass; it does not establish
+the meaning of the opaque bytes. Image model companion checks are deferred
+for contexts containing unknown metadata, along with cross-image model
+checks when metadata is incomplete. Ordinary writing permits this explicit
+pass-through state. `SNIP_COMPLIANT=true` rejects incomplete metadata.
+
+```matlab
+image = file.images(1);
+[view, found] = image.tre(1);
+if found
+    disp(view);                 % Shows the tag and lack of a decoder.
+    raw = view.records;         % Independent homogeneous snapshots.
+    payloadBytes = numel(raw(1).payload);
+
+    % Remove an attachment while retaining the other file content.
+    image = image.removeTRE(view.id);
+    file = file.replaceImage(1, image);
+end
+```
+
+For a deliberate format probe, copy a raw record, compare its payload length
+with a known format, and change **the copy's** tag. For example, if you suspect
+an RPC00B layout, `probe.tag = 'RPC00B'; disp(nfx.TRERecord(probe))` invokes
+that decoder for inspection. `nfx.RPC00B.deserialize(probe.payload)` returns
+an editable concrete value and success status. This never changes the original
+attachment, infers an alias, or proves an undocumented format equivalent.
+See [inspectTREPayload](examples/inspectTREPayload.m) for a bounded example.
 
 ## JPEG2000
 

@@ -6,4 +6,7 @@ function report = mergeReport(report, child, prefix) %#codegen
         report.issues(end + 1) = issue;
     end
     report.valid = report.valid && child.valid;
+    report.complete = report.complete && child.complete;
+    errors = strcmp({report.issues.severity}, 'error');
+    report.issues = [report.issues(errors) report.issues(~errors)];
 end

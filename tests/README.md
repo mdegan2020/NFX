@@ -10,6 +10,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `TREDeserializeTest`, `TREInspectionTest` | Concrete byte round trips, malformed payloads and selectors, scalar missing results, stable IDs and order, nested wrappers, SENSRB continuations, independent copies, bounded display, and exact uint64 metadata |
 | `ReaderIndexTest`, `NativePixelReaderTest` | Independent literal headers, source bounds, optional fields, B/F/T native samples, partial blocks and malformed layouts |
 | `ReaderMetadataTest`, `FileReadTest` | Complete native file reads, raw snapshots, overflow ownership, continuation groups, independent edits, resource limits and I/O failures |
+| `UnknownTRETest` | Opaque snapshots, owner/area preservation, wrappers, overflow, removal, incomplete semantic reports and independent DES invariants |
 | `SensorDESReadTest` | Typed DES variants, header/payload agreement, raw-versus-verified trust, shared model associations and malformed support data |
 | `JPEG2000ReadTest` | Native backend pixels, both profiles, untouched codestream preservation, missing/failing codecs and detected corruption warnings |
 | `CollectionReadTest`, `CollectionManifestReadTest` | Complete collections and explicit lists, exact timing above flintmax, cross-file contexts, quick looks, missing/unavailable blocks, 650 members and FILE002 |
@@ -123,6 +124,17 @@ acceptance run because the later change only added image replacement.
 Reader tests include native and compressed products, canonical payload
 preservation, supported RSM/ECF GLAS SNIP products, complete collection
 contexts, explicit pending local contexts, source budgets and malformed data.
+
+`UnknownTRETest` checks opaque binary snapshots on file/image/text owners,
+known wrapper children, repeated identities and removal, manual tag probes,
+user/extended-area preservation, overflow up to 99,999 payload bytes, MIE
+collection round trips, incomplete semantic reports and strict SNIP refusal.
+Malformed framing and malformed known payloads remain hard read failures.
+
+The unknown-TRE milestone passed a fresh full run of **1,960 tests** on
+R2026a Update 4, including OpenJPEG and the 650-member collection case.
+All changed MATLAB files passed Code Analyzer. The coverage percentages
+above describe earlier milestones; coverage was not remeasured for this run.
 
 ## Memory observation
 

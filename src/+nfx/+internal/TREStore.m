@@ -5,17 +5,19 @@ classdef (Hidden) TREStore
     end
     properties (Access = private)
         nextId = 1
+        packing = [-1 -1 0]
     end
     properties (Dependent, SetAccess = private)
         ids
         tags
     end
     methods (Static)
-        function obj = fromSnapshots(records) %#codegen
+        function obj = fromSnapshots(records, packing) %#codegen
             %fromSnapshots - Restore already checked homogeneous snapshots
             %   Internal deserialization supplies contiguous local IDs.
             obj = nfx.internal.TREStore();
             obj.records = records;
+            if nargin > 1, obj.packing = packing; end
             if ~isempty(records)
                 obj.nextId = max([records.id]) + 1;
             end
@@ -25,6 +27,25 @@ classdef (Hidden) TREStore
         function obj = TREStore() %#codegen
             %TREStore - Initialize variable-length homogeneous snapshots
             obj.records = nfx.internal.emptyTRERecords();
+        end
+        function hint = layoutHint(obj) %#codegen
+            %layoutHint - Capture metadata and its imported area partition
+            hint = struct('records', obj.records, 'packing', obj.packing);
+        end
+        function obj = restoreLayout(obj, hint) %#codegen
+            %restoreLayout - Reuse an imported partition for identical bytes
+            if numel(obj.records) ~= numel(hint.records), return; end
+            for k = 1:numel(obj.records)
+                if ~strcmp(obj.records(k).tag, hint.records(k).tag) || ...
+                        ~isequal(obj.records(k).payload, hint.records(k).payload)
+                    return
+                end
+            end
+            obj.packing = hint.packing;
+        end
+        function obj = repack(obj) %#codegen
+            %repack - Recompute area placement after an attachment change
+            obj.packing = [-1 -1 0];
         end
         function obj = withJPEG2000(obj,payload)
             %withJPEG2000 - Append a derived record with reserved identity zero
@@ -76,12 +97,14 @@ classdef (Hidden) TREStore
                 obj.records(end+1) = struct('tag', snapshots(k).tag, 'payload', snapshots(k).payload, 'id', obj.nextId);
             end
             obj.nextId = obj.nextId+1;
+            obj.packing = [-1 -1 0];
         end
         function obj = remove(obj, id) %#codegen
             %REMOVE - Remove every physical record in a logical attachment
             selected = [obj.records.id] == id;
             if ~any(selected), error('nfx:UnknownAttachment', 'No TRE attachment has ID %g.', id); end
             obj.records(selected) = [];
+            obj.packing = [-1 -1 0];
         end
         function [inline, overflow] = areas(obj, capacity) %#codegen
             %AREAS - Keep a whole-record prefix inline and move its suffix
@@ -89,6 +112,7 @@ classdef (Hidden) TREStore
             for k = 1:numel(lengths), lengths(k) = 11+numel(obj.records(k).payload); end
             count = find(cumsum(lengths) > capacity, 1)-1;
             if isempty(count), count = numel(lengths); end
+            if obj.packing(1) >= 0, count = obj.packing(1); end
             inline = encode(obj.records(1:count), sum(lengths(1:count)));
             overflow = encode(obj.records(count+1:end), sum(lengths(count+1:end)));
         end
@@ -96,6 +120,16 @@ classdef (Hidden) TREStore
             %modelAreas - Fill extended then user areas for GLAS/GFM metadata
             %   Each area retains a whole-record prefix. An indivisible record
             %   that exceeds the area capacity remains in the overflow suffix.
+            if obj.packing(1) >= 0
+                first = obj.packing(1); last = first + obj.packing(2);
+                lengths = zeros(1, numel(obj.records));
+                for k = 1:numel(lengths), lengths(k) = 11 + numel(obj.records(k).payload); end
+                extended = encode(obj.records(1:first), sum(lengths(1:first)));
+                user = encode(obj.records(first+1:last), sum(lengths(first+1:last)));
+                overflow = encode(obj.records(last+1:end), sum(lengths(last+1:end)));
+                overflowUser = logical(obj.packing(3));
+                return
+            end
             overflowUser = containsGLAS(obj.records);
             user = zeros(1,0,'uint8');
             if ~overflowUser

@@ -76,7 +76,7 @@ examples path for a synthetic read/edit/write demonstration. It uses
 - Set pixels through `image.data`, and block dimensions through `image.header.nppbh` / `nppbv`. Dimensions, bands, block counts, storage width, segment lengths, and file complexity update automatically.
 - Automatic `abpp` is the number of bits needed for the largest right-justified sample across all bands and frames; all-zero data uses one bit. `nbpp` remains 8 or 16 according to native storage. Set `image.header.abpp` to declare a larger acquisition precision, or `NaN` to restore automatic behavior. A smaller precision must still fit every sample. With `pjust='L'`, automatic ABPP uses the full storage width; an explicit precision requires zero low-order padding bits. Samples are never shifted or converted. Statistics refresh on pixel replacement and indexed edits, using bounded temporary storage; header access does not rescan pixels.
 - Append images, texts, DESs, and file-level TREs with `+`. Segment types serialize in NITF order: images, texts, then DESs. Automatic image display levels avoid explicitly assigned levels. Set `idlvl`, `ialvl`, and `iloc` for supplied display relationships; references, unique levels, and nonnegative absolute positions are validated. Supplied corners use `icords='D'` or `'G'` and a 60-character `igeolo`; `icom` accepts up to nine ASCII comment rows or strings.
-- `validate()` returns `valid`, `scope`, and `issues`. Each issue includes an identifier, field location, message, and specification reference. `rpc.ascii()`, `rpc.payload()`, and `rpc.bytes()` expose the ASCII payload, payload bytes, and framed TRE bytes respectively.
+- `validate()` returns `valid`, `complete`, `scope`, and `issues`. Unknown TREs produce warnings and `complete=false`; affected model relationships remain unverified. Each issue includes severity, an identifier, field location, message, and specification reference. `rpc.ascii()`, `rpc.payload()`, and `rpc.bytes()` expose the ASCII payload, payload bytes, and framed TRE bytes respectively.
 - `write()` validates first and prepares a temporary file beside the destination. Replacing an existing file requires `Overwrite=true`. Failed preparation leaves the destination intact and cleans up temporary output. Concurrent writers to the same destination require caller coordination.
 
 ## Inspecting attached TREs
@@ -138,6 +138,13 @@ Compressed images expose their derived original NPJE/EPJE record through
 editable, while the stored record remains derived from compression.
 ENGRDA and unrestricted external NITF parsing remain outside this scope.
 
+Unknown tags read from a file retain their exact opaque payloads, including
+inside supported wrappers and overflow. `image.tre(index)` displays their
+tag and size without requiring a decoder. `status.metadata_complete` and
+`validate().complete` identify incomplete semantic validation. Ordinary
+writing preserves these records; requested SNIP enforcement rejects them.
+See [unknown TRE inspection and removal](READING.md#unknown-tres).
+
 Run `addpath('src', 'examples'); inspectionExample();` for a complete example.
 The core storage stays homogeneous, typed methods have concrete return classes,
 and the tag-based display dispatcher returns no heterogeneous object. This
@@ -157,9 +164,13 @@ file = file + text;
 
 `DESSegment(DATA,header=nfx.DESHeader(...))` accepts supplied `uint8` payload bytes, with `desid`, `desver`, `desclas`, and optional `desshf` header bytes. Generic validation checks the container and byte limits; it does not establish the semantic validity of an arbitrary registered DES payload.
 
-TRE attachment preserves complete records and order. NFX uses an inline capacity of 99,985 **framed bytes** for file and image extended areas, a conservative policy within the field limits. Text extended areas allow 9,713 framed bytes so the subheader fits its 9,998-byte limit. The remaining suffix moves intact into one overflow DES per owner. An individual TRE payload is limited to 99,985 bytes; its 11-byte envelope is additional. `file.des` includes supplied DESs followed by these derived overflow records. Callers cannot attach `TRE_OVERFLOW` directly.
+TRE attachment preserves complete records and order. NFX uses an inline capacity of 99,985 **framed bytes** for file and image extended areas, a conservative policy within the field limits. Text extended areas allow 9,713 framed bytes so the subheader fits its 9,998-byte limit. The remaining suffix moves intact into one overflow DES per owner. Concrete TRE payloads use their schema limits, generally at most 99,985 bytes; imported opaque payloads support the full 99,999-byte length field. The 11-byte envelope is additional. `file.des` includes supplied DESs followed by these derived overflow records. Callers cannot attach `TRE_OVERFLOW` directly.
 
 For file/image owners containing GLAS/GFM TREs, packing uses the extended area first, then the user-defined area, then a whole-record overflow suffix, as required by Appendix M. Logical insertion order spans those areas even though the user-defined area occurs first in the physical header. A record too large for either inline area remains intact in overflow. Removing all GLAS/GFM TREs restores the ordinary extended-area policy.
+
+Imported files retain their original metadata-area partition until
+attachments or compression change. This also preserves user-area records
+when their tags have no known concrete schema.
 
 ## Spectral and motion metadata
 

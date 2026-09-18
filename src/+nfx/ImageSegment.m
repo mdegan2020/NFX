@@ -50,16 +50,17 @@ classdef ImageSegment
         compressed
     end
     methods (Static, Access = ?nfx.internal.FileReader)
-        function [obj, ok, status] = restoreRead(data, header, records, compression) %#codegen
+        function [obj, ok, status] = restoreRead(data, header, records, compression, packing) %#codegen
             %restoreRead - Recheck geometry and snapshots after pixel decoding
             arguments
                 data
                 header
                 records
                 compression = nfx.JPEG2000.empty(1,0)
+                packing = [-1 -1 0]
             end
             obj = nfx.ImageSegment(data, header=header);
-            obj.store = nfx.internal.TREStore.fromSnapshots(records);
+            obj.store = nfx.internal.TREStore.fromSnapshots(records, packing);
             obj.compressed = compression;
             report = obj.validateStructure(); ok = report.valid;
             status = nfx.internal.readStatus();
@@ -582,6 +583,9 @@ classdef ImageSegment
             mustBePixels(value);
             obj.pixels = value;
             obj.stats = pixelStatistics(value);
+            if ~isempty(obj.compressed)
+                obj.store = obj.store.repack();
+            end
             obj.compressed = nfx.JPEG2000.empty(1,0);
         end
         function value = get.header(obj) %#codegen
@@ -678,6 +682,7 @@ classdef ImageSegment
                 error('nfx:JPEG2000Scope','Compression requires still, right-justified imagery and 1024-square blocks.');
             end
             obj.compressed = nfx.JPEG2000(obj.pixels,encoder,Profile=options.Profile);
+            obj.store = obj.store.repack();
         end
         function obj = uncompress(obj)
             %UNCOMPRESS - Restore uncompressed storage from retained pixels
@@ -685,6 +690,9 @@ classdef ImageSegment
             %   DATA is unchanged and no decoder or executable is required.
             arguments
                 obj (1,1) nfx.ImageSegment
+            end
+            if ~isempty(obj.compressed)
+                obj.store = obj.store.repack();
             end
             obj.compressed = nfx.JPEG2000.empty(1,0);
         end
@@ -731,9 +739,18 @@ classdef ImageSegment
     end
 
     methods (Access = ?nfx.File)
+        function hint = treLayout(obj) %#codegen
+            %treLayout - Capture imported metadata placement without pixels
+            hint = obj.store.layoutHint();
+        end
+        function obj = restoreTRELayout(obj, hint) %#codegen
+            %restoreTRELayout - Reuse placement only for unchanged snapshots
+            obj.store = obj.store.restoreLayout(hint);
+        end
         function report = validateStructure(obj) %#codegen
             %validateStructure - Check storage before resolving metadata contexts
             report = newReport('NITF 2.1 image segment');
+            report = mergeReport(report, unknownTREReport(obj.store.records), 'tre_records.');
             report = mergeReport(report, validate(obj.header), 'header.');
             h = obj.header;
             report = addIssue(report,~isempty(obj.compressed) && ...

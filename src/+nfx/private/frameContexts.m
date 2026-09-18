@@ -125,6 +125,7 @@ function selected = precedence(nodes,states,selected) %#codegen
         i = selected(a);
         for b = 1:numel(selected)
             j = selected(b);
+            if ~knownTRE(nodes(i).tag), continue; end
             if i == j || nodes(i).source ~= nodes(j).source || ~strcmp(nodes(i).tag,nodes(j).tag), continue; end
             if states(i).async && states(j).sync, keep(a) = false; continue; end
             if states(i).async && states(j).async && nodes(j).owner == 0 && ...
@@ -147,7 +148,7 @@ function selected = precedence(nodes,states,selected) %#codegen
         model = nodes(identification);
         for a = 1:numel(selected)
             node = nodes(selected(a));
-            if node.source == model.source && startsWith(node.tag,'RSM') && node.offset < model.offset && ...
+            if node.source == model.source && knownTRE(node.tag) && startsWith(node.tag,'RSM') && node.offset < model.offset && ...
                     (node.parent > 0 || model.parent > 0) && ~isequal(node.payload(1:120),model.payload(1:120))
                 keep(a) = false;
             end
@@ -164,6 +165,7 @@ function [selected,report] = crossFileSelection(nodes,selected,report) %#codegen
         for b = a+1:numel(selected)
             second = nodes(selected(b));
             if first.source == second.source || ~strcmp(first.tag,second.tag), continue; end
+            if ~knownTRE(first.tag), continue; end
             if isequal(first.payload,second.payload), keep(b) = false; continue; end
             augment = any(strcmp(first.tag,{'FREESA','MATESA','ILLUMB','FCRNSA'}));
             sections = any(strcmp(first.tag,{'RSMPCA','RSMGGA'})) && ~isequal(first.payload(121:126),second.payload(121:126));

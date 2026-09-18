@@ -136,7 +136,7 @@ classdef FileReadTest < NfxTest
             t.verifyEmpty(file.texts);
         end
 
-        function misplacedUserAreaIsNotRepackedSilently(t)
+        function importedUserAreaIsPreserved(t)
             [base, image] = fixtureFile(uint8(1));
             source = nfx.File(header=base.header) + image;
             filename = fullfile(t.folder, 'user-area.ntf'); source.write(filename);
@@ -147,8 +147,11 @@ classdef FileReadTest < NfxTest
             raw(first - 5:finish) = [raw(first:finish) uint8('00000')];
             putBytes(filename, raw);
             [file, ok, status] = nfx.File.read(filename);
-            t.verifyFalse(ok); t.verifyEqual(status.code, 'UnsupportedFeature');
-            t.verifySubstring(status.message, 'packing'); t.verifyEmpty(file.images);
+            t.assertTrue(ok, status.message);
+            t.verifyTrue(status.metadata_complete);
+            output = fullfile(t.folder, 'user-area-copy.ntf');
+            file.write(output);
+            t.verifyEqual(readBytes(output), raw);
         end
 
         function knownByteBufferCannotSmuggleJ2KLRAIntoUncompressedImage(t)

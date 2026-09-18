@@ -156,6 +156,7 @@ classdef (Hidden) CollectionReader
                     'camera_set_index', sets(k), 'time_interval_index', intervals(k), ...
                     'file', nfx.internal.CollectionReader.template(files(k).file));
             end
+            collection = nfx.MIECollection.captureReadLayouts(collection, files);
             [bound, report] = nfx.MIECollection.bindReadFiles(files);
             if report.valid, report = collection.validate(); end
             if ~report.valid
@@ -170,6 +171,7 @@ classdef (Hidden) CollectionReader
                 collection = nfx.MIECollection(); return
             end
             ok = true; status = nfx.internal.readStatus(); status.scope = 'collection';
+            status.metadata_complete = report.complete;
         end
 
         function template = template(file)
@@ -296,6 +298,7 @@ function [valid, detail] = sameFiles(first, second)
         if ~strcmp(first(k).filename, second(k).filename) || ...
                 ~isequal(a.header.bytes(), b.header.bytes()) || ...
                 ~sameRecords(a.tre_records, b.tre_records) || ...
+                ~isequal(a.storedSubheaders(), b.storedSubheaders()) || ...
                 numel(a.images) ~= numel(b.images) || ...
                 numel(a.texts) ~= numel(b.texts) || numel(a.des) ~= numel(b.des)
             valid = false; return

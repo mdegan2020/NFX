@@ -97,7 +97,8 @@ end
 
 function valid = leafLegal(tag,payload,scope,aggregate,asynchronous) %#codegen
     %leafLegal - Enforce the supported concrete metadata association paths
-    valid = false;
+    valid = ~knownTRE(tag);
+    if valid, return; end
     if asynchronous
         valid = any(strcmp(tag,{'ILLUMB','FREESA'}));
         return
