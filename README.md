@@ -235,6 +235,27 @@ Uncertainty indices are checked against known numeric fields and loop samples. A
 
 Splitting also rejects a continuation that would re-emit a required reference position conflicting with an earlier sample at that same reference, when the continuation no longer indexes that position parameter as dynamic. This safeguards later-record precedence without inventing a new position or time. Both time-only and explicit pixel references are checked; an explicit pixel reference has the standard's priority.
 
+### Known SENSRB velocity deviation
+
+For compatibility with an existing sensor's products, NFX permits
+`method='Pushbroom'` or `'Whiskbroom'` with `content_level=8` and omitted
+velocity module 10. Leave `velocity_north_or_x`, `velocity_east_or_y`, and
+`velocity_down_or_z` all empty (`[]`). NFX reads and writes these records with
+the module's presence flag set to `N`, preserving the declared content level.
+It does not synthesize velocity values. A partially populated velocity module
+still fails validation. Synchronization (module 12 or 13), calibration,
+uncertainty, and the other level-8 requirements remain enforced. Other
+content levels and the multi-frame methods retain their existing checks.
+
+This is a **known deviation from strict specification requirements**:
+STDI-0002 Volume 1, Appendix Z, **SENSRB 2.3, technical update 19 June 2025**,
+section **Z.5.1.2**, **Table Z.5.1-1, footnote a, page Z-54**, requires modules
+10 and either 12 or 13 at content levels 4 and higher for multiple-frame,
+pushbroom, and whiskbroom methods. Section **Z.5.10, page Z-96**, further
+explains that module 10 must supply velocity when photogrammetric functions
+need it to justify content level 4 or higher. Acceptance of this exception
+does not establish strict conformance to those requirements.
+
 ## Replacement sensor models
 
 Run `addpath('src','examples'); file = rsmExample();` for a complete synthetic adjusted-model example, then call `file.write(...)` with a destination path.

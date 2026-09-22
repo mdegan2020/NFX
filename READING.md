@@ -49,6 +49,10 @@ security-document validation remains incomplete. Such files expose
 `SecurityDocumentUnchecked` and `metadata_complete=false`, even if every
 tag is recognized. Their valid stored content can still be rewritten.
 
+SENSRB reading and writing also accept the documented
+[level-8 scanner velocity deviation](README.md#known-sensrb-velocity-deviation):
+Pushbroom and Whiskbroom records may omit module 10 while retaining level 8.
+
 | Content | Reading behavior |
 | --- | --- |
 | Uncompressed imagery | Blocked B/F/T layouts, native unsigned samples, bands, frames, edge padding, multiple images |

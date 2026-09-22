@@ -4,6 +4,9 @@ classdef (Sealed) SENSRB < nfx.TRE
     %   General, reference, and position data are required. Optional modules
     %   appear when their fields are supplied. [] omits a numeric field;
     %   NaN represents an unknown value where the standard permits it.
+    %   A documented compatibility exception permits omitted velocity for
+    %   Pushbroom and Whiskbroom at CONTENT_LEVEL=8. Other prerequisites
+    %   remain enforced; this exception deviates from Table Z.5.1-1.
     %
     %   timeSeries, pixelSeries, pointSet, uncertainty, and
     %   additionalParameter construct the repeating data groups. Counts
@@ -883,7 +886,13 @@ function report = sensorRelationships(obj,present,report) %#codegen
         (level >= 2 && ~all(present([2 4]))) || (level >= 4 && ~any(present(7:9))) || ...
         (level >= 6 && isempty(obj.uncertainty_data)) || (level >= 8 && ~present(3));
     moving = any(strcmp(obj.method,{'Multi-Frame','Multi-MIDSI','Pushbroom','Whiskbroom'}));
-    required = required || (level >= 4 && moving && (~present(10) || ...
+    % Known compatibility deviation: Appendix Z 2.3, Table Z.5.1-1,
+    % footnote a (Z-54) requires module 10 for these methods at levels 4+.
+    % Accept observed level-8 scanner products without inventing velocity.
+    allowMissingVelocity = level == 8 && ...
+        any(strcmp(obj.method, {'Pushbroom', 'Whiskbroom'}));
+    required = required || (level >= 4 && moving && ...
+        ((~present(10) && ~allowMissingVelocity) || ...
         (isempty(obj.time_stamped_data) && isempty(obj.pixel_referenced_data))));
     report = sensorIssue(report,required,'ContentLevel','content_level','The declared content level requires additional modules (Table Z.5.1-1).');
 end
