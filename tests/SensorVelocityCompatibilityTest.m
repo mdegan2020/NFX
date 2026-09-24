@@ -26,7 +26,7 @@ classdef SensorVelocityCompatibilityTest < NfxTest
                 (image.removeTRE(1) + sensor);
             source = fullfile(t.folder, 'source.ntf');
             file.write(source);
-            [copy, ok, status] = nfx.File.read(source);
+            [copy, ok, status] = nfx.File.read(source, readAll=true);
             t.assertTrue(ok, status.message);
             [decoded, found] = copy.images(1).SENSRB;
             t.assertTrue(found);

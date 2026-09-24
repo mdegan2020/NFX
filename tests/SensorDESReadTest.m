@@ -95,7 +95,7 @@ classdef SensorDESReadTest < NfxTest
             source = fixtureGLASFile(type);
             before = fullfile(t.folder, 'source.ntf');
             after = fullfile(t.folder, 'copy.ntf'); source.write(before);
-            [copy, ok, status] = nfx.File.read(before);
+            [copy, ok, status] = nfx.File.read(before, readAll=true);
             t.assertTrue(ok, status.message); t.verifyTrue(copy.validate().valid);
             for k = 1:4
                 t.verifyTrue(copy.des(k).verifiedSensor());
@@ -111,7 +111,7 @@ classdef SensorDESReadTest < NfxTest
             source.write(path); raw = readBytes(path);
             [index, ok] = nfx.internal.indexNITF(raw); t.assertTrue(ok);
             raw(index.des(1).location.dataOffset + 1) = uint8('9');
-            putBytes(path, raw); [copy, ok, status] = nfx.File.read(path);
+            putBytes(path, raw); [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
             t.verifyEmpty(copy.images);
         end
@@ -120,7 +120,7 @@ classdef SensorDESReadTest < NfxTest
             source = fixtureFile() + nfx.DESSegment(uint8('arbitrary'), ...
                 header=nfx.DESHeader(desid='CSATTB', desclas='U'));
             path = fullfile(t.folder, 'generic.ntf'); source.write(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message); t.verifyFalse(copy.des.verifiedSensor());
             t.verifyEqual(copy.des.data, uint8('arbitrary'));
             t.verifyEqual(copy.des.header, source.des.header);
@@ -192,7 +192,7 @@ classdef SensorDESReadTest < NfxTest
             source = nfx.File(header=base.header) + (image + first) + ...
                 (other + second) + attitude + ephemeris + alignment + covariance;
             path = fullfile(t.folder, 'shared.ntf'); source.write(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message); t.verifyTrue(copy.validate().valid);
             for k = 1:2
                 t.verifyEqual(copy.images(k).CSEXRB().assoc_des_uuid, first.assoc_des_uuid);
@@ -220,7 +220,7 @@ classdef SensorDESReadTest < NfxTest
                 source = source + (image + identity + polynomial + covariance);
             end
             path = fullfile(t.folder, 'models.ntf'); source.write(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message); t.verifyTrue(copy.validate().valid);
             t.verifyEqual(copy.images(1).RSMIDA().iid, 'A');
             t.verifyEqual(copy.images(2).RSMIDA().iid, 'B');

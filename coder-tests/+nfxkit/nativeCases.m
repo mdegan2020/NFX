@@ -59,6 +59,8 @@ function values = nativeCases(name, folder)
             expected.clevel = str2double(char(raw(10:11)));
         else
             expected.header = raw(1:length);
+            expected.loaded = true;
+            expected.bandCounts = repmat(1 + (variant == 3), 1, images);
         end
         values(end + 1) = struct('name', sprintf('layout%d', variant), ...
             'args', {{raw}}, 'expected', expected);

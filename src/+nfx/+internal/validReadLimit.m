@@ -1,0 +1,6 @@
+function valid = validReadLimit(value) %#codegen
+    %validReadLimit - Recognize an explicit positive allocation budget
+    valid = isa(value, 'double') && isscalar(value) && isreal(value) && ...
+        ~issparse(value) && isfinite(value) && value >= 1 && ...
+        value <= flintmax && fix(value) == value;
+end

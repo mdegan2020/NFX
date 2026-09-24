@@ -1,0 +1,6 @@
+function complete = metadataComplete(report) %#codegen
+    %metadataComplete - Exclude deferred pixels from metadata completeness
+    complete = report.complete || all( ...
+        ~strcmp({report.issues.severity}, 'warning') | ...
+        strcmp({report.issues.id}, 'PixelsDeferred'));
+end

@@ -22,10 +22,10 @@ function report = supportFileReport(contexts, images, positions) %#codegen
             if ~valid, continue; end
             first = images(selected(1)).header;
             sameBands = true; sameWavelengths = true;
-            bands = size(images(index).data, 3);
+            bands = images(index).number_bands;
             for k = selected
                 other = images(k).header;
-                otherBands = size(images(k).data, 3);
+                otherBands = images(k).number_bands;
                 dimensions = (h.nrows == other.nrows && h.ncols == other.ncols) || ...
                     (h.nrows == 1 && h.ncols == other.ncols) || ...
                     (h.ncols == 1 && h.nrows == other.nrows);

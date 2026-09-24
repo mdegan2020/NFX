@@ -15,9 +15,11 @@ classdef ImageSegment
     %       validate  - Check header, data, and attached TREs
     %       compress  - Capture an experimental lossless OpenJPEG encoding
     %       uncompress - Restore native uncompressed storage
+    %       read      - Return a value retaining deferred source pixels
     %
     %   ImageSegment properties:
-    %       data     - Native pixel array
+    %       data     - Native pixels; deferred access loads a temporary copy
+    %       pixelsLoaded - True when pixels are retained in this value
     %       header   - Editable image header with derived dimensions
     %       tre_ids  - Attachment IDs in insertion order
     %       tre_tags - Six-character tags in insertion order
@@ -41,6 +43,8 @@ classdef ImageSegment
         li % Serialized padded pixel or compressed codestream length
         number_frames % Frame count derived from the fourth pixel dimension
         compression % Immutable JPEG2000 snapshot, or empty for NC storage
+        pixelsLoaded % True when native pixels are retained in this value
+        number_bands % Band count available without reading pixels
     end
     properties (Access = private)
         pixels = zeros(0, 0, 'uint8')
@@ -48,8 +52,39 @@ classdef ImageSegment
         store
         stats = struct('bits', 1, 'trailing', 8)
         compressed
+        source = nfx.internal.emptyImageSource()
     end
     methods (Static, Access = ?nfx.internal.FileReader)
+        function [obj, ok, status] = restoreDeferred(source, records, packing)
+            %restoreDeferred - Preserve source metadata without pixel I/O
+            obj = nfx.ImageSegment(header=source.entry.header);
+            if source.entry.layout.nbpp == 16
+                obj.pixels = zeros(0, 0, 'uint16');
+            end
+            obj.source = source;
+            obj.store = nfx.internal.TREStore.fromSnapshots(records, packing);
+            selected = find(strcmp({records.tag}, 'J2KLRA'));
+            compressedSource = strcmp(source.entry.layout.ic, 'C8');
+            validLayers = (compressedSource && isscalar(selected) && ...
+                selected == numel(records)) || (~compressedSource && isempty(selected));
+            if ~validLayers
+                ok = false; status = nfx.internal.readStatus();
+                status.code = 'MalformedFile';
+                status.message = 'Only compressed imagery requires one final original J2KLRA.';
+                return
+            end
+            if compressedSource
+                obj.source.j2klra = records(selected).payload;
+                obj.store = obj.store.withoutJPEG2000();
+            end
+            report = obj.validateStructure(); ok = report.valid;
+            status = nfx.internal.readStatus(); status.pixels_complete = false;
+            if ~ok
+                status.code = 'MalformedFile';
+                status.message = report.issues(1).message;
+            end
+        end
+
         function [obj, ok, status] = restoreRead(data, header, records, compression, packing) %#codegen
             %restoreRead - Recheck geometry and snapshots after pixel decoding
             arguments
@@ -728,14 +763,29 @@ classdef ImageSegment
             obj.headerValue = options.header;
         end
         function value = get.data(obj) %#codegen
-            %get.data - Return the native pixel array
+            %get.data - Return native pixels, temporarily loading if deferred
             value = obj.pixels;
+            if ~isempty(obj.source.path)
+                if coder.target('MATLAB')
+                    [loaded, ok, status] = obj.read();
+                    if ~ok, error('nfx:ReadPixels', '%s: %s', status.code, status.message); end
+                    value = loaded.pixels;
+                else
+                    error('nfx:DeferredPixels', ...
+                        'Load deferred pixels in MATLAB before using generated code.');
+                end
+            end
         end
         function obj = set.data(obj, value) %#codegen
             %set.data - Replace pixels without an implicit type conversion
             mustBePixels(value);
             obj.pixels = value;
             obj.stats = pixelStatistics(value);
+            if ~isempty(obj.source.path)
+                obj.store = obj.store.withoutJPEG2000();
+                if ~isempty(obj.source.j2klra), obj.store = obj.store.repack(); end
+                obj.source = nfx.internal.emptyImageSource();
+            end
             if ~isempty(obj.compressed)
                 obj.store = obj.store.repack();
             end
@@ -743,6 +793,11 @@ classdef ImageSegment
         end
         function value = get.header(obj) %#codegen
             %get.header - Derive structural fields on access
+            if ~isempty(obj.source.path)
+                value = deriveDeferred(obj.headerValue, ...
+                    obj.source.entry.layout, obj.source.frames);
+                return
+            end
             stats = obj.stats;
             if strcmp(obj.headerValue.icat, 'PIXQUAL')
                 stats.bits = max(stats.bits, qualityMinimumBits(obj.store.records));
@@ -796,15 +851,18 @@ classdef ImageSegment
             snapshots = effectiveStore(obj);
             [inline, user, overflow, overflowUser] = snapshots.modelAreas(99985);
             h = obj.header;
-            bands = size(obj.pixels, 3);
+            bands = obj.number_bands;
             value = 426 + 13*bands + 5*(bands > 9) + ...
                 60*~strcmp(h.icords, ' ') + 80*h.nicom + numel(inline) + numel(user) + ...
                 3*(~isempty(inline) || (~isempty(overflow) && ~overflowUser)) + ...
                 3*(~isempty(user) || (~isempty(overflow) && overflowUser)) + ...
-                4*~isempty(obj.compressed);
+                4*strcmp(h.ic, 'C8');
         end
         function value = get.li(obj) %#codegen
             %get.li - Derive padded image byte length
+            if ~isempty(obj.source.path)
+                value = obj.source.entry.location.dataLength; return
+            end
             h = obj.header;
             if ~isempty(obj.compressed), value = numel(obj.compressed.codestream); return; end
             value = h.nbpr * h.nbpc * h.nppbh * h.nppbv * ...
@@ -813,6 +871,110 @@ classdef ImageSegment
         function value = get.number_frames(obj) %#codegen
             %get.number_frames - Derive the stored frame count
             value = size(obj.pixels,4);
+            if ~isempty(obj.source.path), value = obj.source.frames; end
+        end
+        function value = get.number_bands(obj) %#codegen
+            %get.number_bands - Return the band count without pixel I/O
+            value = size(obj.pixels, 3);
+            if ~isempty(obj.source.path), value = obj.source.entry.layout.bands; end
+        end
+        function value = get.pixelsLoaded(obj) %#codegen
+            %get.pixelsLoaded - Identify retained native pixel data
+            value = isempty(obj.source.path) && ~isempty(obj.pixels);
+        end
+        function [obj, ok, status] = read(obj, options)
+            %READ - Retain pixels from this segment's deferred source
+            %   OBJ = READ(OBJ) returns an updated independent image value.
+            %   [OBJ, OK, STATUS] also reports a source or decoding failure.
+            %   Failure leaves OBJ unchanged. Already loaded data is retained.
+            %
+            %   ... = READ(...,MaxPixels=N,MaxBytes=M) overrides the stored
+            %   sample and encoded-payload limits for this read operation.
+            %
+            %   See also nfx.File.readSegment, pixelsLoaded
+            arguments
+                obj (1,1) nfx.ImageSegment
+                options.MaxPixels = obj.source.maxPixels
+                options.MaxBytes = obj.source.maxBytes
+            end
+            status = nfx.internal.readStatus(); ok = false;
+            if ~nfx.internal.validReadLimit(options.MaxPixels) || ...
+                    ~nfx.internal.validReadLimit(options.MaxBytes)
+                status.code = 'InvalidInput';
+                status.message = 'Read limits must be positive finite double integers.'; return
+            end
+            if isempty(obj.source.path)
+                coverage = unknownTREReport(obj.store.records);
+                coverage = mergeReport(coverage, ...
+                    securityDocumentReport(obj.store.records, ''), '');
+                status.metadata_complete = nfx.internal.metadataComplete(coverage);
+                status.pixels_complete = obj.pixelsLoaded;
+                ok = true; return
+            end
+            source = obj.source;
+            [~, samples, ok, status] = nfx.internal.imageShape(source.entry);
+            if ~ok, return; end
+            if samples > options.MaxPixels
+                ok = false; status.code = 'ResourceLimit';
+                status.message = sprintf('Image requires %.0f samples; MaxPixels is %.0f.', ...
+                    samples, options.MaxPixels);
+                status.path = source.path; status.index = source.index; return
+            end
+            [bytes, ok, status] = nfx.internal.loadImageSource(source, options.MaxBytes);
+            if ~ok, return; end
+            entry = source.entry; entry.location.dataOffset = 0;
+            snapshot = nfx.JPEG2000.empty(1, 0);
+            if strcmp(entry.layout.ic, 'C8')
+                [snapshot, decodedPixels, ok, status] = nfx.JPEG2000.restoreRead( ...
+                    bytes, entry, obj.tre_records, options.MaxPixels);
+            elseif entry.layout.nbpp == 8
+                [decodedPixels, ok, status] = nfx.internal.readPixels( ...
+                    bytes, entry, options.MaxPixels, zeros(0, 0, 'uint8'));
+            else
+                [decodedPixels, ok, status] = nfx.internal.readPixels( ...
+                    bytes, entry, options.MaxPixels, zeros(0, 0, 'uint16'));
+            end
+            status.path = source.path; status.index = source.index;
+            status.scope = 'image';
+            if ~isnan(status.offset)
+                status.offset = status.offset + source.entry.location.dataOffset;
+            end
+            if ~ok, return; end
+            originalHeader = derive(source.entry.header, decodedPixels, pixelStatistics(decodedPixels));
+            if ~isempty(snapshot)
+                originalHeader = withJPEG2000(originalHeader, snapshot.comrat);
+            end
+            originalReport = originalHeader.validate();
+            if ~originalReport.valid
+                ok = false; status.code = 'MalformedFile';
+                status.message = originalReport.issues(1).message; return
+            end
+            candidate = obj;
+            candidate.pixels = decodedPixels; candidate.stats = pixelStatistics(decodedPixels);
+            candidate.compressed = snapshot;
+            candidate.source = nfx.internal.emptyImageSource();
+            candidate.store = candidate.store.withoutJPEG2000();
+            report = candidate.validateStructure();
+            report = mergeReport(report, ...
+                cloudPixelReport(candidate.store.records, candidate), '');
+            report = mergeReport(report, ...
+                securityDocumentReport(candidate.store.records, ''), '');
+            status.metadata_complete = nfx.internal.metadataComplete(report);
+            ok = report.valid;
+            if ~ok
+                status.code = 'MalformedFile';
+                status.message = report.issues(1).message; return
+            end
+            obj = candidate;
+        end
+        function disp(obj)
+            %DISP - Display image summaries without triggering pixel reads
+            for k = 1:numel(obj)
+                h = obj(k).header;
+                fprintf('  nfx.ImageSegment: %g x %g x %g, %g frame(s), pixelsLoaded=%d\n', ...
+                    h.nrows, h.ncols, obj(k).number_bands, ...
+                    obj(k).number_frames, obj(k).pixelsLoaded);
+            end
         end
         function value = get.compression(obj)
             %get.compression - Return the immutable encoding snapshot
@@ -833,6 +995,10 @@ classdef ImageSegment
                 options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
             end
             requireValid(validate(obj));
+            if ~isempty(obj.source.path)
+                [obj, loaded, status] = obj.read();
+                if ~loaded, error('nfx:ReadPixels', '%s', status.message); end
+            end
             h = obj.header;
             if obj.number_frames ~= 1 || ~strcmp(h.pjust,'R') || h.nppbh ~= 1024 || h.nppbv ~= 1024 || ...
                     endsWith(char(h.icat),'.M') || any(strcmp({obj.store.records.tag},'MTIMSA'))
@@ -847,6 +1013,10 @@ classdef ImageSegment
             %   DATA is unchanged and no decoder or executable is required.
             arguments
                 obj (1,1) nfx.ImageSegment
+            end
+            if ~isempty(obj.source.path)
+                [obj, loaded, status] = obj.read();
+                if ~loaded, error('nfx:ReadPixels', '%s', status.message); end
             end
             if ~isempty(obj.compressed)
                 obj.store = obj.store.repack();
@@ -897,6 +1067,11 @@ classdef ImageSegment
     end
 
     methods (Access = ?nfx.File)
+        function value = hasDeferredPixels(obj) %#codegen
+            %hasDeferredPixels - Distinguish a source from an empty new image
+            value = ~isempty(obj.source.path);
+        end
+
         function hint = treLayout(obj) %#codegen
             %treLayout - Capture imported metadata placement without pixels
             hint = obj.store.layoutHint();
@@ -911,13 +1086,20 @@ classdef ImageSegment
             report = mergeReport(report, unknownTREReport(obj.store.records), 'tre_records.');
             report = mergeReport(report, validate(obj.header), 'header.');
             h = obj.header;
-            report = addIssue(report,~isempty(obj.compressed) && ...
+            report = addIssue(report,strcmp(h.ic, 'C8') && ...
                 (h.nppbh ~= 1024 || h.nppbv ~= 1024 || ~strcmp(h.pjust,'R') || obj.number_frames ~= 1 || ...
                 endsWith(char(h.icat),'.M') || any(strcmp({obj.store.records.tag},'MTIMSA'))), ...
                 'JPEG2000Snapshot','compression','Restore 1024-square blocks and right justification, or uncompress the image.', ...
                 'BPJ2K01.20, Table 8-2 and Appendices D/E');
             reference = 'JBP 2025.1, 5.9 and 5.13; STDI-0002-1 App E, E.3.12';
-            report = addIssue(report, isempty(obj.pixels), 'PixelsRequired', ...
+            if ~isempty(obj.source.path)
+                report.complete = false;
+                report.issues(end + 1) = struct('severity', 'warning', ...
+                    'id', 'PixelsDeferred', 'field', 'data', ...
+                    'message', 'Pixel-dependent checks require an explicit read.', ...
+                    'reference', 'NFX deferred image read contract');
+            end
+            report = addIssue(report, isempty(obj.pixels) && isempty(obj.source.path), 'PixelsRequired', ...
                 'data', 'Attach a nonempty pixel array.', reference);
             report = addIssue(report, sum(strcmp({obj.store.records.tag}, 'RPC00B')) > 1, ...
                 'DuplicateRPC', 'tre_ids', 'Remove duplicate RPC00B attachments before writing.', reference);
@@ -969,6 +1151,7 @@ classdef ImageSegment
             %effectiveStore - Append derived metadata without attachment IDs
             store = obj.store;
             if ~isempty(obj.compressed), store = store.withJPEG2000(obj.compressed.j2klra); end
+            if ~isempty(obj.source.j2klra), store = store.withJPEG2000(obj.source.j2klra); end
         end
     end
 end

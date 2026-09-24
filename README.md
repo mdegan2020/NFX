@@ -63,6 +63,14 @@ pixels, multiple images, text, TREs/wrappers/overflow, generic and typed sensor
 DESs, and existing lossless NPJE/EPJE segments. JPEG2000 decoding uses MATLAB;
 reading and unchanged-codestream rewriting require no OpenJPEG encoder.
 
+`File.read` loads headers, TREs, text and DESs by default, skipping image
+payloads. Use `readAll=true` or `readSegment=[1 2]` to retain selected pixels.
+Later, `file = file.readSegment(1)` or `file = file.readAll()` retains pixels
+in a new file value. `image = image.read()` loads one image. Accessing `.data`
+loads a temporary copy; `pixelsLoaded` reports whether pixels are retained.
+See the [deferred reading guide](READING.md#read-pixels-when-needed) for source
+lifetime, resource budgets, writing and the MATLAB-only lazy getter.
+
 `nfx.MIECollection.read(manifest)` restores a complete collection. Pass an
 explicit cell or string vector of paths for a manifest-free collection.
 `File.read` can inspect each member individually; `context_complete=false`

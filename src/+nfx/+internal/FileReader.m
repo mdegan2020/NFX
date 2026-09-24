@@ -1,6 +1,66 @@
 classdef (Hidden) FileReader
     %FileReader - Restore supported NITF snapshots through checked boundaries
     methods (Static)
+        function [file, ok, status] = readMetadata(source, identity, maxPixels, maxBytes)
+            %readMetadata - Restore complete metadata with deferred imagery
+            file = nfx.File();
+            [index, ok, status] = nfx.internal.indexNITF(source);
+            if ~ok, return; end
+            [parts, ok, status] = nfx.internal.FileReader.metadata(source, index);
+            if ~ok, return; end
+            images = nfx.ImageSegment.empty(1, 0);
+            for k = 1:numel(index.images)
+                entry = index.images(k);
+                descriptor = nfx.internal.emptyImageSource();
+                descriptor.path = identity.path;
+                descriptor.length = identity.length;
+                descriptor.modified = identity.modified;
+                descriptor.entry = entry; descriptor.index = k;
+                descriptor.maxPixels = maxPixels; descriptor.maxBytes = maxBytes;
+                descriptor.fileHeader = nfx.internal.sourceBytes(source, 0, index.hl);
+                descriptor.imageHeader = nfx.internal.sourceBytes(source, ...
+                    entry.location.headerOffset, entry.location.headerLength);
+                [descriptor.frames, ~, ok, status] = nfx.internal.imageShape(entry);
+                if ~ok, status.index = k; return; end
+                [image, ok, status] = nfx.ImageSegment.restoreDeferred( ...
+                    descriptor, parts.imageRecords(k).records, ...
+                    parts.imageRecords(k).packing);
+                if ~ok, status.index = k; return; end
+                restored = image.header.bytes( ...
+                    nfx.internal.sourceBytes(source, entry.extended.offset, entry.extended.length), ...
+                    entry.extended.overflow, ...
+                    nfx.internal.sourceBytes(source, entry.user.offset, entry.user.length), ...
+                    entry.user.overflow);
+                if ~isequal(restored, descriptor.imageHeader)
+                    ok = false; status = failure('MalformedFile', ...
+                        'Stored image fields disagree with reconstructed metadata.', ...
+                        entry.location.headerOffset, 'image', k); return
+                end
+                images(end + 1) = image;
+            end
+            tags = {parts.fileRecords.tag};
+            pending = all(ismember({'MIMCSA','CAMSDA','MICIDA','TMINTA'}, tags));
+            file = nfx.File.restoreRead(index.header, images, parts.texts, ...
+                parts.des, parts.fileRecords, pending, parts.filePacking);
+            file = file.readLimits(maxPixels, maxBytes);
+            if pending, report = file.validateReadStructure();
+            else, report = file.validate();
+            end
+            if ~report.valid
+                ok = false; status = failure('MalformedFile', ...
+                    report.issues(1).message, 0, 'file', 0);
+            elseif ~isequal(file.header.bytes(), ...
+                    nfx.internal.sourceBytes(source, 0, index.hl))
+                ok = false; status = failure('MalformedFile', ...
+                    'Stored file structure disagrees with reconstructed content.', 0, 'file', 0);
+            else
+                status.context_complete = ~pending;
+                status.metadata_complete = nfx.internal.metadataComplete(report);
+                status.pixels_complete = isempty(images);
+            end
+            if ~ok, file = nfx.File(); end
+        end
+
         function [parts, ok, status] = metadata(data, index) %#codegen
             %metadata - Decode owners and payloads after native indexing
             parts = emptyParts();
@@ -168,7 +228,7 @@ function parts = emptyParts() %#codegen
 end
 
 function bytes = segmentData(data, location) %#codegen
-    bytes = data(location.dataOffset + (1:location.dataLength));
+    bytes = nfx.internal.sourceBytes(data, location.dataOffset, location.dataLength);
 end
 
 function segment = restoreDES(data, header) %#codegen
@@ -257,8 +317,8 @@ function [records, used, ok, status, packing] = ownerRecords( ...
     else
         [expectedExtended, expectedUser, expectedOverflow, overflowUser] = store.modelAreas(99985);
     end
-    ok = isequal(expectedExtended, data(extended.offset + (1:extended.length))) && ...
-        isequal(expectedUser, data(user.offset + (1:user.length))) && ...
+    ok = isequal(expectedExtended, nfx.internal.sourceBytes(data, extended.offset, extended.length)) && ...
+        isequal(expectedUser, nfx.internal.sourceBytes(data, user.offset, user.length)) && ...
         isequal(expectedOverflow, overflow) && ...
         (isempty(overflow) || overflowArea == 1 + overflowUser);
     if ~ok

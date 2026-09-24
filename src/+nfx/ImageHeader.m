@@ -358,6 +358,15 @@ classdef ImageHeader
         end
     end
     methods (Access = ?nfx.ImageSegment)
+        function obj = deriveDeferred(obj, layout, frames) %#codegen
+            %deriveDeferred - Retain source geometry without allocating pixels
+            obj.nrows = layout.nrows; obj.ncols = layout.ncols;
+            obj.bandCount = layout.bands; obj.frameCount = frames;
+            obj.nbpp = layout.nbpp; obj.ic = layout.ic;
+            obj.comrat = layout.comrat;
+            obj.stats = struct('bits', 1, 'trailing', layout.nbpp);
+        end
+
         function obj = derive(obj, data, stats) %#codegen
             %DERIVE - Refresh all pixel-owned structural fields
             obj.nrows = size(data, 1);

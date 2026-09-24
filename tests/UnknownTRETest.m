@@ -60,7 +60,7 @@ classdef UnknownTRETest < NfxTest
             t.verifyEqual(reduced.images.tre_records(2).payload, ...
                 repmat(uint8(255), 1, 5));
             output = fullfile(t.folder, 'reduced.ntf'); reduced.write(output);
-            [again, ok] = nfx.File.read(output); t.assertTrue(ok);
+            [again, ok] = nfx.File.read(output, readAll=true); t.assertTrue(ok);
             t.verifyEqual({again.images.tre_records.payload}, ...
                 {reduced.images.tre_records.payload});
         end

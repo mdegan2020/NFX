@@ -2,6 +2,8 @@ classdef (Hidden) NITFReader
     %NITFReader - Checked byte cursor with source-relative diagnostics
     properties (SetAccess = private)
         data = zeros(1, 0, 'uint8')
+        ranges = zeros(0, 3)
+        sourceLength = 0
         position = 1
         last = 0
         ok = true
@@ -12,24 +14,31 @@ classdef (Hidden) NITFReader
             arguments
                 data
                 first = 1
-                last = numel(data)
+                last = nfx.internal.sourceLength(data)
                 scope = 'file'
                 index = 0
             end
             obj.status = nfx.internal.readStatus();
             obj.status.scope = scope;
             obj.status.index = index;
-            if ~isa(data, 'uint8') || ~isrow(data) || ...
+            if isstruct(data)
+                buffer = data.bytes;
+                obj.ranges = data.ranges;
+            else
+                buffer = data;
+            end
+            obj.sourceLength = nfx.internal.sourceLength(data);
+            if ~isa(buffer, 'uint8') || ~isrow(buffer) || ...
                     ~isscalar(first) || ~isscalar(last) || ...
                     ~isreal(first) || ~isreal(last) || ...
                     ~isfinite(first) || ~isfinite(last) || ...
                     first < 1 || last < first - 1 || ...
-                    last > numel(data) || fix(first) ~= first || ...
+                    last > obj.sourceLength || fix(first) ~= first || ...
                     fix(last) ~= last
                 obj = obj.fail('InvalidInput', 'Invalid byte buffer bounds.');
                 return
             end
-            obj.data = data;
+            obj.data = buffer;
             obj.position = first;
             obj.last = last;
         end
@@ -45,7 +54,13 @@ classdef (Hidden) NITFReader
                     'A field extends beyond its declared container.');
                 return
             end
-            value = obj.data(obj.position:obj.position + count - 1);
+            [value, available] = nfx.internal.rangeBytes( ...
+                obj.data, obj.ranges, obj.position - 1, count);
+            if ~available
+                obj = obj.fail('MalformedFile', ...
+                    'A requested metadata range is unavailable.');
+                return
+            end
             obj.position = obj.position + count;
         end
 

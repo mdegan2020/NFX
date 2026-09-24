@@ -2,5 +2,5 @@ function status = readStatus() %#codegen
     %readStatus - Create a uniform file and collection read diagnostic
     status = struct('code', 'OK', 'message', '', 'offset', NaN, ...
         'scope', 'file', 'index', 0, 'path', '', 'context_complete', true, ...
-        'metadata_complete', true);
+        'metadata_complete', true, 'pixels_complete', true);
 end

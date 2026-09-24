@@ -4,7 +4,7 @@ classdef CollectionManifestReadTest < NfxTest
             collection = longCollection();
             folder = t.folder;
             paths = collection.write(folder);
-            [manifest, ok, status] = nfx.File.read(paths{end});
+            [manifest, ok, status] = nfx.File.read(paths{end}, readAll=true);
             t.assertTrue(ok, status.message); t.assertNumElements(manifest.texts, 2);
             t.verifyEqual(manifest.texts(2).header.textid, 'FILE002');
             [copy, ok, status] = nfx.MIECollection.read(paths{end});

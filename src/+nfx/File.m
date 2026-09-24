@@ -43,17 +43,26 @@ classdef File
         contextDirty = false
         contextInheritance
         contextDefinitions
+        readMaxPixels = flintmax
+        readMaxBytes = flintmax
     end
     methods (Static)
         function [file, ok, status] = read(filename, options)
-            %read - Reconstruct a supported NFX file with native pixels
-            %   [FILE, OK, STATUS] = nfx.File.read(FILENAME) returns a
-            %   complete editable value. Expected failures return a default
+            %READ - Read supported file metadata with deferred image pixels
+            %   FILE = nfx.File.read(FILENAME) returns all supported headers,
+            %   TREs, text and DES content, without reading image payloads.
+            %
+            %   [FILE, OK, STATUS] also returns diagnostics. Failures return a default
             %   FILE, OK=false and a diagnostic code/message, source path,
             %   scope, segment index and zero-based byte offset.
             %
-            %   ... = nfx.File.read(...,MaxBytes=N,MaxPixels=M) bounds source
-            %   bytes and total decoded samples. Defaults are 2^30 and 2^28.
+            %   ... = nfx.File.read(...,readAll=true) also retains all pixels.
+            %   ... = nfx.File.read(...,readSegment=[1 2]) retains only those
+            %   image segments. Specify at most one of these selections.
+            %
+            %   ... = nfx.File.read(...,MaxBytes=N,MaxPixels=M) bounds bytes
+            %   read and retained samples. Both default to FLINTMAX; finite
+            %   caller budgets carry forward to subsequent read methods.
             %   This host entry point guarantees the implemented NFX subset;
             %   it is not a general reader for all legal NITF encodings.
             %
@@ -61,14 +70,17 @@ classdef File
             %   through MIECollection.read. Their stored content is available;
             %   validation, writing and effective metadata need the collection.
             %
-            %   See also write, validate, ImageSegment, MIECollection.read
+            %   See also readAll, readSegment, write, MIECollection.read
             arguments
                 filename
-                options.MaxBytes = 2^30
-                options.MaxPixels = 2^28
+                options.MaxBytes = flintmax
+                options.MaxPixels = flintmax
+                options.readAll = false
+                options.readSegment = []
             end
             [file, ok, status] = nfx.internal.readFile( ...
-                filename, options.MaxBytes, options.MaxPixels);
+                filename, options.MaxBytes, options.MaxPixels, ...
+                options.readAll, options.readSegment);
         end
     end
     methods (Static, Access = {?nfx.internal.FileReader, ?nfx.internal.CollectionReader})
@@ -79,6 +91,12 @@ classdef File
             obj = nfx.File(header=header); obj.contextPending = pending;
             obj.imageValues = images; obj.texts = texts; obj.desValues = des;
             obj.store = nfx.internal.TREStore.fromSnapshots(records, packing);
+        end
+    end
+    methods (Access = ?nfx.internal.FileReader)
+        function obj = readLimits(obj, maxPixels, maxBytes)
+            %readLimits - Retain caller budgets for later explicit reads
+            obj.readMaxPixels = maxPixels; obj.readMaxBytes = maxBytes;
         end
     end
     methods
@@ -448,6 +466,81 @@ classdef File
             obj.texts = nfx.TextSegment.empty(1, 0);
             obj.desValues = nfx.DESSegment.empty(1, 0);
         end
+        function [obj, ok, status] = readAll(obj, options)
+            %readAll - Return a file value retaining every image's pixels
+            %   OBJ = readAll(OBJ) loads all deferred image segments.
+            %   [OBJ, OK, STATUS] also returns diagnostics on failure.
+            %   ... = readAll(...,MaxPixels=N,MaxBytes=M) bounds this read.
+            %
+            %   See also readSegment, nfx.ImageSegment.read
+            arguments
+                obj (1,1) nfx.File
+                options.MaxPixels = obj.readMaxPixels
+                options.MaxBytes = obj.readMaxBytes
+            end
+            [obj, ok, status] = obj.readSegment(1:numel(obj.imageValues), ...
+                MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes);
+        end
+        function [obj, ok, status] = readSegment(obj, indices, options)
+            %readSegment - Retain pixels for selected image segment indices
+            %   OBJ = readSegment(OBJ,INDICES) returns an updated file value.
+            %   [OBJ, OK, STATUS] also reports failure and leaves OBJ unchanged.
+            %   Existing pixels are retained. All headers remain available.
+            %   MaxPixels bounds the total retained samples after loading;
+            %   MaxBytes bounds the newly read encoded image payloads.
+            %
+            %   See also readAll, nfx.ImageSegment.read
+            arguments
+                obj (1,1) nfx.File
+                indices
+                options.MaxPixels = obj.readMaxPixels
+                options.MaxBytes = obj.readMaxBytes
+            end
+            status = nfx.internal.readStatus(); ok = false;
+            if ~nfx.internal.validImageSelection(indices) || ...
+                    any(indices > numel(obj.imageValues)) || ...
+                    ~nfx.internal.validReadLimit(options.MaxPixels) || ...
+                    ~nfx.internal.validReadLimit(options.MaxBytes)
+                status.code = 'InvalidInput';
+                status.message = 'Supply existing distinct image indices and positive read limits.';
+                return
+            end
+            samples = 0; encoded = 0;
+            for k = 1:numel(obj.imageValues)
+                image = obj.imageValues(k);
+                if image.pixelsLoaded || any(indices == k)
+                    h = image.header;
+                    samples = samples + h.nrows * h.ncols * ...
+                        image.number_bands * image.number_frames;
+                end
+                if ~image.pixelsLoaded && any(indices == k), encoded = encoded + image.li; end
+            end
+            if samples > options.MaxPixels || encoded > options.MaxBytes
+                status.code = 'ResourceLimit';
+                status.message = sprintf(['Selected read retains %.0f samples (MaxPixels %.0f) ' ...
+                    'and loads %.0f encoded bytes (MaxBytes %.0f).'], ...
+                    samples, options.MaxPixels, encoded, options.MaxBytes); return
+            end
+            candidate = obj;
+            for k = indices
+                [image, ok, status] = candidate.imageValues(k).read( ...
+                    MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes);
+                if ~ok, status.index = k; return; end
+                candidate.imageValues(k) = image;
+            end
+            if candidate.contextPending, report = candidate.validateReadStructure();
+            else, report = candidate.validate();
+            end
+            if ~report.valid
+                ok = false; status.code = 'MalformedFile';
+                status.message = report.issues(1).message; return
+            end
+            obj = candidate; ok = true;
+            status = nfx.internal.readStatus();
+            status.context_complete = obj.context_complete;
+            status.metadata_complete = nfx.internal.metadataComplete(report);
+            status.pixels_complete = all([obj.imageValues.pixelsLoaded]);
+        end
         function value = get.header(obj) %#codegen
             %get.header - Derive structural metadata for the complete file
             [value, ~] = layout(obj);
@@ -615,6 +708,20 @@ classdef File
                 options.Overwrite (1,1) {mustBeA(options.Overwrite, 'logical')} = false
                 options.SNIP_COMPLIANT (1,1) {mustBeA(options.SNIP_COMPLIANT, 'logical')} = false
             end
+            deferred = false;
+            for k = 1:numel(obj.imageValues)
+                deferred = deferred || hasDeferredPixels(obj.imageValues(k));
+            end
+            if deferred
+                if coder.target('MATLAB')
+                    [obj, loaded, readStatus] = obj.readAll();
+                    if ~loaded
+                        error('nfx:ReadPixels', '%s: %s', readStatus.code, readStatus.message);
+                    end
+                else
+                    error('nfx:DeferredPixels', 'Load pixels before writing from generated code.');
+                end
+            end
             requireValid(validate(obj, SNIP_COMPLIANT=options.SNIP_COMPLIANT));
             destination = char(filename);
             if options.SNIP_COMPLIANT
@@ -763,12 +870,13 @@ classdef File
                     end
                     views = contextViews(contexts,plan.images);
                     positions = plan.positions([contexts.image],:);
-                    if report.complete
+                    completeMetadata = nfx.internal.metadataComplete(report);
+                    if completeMetadata
                         report = mergeReport(report,rsmFileReport(views,positions),'rsm.');
                     end
                     report = mergeReport(report,glasFileReport( ...
                         obj.store.records,views,plan.des,positions, ...
-                        report.complete),'glas.');
+                        completeMetadata),'glas.');
                 end
             end
             report = addIssue(report, numel(unique(levels)) ~= numel(levels), 'DisplayLevel', ...
@@ -792,7 +900,7 @@ classdef File
                 im = plan.images(k).header;
                 report = addIssue(report,h.clevel >= 51 && ...
                     (max(plan.positions(k,:)+[im.nrows im.ncols]) > 99999999 || ...
-                    min(im.nrows,im.ncols) > 65536 || size(plan.images(k).data,3) > 999), ...
+                    min(im.nrows,im.ncols) > 65536 || plan.images(k).number_bands > 999), ...
                     'MotionComplexity',sprintf('images(%d)',k), ...
                     'The image exceeds the supported MIE complexity-level limits.', ...
                     'NGA.STND.0044 1.3.3, Table 15');
@@ -954,7 +1062,7 @@ function value = complexity(h, images, positions) %#codegen
     for k = 1:numel(images)
         im = images(k).header;
         upper = max(upper, positions(k,:)+[im.nrows im.ncols]);
-        bands = size(images(k).data, 3);
+        bands = images(k).number_bands;
         if max(im.nppbh, im.nppbv) > 2048 || bands > 9, value = max(value, 5); end
         if bands > 255 || (strcmp(im.irep, 'RGB') && im.nbpp > 8), value = max(value, 7); end
         if bands > 999, value = 9; end
@@ -976,7 +1084,7 @@ function value = motionComplexity(header,images,positions) %#codegen
     if header.fl > 429496729600, value = 57; end
     for k = 1:numel(images)
         h = images(k).header; extent = max(positions(k,:)+[h.nrows h.ncols]);
-        dimensions = [h.nrows h.ncols]; bands = size(images(k).data,3);
+        dimensions = [h.nrows h.ncols]; bands = images(k).number_bands;
         if extent > 8192 || max(dimensions) > 8192 || bands > 9, value = max(value,54); end
         if extent > 65536 || max(dimensions) > 65536 || min(dimensions) > 32768 || bands > 255
             value = 57;

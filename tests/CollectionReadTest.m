@@ -84,7 +84,7 @@ classdef CollectionReadTest < NfxTest
             values = file.effectiveTREs(1, 2); selected = values(strcmp({values.tag}, 'RPC00B'));
             t.verifyEqual(selected.payload, rpc.payload());
             for k = 1:numel(paths)
-                [single, ok, status] = nfx.File.read(paths{k});
+                [single, ok, status] = nfx.File.read(paths{k}, readAll=true);
                 t.assertTrue(ok, status.message);
                 t.verifyFalse(single.context_complete); t.verifyFalse(status.context_complete);
                 report = single.validate(); t.verifyFalse(report.valid);

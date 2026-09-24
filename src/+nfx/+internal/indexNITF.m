@@ -1,7 +1,8 @@
-function [value, ok, status] = indexNITF(data) %#codegen
+function [value, ok, status] = indexNITF(data, includeHeaders) %#codegen
     %indexNITF - Index the NFX-supported NITF 2.1 container without pixels
     %   Offsets in the index are zero-based source offsets. Metadata areas
     %   retain physical provenance; their TRE envelopes are decoded later.
+    if nargin < 2, includeHeaders = true; end
     value = emptyIndex();
     reader = nfx.internal.NITFReader(data);
     reader = reader.expect('NITF02.10', 'file version');
@@ -28,7 +29,7 @@ function [value, ok, status] = indexNITF(data) %#codegen
     if reader.ok, value.header.ophone = text; end
     [value.fl, reader] = reader.integer(12, 388, 999999999998);
     [value.hl, reader] = reader.integer(6, 388, 999999);
-    if reader.ok && (value.fl ~= numel(data) || value.hl > value.fl)
+    if reader.ok && (value.fl ~= nfx.internal.sourceLength(data) || value.hl > value.fl)
         reader = reader.fail('MalformedFile', ...
             'FL or HL disagrees with the supplied file length.', 343);
     end
@@ -67,6 +68,12 @@ function [value, ok, status] = indexNITF(data) %#codegen
     value.images = repmat(imageEntry(), 1, numel(images));
     value.texts = repmat(textEntry(), 1, numel(texts));
     value.des = repmat(desEntry(), 1, numel(des));
+    if ~includeHeaders
+        for k = 1:numel(images), value.images(k).location = images(k); end
+        for k = 1:numel(texts), value.texts(k).location = texts(k); end
+        for k = 1:numel(des), value.des(k).location = des(k); end
+        ok = true; status = nfx.internal.readStatus(); return
+    end
     for k = 1:numel(images)
         [entry, reader] = imageHeader(data, images(k), k);
         if ~reader.ok, break; end
@@ -150,7 +157,7 @@ end
 function [entries, at, reader] = locate(entries, at, reader) %#codegen
     for k = 1:numel(entries)
         count = entries(k).headerLength + entries(k).dataLength;
-        if reader.ok && count > numel(reader.data) - at
+        if reader.ok && count > reader.sourceLength - at
             reader = reader.fail('MalformedFile', ...
                 'A segment exceeds the file length.', at + 1);
         end

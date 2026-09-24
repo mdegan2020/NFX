@@ -21,12 +21,70 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
         end
     end
     methods (Test)
+        function metadataOnlyDefersCodestreamInspection(t)
+            filename = fullfile(t.folder, 'deferred-bad-stream.ntf');
+            t.sampleFile.write(filename);
+            raw = readBytes(filename); index = nfx.internal.indexNITF(raw);
+            raw(index.images.location.dataOffset + 1) = 0;
+            putBytes(filename, raw);
+            [file, ok, status] = nfx.File.read(filename);
+            t.assertTrue(ok, status.message);
+            t.verifyFalse(file.images.pixelsLoaded);
+            t.verifyFalse(status.pixels_complete);
+            t.verifyEqual(file.images.J2KLRA().payload(), ...
+                t.sampleFile.images.J2KLRA().payload());
+            [~, ok, status] = file.images.read();
+            t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
+        end
+
+        function metadataOnlyChecksJPEG2000HeaderConstraints(t)
+            filename = fullfile(t.folder, 'deferred-bad-header.ntf');
+            t.sampleFile.write(filename);
+            raw = readBytes(filename); index = nfx.internal.indexNITF(raw);
+            raw(index.images.location.headerOffset + 371) = uint8('L');
+            putBytes(filename, raw);
+            [file, ok, status] = nfx.File.read(filename);
+            t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
+            t.verifyEmpty(file.images);
+        end
+
+        function deferredCompressionPreservesMetadataAndBytes(t, profile)
+            source = compressedFile(uint16(ones(32, 35)), t.encoder, profile);
+            filename = fullfile(t.folder, 'deferred.ntf'); source.write(filename);
+            [file, ok, status] = nfx.File.read(filename);
+            t.assertTrue(ok, status.message);
+            t.verifyFalse(file.images.pixelsLoaded);
+            t.verifyEmpty(file.images.compression);
+            t.verifyEqual(file.images.header.bytes(), source.images.header.bytes());
+            t.verifyEqual(file.images.tre_records, source.images.tre_records);
+            t.verifyEqual(file.images.tre_ids, source.images.tre_ids);
+            t.verifyEqual(file.images.data, source.images.data);
+            t.verifyFalse(file.images.pixelsLoaded);
+            output = fullfile(t.folder, 'rewritten.ntf'); file.write(output);
+            t.verifyEqual(readBytes(output), readBytes(filename));
+            [loaded, ok, status] = file.images.read();
+            t.assertTrue(ok, status.message);
+            t.verifyEqual(loaded.compression.codestream, source.images.compression.codestream);
+        end
+
+        function deferredPixelReplacementDropsCompression(t)
+            filename = fullfile(t.folder, 'deferred-replacement.ntf');
+            t.sampleFile.write(filename); file = nfx.File.read(filename);
+            image = file.images;
+            image.data = uint16(ones(32, 33)); delete(filename);
+            t.verifyTrue(image.pixelsLoaded);
+            t.verifyEqual(image.header.ic, 'NC');
+            t.verifyEmpty(image.compression);
+            t.verifyEqual(image.treCount('J2KLRA'), 0);
+            t.verifyTrue(image.validate().valid);
+        end
+
         function profilesPreserveNativeSamplesAndStoredBytes(t, profile, pixelClass, bands)
             data = reshape(cast(mod(0:32 * 35 * bands - 1, 251), pixelClass), ...
                 32, 35, bands);
             source = compressedFile(data, t.encoder, profile);
             first = fullfile(t.folder, 'source.ntf'); source.write(first);
-            [copy, ok, status] = nfx.File.read(first);
+            [copy, ok, status] = nfx.File.read(first, readAll=true);
             t.assertTrue(ok, status.message); t.verifyEqual(copy.images.data, data);
             t.verifyClass(copy.images.data, pixelClass);
             t.verifyEqual(copy.images.compression.profile, profile);
@@ -43,7 +101,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             [~, plain] = fixtureFile();
             source = source + plain + fixtureText();
             path = fullfile(t.folder, 'tiles.ntf'); source.write(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message);
             t.verifyEqual(copy.images(1).data, data);
             t.verifyEqual(copy.images(2).data, plain.data);
@@ -57,7 +115,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             previous = getenv('NFX_OPENJPEG');
             cleanup = onCleanup(@() setenv('NFX_OPENJPEG', previous));
             setenv('NFX_OPENJPEG', fullfile(t.folder, 'absent.exe'));
-            [copy, ok, status] = nfx.File.read(first);
+            [copy, ok, status] = nfx.File.read(first, readAll=true);
             t.assertTrue(ok, status.message);
             image = copy.images; image.header.iid1 = 'EDITED';
             image = image + fixtureRPC();
@@ -75,14 +133,14 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
 
         function resourceBudgetPrecedesEntropyDecoding(t)
             path = fullfile(t.folder, 'limited.ntf'); t.sampleFile.write(path);
-            [copy, ok, status] = nfx.File.read(path, MaxPixels=32 * 33 - 1);
+            [copy, ok, status] = nfx.File.read(path, readAll=true, MaxPixels=32 * 33 - 1);
             t.verifyFalse(ok); t.verifyEqual(status.code, 'ResourceLimit');
             t.verifyEmpty(copy.images);
         end
 
         function replacingImportedImagePreservesItsCompressedSnapshot(t)
             path = fullfile(t.folder, 'original.ntf'); t.sampleFile.write(path);
-            [copy, ok, status] = nfx.File.read(path); t.assertTrue(ok, status.message);
+            [copy, ok, status] = nfx.File.read(path, readAll=true); t.assertTrue(ok, status.message);
             image = copy.images; image.header.icom = 'Updated compressed metadata';
             edited = copy.replaceImage(1, image);
             destination = fullfile(t.folder, 'copy.ntf'); edited.write(destination);
@@ -116,7 +174,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
                 case 'pjust', raw(header + 371) = uint8('L');
                 case 'mode', raw(header + 455) = uint8('F');
             end
-            putBytes(path, raw); [copy, ok, status] = nfx.File.read(path);
+            putBytes(path, raw); [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.verifyFalse(ok, corruption);
             t.verifyNotEqual(status.code, 'OK'); t.verifyEmpty(copy.images);
         end
@@ -142,7 +200,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             restoreWarning = onCleanup(@() warning(previous));
             warning(warningState, id);
             handles = fileHandles(); temporary = dir(fullfile(tempdir, '*.j2c'));
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
             t.verifyEmpty(copy.images);
             t.verifyEqual(warning('query', id).state, warningState);
@@ -166,7 +224,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
                     expected = 'MalformedFile';
             end
             handles = fileHandles(); injectIOFailure(t, 'imread', body);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.verifyFalse(ok); t.verifyEqual(status.code, expected);
             t.verifyEmpty(copy.images); t.verifyEqual(fileHandles(), handles);
         end
@@ -176,7 +234,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             handles = fileHandles();
             temporary = dir(fullfile(tempdir, '*.j2c'));
             injectIOFailure(t, 'fwrite', sprintf('function count=fwrite(varargin)\ncount=0;\nend\n'));
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.verifyFalse(ok); t.verifyEqual(status.code, 'IOError');
             t.verifyEmpty(copy.images); t.verifyEqual(fileHandles(), handles);
             remaining = dir(fullfile(tempdir, '*.j2c'));

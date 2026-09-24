@@ -49,7 +49,7 @@ classdef AdditionalTRETest < NfxTest
             file = fileFor(tag);
             path = fullfile(t.folder, 'input.ntf'); file.write(path);
             original = readBytes(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message);
             t.verifyEqual(status.metadata_complete, ~strcmp(tag, 'SECURA'));
             output = fullfile(t.folder, 'output.ntf'); copy.write(output);
@@ -72,7 +72,7 @@ classdef AdditionalTRETest < NfxTest
             end
             file = file + image + text;
             path = fullfile(t.folder, 'owners.ntf'); file.write(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message);
             switch owner
                 case 'file', value = copy;
@@ -184,7 +184,7 @@ classdef AdditionalTRETest < NfxTest
             t.verifyEqual(char(bytes(7:11)), '99988');
             file = base + tre;
             path = fullfile(t.folder, 'security.ntf'); file.write(path);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message);
             t.verifyFalse(status.metadata_complete);
             t.verifyEqual(copy.SECURA().security, tre.security);
@@ -281,7 +281,7 @@ classdef AdditionalTRETest < NfxTest
             file = file.replaceImage(1, image);
             t.verifyEqual(image.header.abpp, 8);
             path = fullfile(t.folder, 'percent.ntf'); file.write(path);
-            [copy, ok, status] = nfx.File.read(path); t.assertTrue(ok, status.message);
+            [copy, ok, status] = nfx.File.read(path, readAll=true); t.assertTrue(ok, status.message);
             t.verifyEqual(copy.images.header.isubcat_text, 'CLDPCT');
             t.verifyEqual(copy.images.data, image.data);
             image.data(1) = 255;
@@ -320,7 +320,7 @@ classdef AdditionalTRETest < NfxTest
             t.verifyEqual(numel(tre.payload()), 99985);
             file = fixtureFile() + tre;
             path = fullfile(t.folder, 'xml-limit.ntf'); file.write(path);
-            [copy, ok, status] = nfx.File.read(path); t.assertTrue(ok, status.message);
+            [copy, ok, status] = nfx.File.read(path, readAll=true); t.assertTrue(ok, status.message);
             t.verifyEqual(copy.XMLDCA().payload(), tre.payload());
             tre.tredata(end + 1) = 0; t.verifyFalse(tre.validate().valid);
         end

@@ -7,7 +7,7 @@ classdef ReaderAcceptanceTest < NfxTest
             source = profileFile(model);
             name = [source.header.ftitle '.ntf']; path = fullfile(t.folder, name);
             source.write(path, SNIP_COMPLIANT=true);
-            [copy, ok, status] = nfx.File.read(path);
+            [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message); t.verifyTrue(copy.context_complete);
             report = copy.validate(SNIP_COMPLIANT=true);
             t.assertTrue(report.valid, evalc('disp(report.issues)'));
@@ -22,7 +22,7 @@ classdef ReaderAcceptanceTest < NfxTest
 
         function genericReadingDoesNotAssertAProfile(t)
             source = fixtureFile(); path = fullfile(t.folder, 'ordinary.ntf');
-            source.write(path); [copy, ok, status] = nfx.File.read(path);
+            source.write(path); [copy, ok, status] = nfx.File.read(path, readAll=true);
             t.assertTrue(ok, status.message); t.verifyTrue(copy.validate().valid);
             t.verifyFalse(copy.validate(SNIP_COMPLIANT=true).valid);
         end
@@ -35,7 +35,7 @@ classdef ReaderAcceptanceTest < NfxTest
                 (fixtureText('Retain this text') + nfx.FREESA(9800)) + ...
                 rawDES + nfx.FREESA(99985);
             path = fullfile(t.folder, 'original.ntf'); source.write(path);
-            [original, ok, status] = nfx.File.read(path); t.assertTrue(ok, status.message);
+            [original, ok, status] = nfx.File.read(path, readAll=true); t.assertTrue(ok, status.message);
             image = original.images(1); rpc = image.RPC00B(); rpc.err_bias = 2.5;
             image = image.removeTRE(image.tre_ids(1)) + rpc;
             image.header.icom = 'Edited first image';
@@ -46,7 +46,7 @@ classdef ReaderAcceptanceTest < NfxTest
             t.verifyEqual(edited.tre_records, original.tre_records);
             t.verifyEqual(edited.texts, original.texts); t.verifyEqual(edited.des, original.des);
             destination = fullfile(t.folder, 'edited.ntf'); edited.write(destination);
-            [copy, ok, status] = nfx.File.read(destination); t.assertTrue(ok, status.message);
+            [copy, ok, status] = nfx.File.read(destination, readAll=true); t.assertTrue(ok, status.message);
             t.verifyEqual(copy.images(1).header.icom, image.header.icom);
             t.verifyEqual(copy.images(2).data, second.data);
             t.verifyEqual(copy.des(1).data, rawDES.data);

@@ -67,7 +67,7 @@ classdef JPEG2000
             end
         end
     end
-    methods (Static, Access = ?nfx.internal.FileReader)
+    methods (Static, Access = {?nfx.internal.FileReader, ?nfx.ImageSegment})
         function [obj, pixels, ok, status] = restoreRead(data, entry, records, maxPixels)
             %restoreRead - Validate and decode an existing compression snapshot
             obj = nfx.JPEG2000.empty(1, 0);

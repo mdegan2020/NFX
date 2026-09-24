@@ -31,18 +31,7 @@ function report = supportImageReport(records, image) %#codegen
         for k = 1:numel(labels), valid = valid && isempty(strtrim(labels{k})); end
         report = issue(report, ~valid, 'CloudImage', ...
             'CLOUD requires one CSCCGA, one unsigned 8-bit band, and a cloud image identifier.');
-        category = h.isubcat_text;
-        percent = size(category, 1) == 1 && strcmp(category, 'CLDPCT');
-        pixels = image.data;
-        if percent
-            validValues = pixels <= 100 | pixels == 253 | pixels == 254;
-        else
-            validValues = pixels == 0 | pixels == 253 | ...
-                pixels == 254 | pixels == 255;
-        end
-        report = issue(report, any(~validValues(:)) || ...
-            any(~isnan(h.isubcat)), 'CloudPixels', ...
-            'Use binary or percentage cloud values, with 253 fill and 254 unknown.');
+        report = mergeReport(report, cloudPixelReport(records, image), '');
         if isscalar(c)
             tre = nfx.CSCCGA.deserialize(records(c).payload);
             report = issue(report, tre.ccg_max_line ~= h.nrows || ...

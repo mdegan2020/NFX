@@ -1,21 +1,19 @@
 # Reading NFX files
 
 NFX reads the NITF 2.1 layouts that its writer supports. It returns the same
-value classes used to construct files, with native `uint8` or `uint16`
-pixels and editable metadata. This is a bounded reader, not a promise to
+value classes used to construct files, with editable metadata and deferred
+native `uint8` or `uint16` pixels. This is a bounded reader, not a promise to
 accept every valid NITF file from another producer.
 
 ## A single file
 
 ```matlab
-addpath('src');
 [file, ok, status] = nfx.File.read('source.ntf');
 if ~ok
     fprintf('%s: %s\n', status.code, status.message);
     return
 end
 
-pixels = file.images(1).data;
 comments = file.images(1).header.icom;
 [rpc, found] = file.images(1).RPC00B;
 if found
@@ -27,6 +25,75 @@ for index = 1:file.images(1).treCount('FREESA')
     fprintf('Free-space payload: %d bytes\n', record.count);
 end
 ```
+
+Configure MATLAB's path through **Home > Set Path > Add Folder** and select
+only the NFX `src` folder. Namespace subfolders resolve through that parent.
+Recursively adding the repository root can expose old validation checkouts
+under the ignored `artifacts/` folder.
+
+### Read pixels when needed
+
+The default reads complete supported headers, TREs (including overflow),
+text and DES payloads. It seeks past image payloads without reading or
+decoding them. Every image remains present in `file.images`, with dimensions,
+comments, band metadata, TRE accessors and segment lengths available.
+
+```matlab
+% Retain every image's pixels during the initial read.
+[file, ok, status] = nfx.File.read('source.ntf', readAll=true);
+
+% Retain pixels only for image segments 1 and 2.
+[file, ok, status] = nfx.File.read('source.ntf', readSegment=[1 2]);
+
+% Load additional pixels into a new value; retain the returned object.
+[file, ok, status] = file.readSegment(3);
+[file, ok, status] = file.readAll();
+
+% Load an independent image value.
+[image, ok, status] = file.images(1).read();
+file = file.replaceImage(1, image);
+
+% Convenient temporary access, without retaining pixels in file.
+pixels = file.images(1).data;
+```
+
+`readSegment` uses one-based **image segment** indices, regardless of text or
+DES order. Indices must be distinct; their order does not reorder the file.
+Use either `readAll=true` or `readSegment=...` in the initial call. File-level
+methods delegate decoding to `ImageSegment.read`. Already loaded images are
+reused, and a failed explicit read leaves the original value unchanged.
+
+`image.pixelsLoaded` reports whether native pixels are retained. A `.data`
+getter loads a temporary image when needed; repeated accesses can repeat
+I/O and decoding. Use the explicit methods to retain pixels. Getter failures
+throw `nfx:ReadPixels`; explicit methods provide `ok` and `status` instead.
+Displaying an image, inspecting headers, and validating metadata do not
+trigger pixel reads. `compression` remains empty until a compressed image
+is loaded; its C8 header fields and J2KLRA are available immediately.
+
+Unloaded images retain an absolute source path, offsets, source size and
+modification time, and header snapshots. Moving/deleting the source or
+changing its size, timestamp or headers makes a later read fail. These checks
+are not a hash of the skipped payload: changes that preserve all these
+attributes cannot be detected in advance. Loaded images no longer depend
+on the source. Assigning `image.data` replaces that dependency and restores
+ordinary uncompressed storage.
+
+`status.pixels_complete` is false while any image is deferred. Metadata-only
+success does not establish pixel precision, padding, cloud-value or JPEG2000
+codestream validity. Validation reports `PixelsDeferred` warnings and
+`complete=false` until pixels are loaded; `metadata_complete` still describes
+the supported metadata. `write` temporarily loads remaining images, then
+validates the complete file before creating output. This uses the retained
+read budgets and does not populate the caller's original object. To preserve
+low memory use, inspect metadata or load individual segments; writing still
+requires all image pixels in memory.
+
+Automatic `.data` loading uses the existing dependent-property getter, with
+host I/O excluded by `coder.target('MATLAB')`. Generated code can use already
+loaded arrays; it rejects deferred access. No handle cache, `subsref` overload,
+or heterogeneous decoded collection is introduced. Compiled compatibility
+remains unverified locally because no MATLAB Coder license is available.
 
 Use `numel(file.images)` before selecting an image in a file that might
 contain only text or support data. Typed TRE methods return a new concrete
@@ -124,10 +191,11 @@ See [inspectTREPayload](examples/inspectTREPayload.m) for a bounded example.
 
 ## JPEG2000
 
-`File.read` uses MATLAB's `imread` JPEG2000 backend through a temporary raw
-codestream file. Missing codec support and detected corruption return a
-diagnostic. Decoder corruption warnings count as failure; caller warning
-settings are restored. Reading is eager and needs space for decoded samples.
+When pixels are requested, NFX uses MATLAB's `imread` JPEG2000 backend
+through a temporary raw codestream file. Missing codec support and detected
+corruption return a diagnostic. Decoder corruption warnings count as failure;
+caller warning settings are restored. Loading a selected image decodes its
+complete pixel array and needs memory for those samples.
 
 No OpenJPEG encoder is needed to read or rewrite an unchanged compressed
 image. Its compression snapshot retains the original codestream, J2KLRA and
@@ -186,15 +254,26 @@ semantic view. A successful local read does not invent absent inherited TREs.
 
 ## Limits and diagnostics
 
-Both readers accept `MaxBytes` and `MaxPixels`; defaults are `2^30` source
-bytes and `2^28` decoded samples. A sample includes each band and frame.
-Collection limits apply to the sum across members; `MaxFiles` defaults to
-10,000. Supply positive finite integer `double` limits to change them.
-These are input budgets, not guarantees of available process memory.
+`File.read` accepts optional `MaxBytes` and `MaxPixels` budgets. Both default
+to `flintmax`, so ordinary local files are not rejected by a small fixed cap.
+Supply positive finite integer `double` values when explicit caps are needed.
+These are limits, not preallocations or guarantees of available memory.
+
+`MaxBytes` bounds retained metadata plus selected encoded image payloads in
+the initial read. Skipped image payloads do not count. For later file methods,
+it bounds the newly requested encoded payloads; for a segment method, that
+segment's payload. Small header rechecks are additional I/O. `MaxPixels`
+counts all retained image samples after a file-level read, including each
+band and frame; a segment-level read counts only that segment. Initial
+budgets carry forward; method options override them for that operation.
+
+`MIECollection.read` continues to read eagerly, with defaults of `2^30`
+source bytes, `2^28` decoded samples and 10,000 files. Its limits apply across
+members. Use `File.read` to inspect a single member without loading pixels.
 
 ```matlab
 [file, ok, status] = nfx.File.read('source.ntf', ...
-    MaxBytes=2^29, MaxPixels=2^26);
+    readAll=true, MaxBytes=2^30, MaxPixels=1e9);
 ```
 
 Expected failure returns a fresh default scalar, `ok=false`, and `status`.
@@ -208,6 +287,7 @@ No partially recovered file is presented as a successful result.
 | `UnsupportedFeature` | Outside the supported encoding or organization |
 | `ResourceLimit` | A configured source, sample or file-count budget was exceeded |
 | `IOError` | Host file access, reading or codec staging failed |
+| `SourceChanged` | A deferred source changed after its metadata was read |
 | `MissingDependency` | The required host decoder is unavailable |
 | `MissingFile` | A required collection member is absent |
 

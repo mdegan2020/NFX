@@ -1,6 +1,6 @@
 function report = snipQuicklookReport(image,spectral,total) %#codegen
     %snipQuicklookReport - Check supplied overview imagery and source comments
-    report = newReport('SNIP quick look'); h = image.header; bands = size(image.data,3);
+    report = newReport('SNIP quick look'); h = image.header; bands = image.number_bands;
     id = strtrim(char(h.iid1)); validID = strcmp(id,'QUICK_LOOK');
     if total > 1, validID = startsWith(id,'QL') && numel(id) > 2; end
     report = snipIssue(report,~validID,'SNIPQuicklookID','header.iid1','Use QUICK_LOOK, or distinct QL-prefixed IDs for multiple quick looks.','9.2');
