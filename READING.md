@@ -120,6 +120,13 @@ SENSRB reading and writing also accept the documented
 [level-8 scanner velocity deviation](README.md#known-sensrb-velocity-deviation):
 Pushbroom and Whiskbroom records may omit module 10 while retaining level 8.
 
+`sensor = file.images(1).SENSRB` consolidates continuation chunks into one
+`sensor.time_stamped_data` entry per `time_stamp_type`. Types appear in their
+first-seen order; time/value pairs retain their original order, including
+duplicate timestamps. Module-12 uncertainty references address the merged
+groups. Separate logical SENSRB attachments remain separate, and the image's
+raw physical `tre_records` are unchanged.
+
 | Content | Reading behavior |
 | --- | --- |
 | Uncompressed imagery | Blocked B/F/T layouts, native unsigned samples, bands, frames, edge padding, multiple images |

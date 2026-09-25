@@ -117,6 +117,9 @@ classdef (Sealed) SENSRB < nfx.TRE
         uncertainty_data {mustBeUncertainty} = struct('uncertainty_first_type',{},'uncertainty_second_type',{},'uncertainty_value',{})
         additional_parameter_data {mustBeAdditional} = struct('parameter_name',{},'parameter_size',{},'parameter_value',{})
     end
+    properties (Access = private)
+        seriesLayout = struct('type', {}, 'first', {}, 'count', {})
+    end
     methods (Static)
         function [obj, ok, status] = deserialize(data) %#codegen
             %deserialize - Decode one complete SENSRB payload
@@ -146,8 +149,10 @@ classdef (Sealed) SENSRB < nfx.TRE
             %   [OBJ, OK, STATUS] = deserializeRecords(RECORDS) accepts
             %   physical records in their stored order. Every continuation
             %   must have the minimum repeated reference/position payload.
-            %   Encoded time-series chunks remain ordered groups; original
-            %   boundaries within split input groups are not on the wire.
+            %   TIME_STAMPED_DATA has one group per type, in first-seen
+            %   order. Samples retain their stored order and duplicate
+            %   timestamps. Uncertainty indices address the merged groups.
+            %   A private layout preserves unchanged physical payloads.
             %
             %   See also SENSRB.deserialize, ImageSegment.SENSRB
             arguments
@@ -183,7 +188,7 @@ classdef (Sealed) SENSRB < nfx.TRE
                     [obj.time_stamped_data part.time_stamped_data];
             end
             if reader.ok
-                [encoded, report] = encodeSensor(obj);
+                [encoded, report] = encodeSensor(obj, obj.seriesLayout);
                 if ~report.valid
                     reader = reader.fail('InvalidMetadata', ...
                         report.issues(1).message);
@@ -202,6 +207,11 @@ classdef (Sealed) SENSRB < nfx.TRE
             end
             ok = reader.ok;
             if ok
+                [groups, uncertainties, layout] = mergeSensorSeries( ...
+                    obj.time_stamped_data, obj.uncertainty_data);
+                obj.time_stamped_data = groups;
+                obj.uncertainty_data = uncertainties;
+                obj.seriesLayout = layout;
                 status = decodeStatus();
             else
                 obj = nfx.SENSRB();
@@ -307,14 +317,14 @@ classdef (Sealed) SENSRB < nfx.TRE
         end
         function report = validate(obj) %#codegen
             %VALIDATE - Check fields, relationships and physical record limits
-            [~,report] = encodeSensor(obj);
+            [~,report] = encodeSensor(obj, obj.seriesLayout);
         end
         function value = physicalRecords(obj) %#codegen
             %PHYSICALRECORDS - Serialize the ordered continuation group
             %   VALUE is a row of tag/payload structs. Each payload fits
             %   the standard limit. Subsequent records retain the required
             %   reference and position fields and carry excess time series.
-            [value,report] = encodeSensor(obj);
+            [value,report] = encodeSensor(obj, obj.seriesLayout);
             requireValid(report);
         end
         function value = payload(obj) %#codegen
@@ -405,7 +415,7 @@ classdef (Sealed) SENSRB < nfx.TRE
 
 end
 
-function [records,report] = encodeSensor(obj) %#codegen
+function [records,report] = encodeSensor(obj, layout) %#codegen
     %encodeSensor - Validate and serialize a complete logical sensor record
     report = newReport('STDI-0002 Appendix Z SENSRB 2.3');
     records = repmat(struct('tag','SENSRB','payload',zeros(1,0,'uint8')),1,0);
@@ -768,7 +778,13 @@ function [records,report] = encodeSensor(obj) %#codegen
     minimalPrefix = [uint8('NNNN') parts{5} parts{6} uint8('NNNN00')];
     uncertainty = zeros(1,3+32*numel(obj.uncertainty_data),'uint8');
     suffix = [pixels uncertainty additional];
+    [series, origins] = restoreSensorSeries(series, layout);
     [records,map,valid] = packSensorSeries(prefix,suffix,minimalPrefix,series);
+    for k = 1:numel(map)
+        origin = origins(map(k).source);
+        map(k).source = origin.source;
+        map(k).first = map(k).first + origin.first - 1;
+    end
     report = sensorIssue(report,~valid,'StaticPayloadLength','SENSRB','All non-module-12 metadata must fit the first physical instance.');
     if ~valid, return; end
     conflict = sensorContinuationConflict(records,numel(prefix),numel(minimalPrefix), ...

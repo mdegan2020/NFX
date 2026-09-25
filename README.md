@@ -140,10 +140,14 @@ Child IDs are local to the reconstructed wrapper; IDs are not encoded in NITF.
 
 SENSRB continuation instances sharing one attachment ID count as one logical
 record. `image.SENSRB` reconstructs all samples in order. For physical records
-outside an owner, use `nfx.SENSRB.deserializeRecords(records)`. Encoded chunks
-remain separate ordered `time_stamped_data` groups: the wire data does not
-retain the original input group boundaries. The complete logical object
-re-encodes to the same physical instances. Encoded sentinel categories use
+outside an owner, use `nfx.SENSRB.deserializeRecords(records)`. Matching
+`time_stamp_type` chunks become one `time_stamped_data` group per type, in
+first-seen type order. Sample order and duplicate timestamps are preserved;
+module-12 uncertainty indices refer to the consolidated groups. Independent
+SENSRB attachments remain separate. Private chunk-layout information lets an
+unchanged decoded object reproduce its physical payloads; changing group
+types or sample counts causes fresh packing. Raw `tre_records` stay unchanged.
+Encoded sentinel categories use
 `NaN` for unknown values, `10` for BANDSB NIIRS greater than 9.9, and `1e-100`
 for a SENSRB positive standard deviation encoded as underflow zero.
 
