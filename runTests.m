@@ -2,6 +2,7 @@ function results = runTests(options)
     %runTests - Run the complete NFX suite with optional implementation coverage
     %   RESULTS = runTests runs class-based unit, byte-oracle, and reader tests.
     %   Image Processing Toolbox is required for the reader round trips.
+    %   TWD gesture tests briefly open their own graphics windows.
     %
     %   RESULTS = runTests(Coverage=true) also creates Cobertura and HTML reports
     %   under the ignored coverage directory. Any failed or incomplete test errors.
