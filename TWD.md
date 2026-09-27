@@ -1,7 +1,7 @@
 # TWD — three window display
 
-`twd` is a separate image-viewing namespace under `src/+twd`. It follows the
-ENVI Classic arrangement: a full-resolution main window, a whole-image
+`twd` is a separate image-viewing namespace under `src/+twd`. It provides
+three linked views: a full-resolution main window, a whole-image
 overview, and a linked magnified view. It accepts arrays independently of
 NITF and does not depend on `nfx`.
 
@@ -130,13 +130,7 @@ fixed scales, resizing, bounds, overlays, mouse gestures, keyboard controls,
 independent groups, and cleanup. Gesture tests briefly display their own
 windows. They do not modify existing display groups.
 
-## Reference behavior
-
-The [ENVI Classic tutorial](https://www.nv5geospatialsoftware.com/portals/0/pdfs/envi/ENVI_Classic_Intro.pdf)
-describes the image/scroll/zoom windows, viewport boxes, zoom controls, and
-display-group linking (the display-window and linking sections).
-[ENVI_DISP_QUERY](https://www.nv5geospatialsoftware.com/docs/ENVI_DISP_QUERY.html)
-documents the main view's fixed full-resolution scale.
+## Graphics implementation
 
 MATLAB's newer viewer has the required interactive callback APIs documented
 as [R2026b additions](https://www.mathworks.com/help/images/ref/images.ui.graphics.viewer-properties.html).

@@ -20,8 +20,8 @@ SNIP/MIE profile support. Run its tests with `runTests(OpenJPEG=encoder)`.
 
 ## Image viewer
 
-The independent [`twd` utility](TWD.md) provides an ENVI Classic-style
-three-window display: a fixed 1:1 main view, an overview with a draggable
+The independent [`twd` utility](TWD.md) provides a three-window display:
+a fixed 1:1 main view, an overview with a draggable
 viewport box, and an integer-magnified zoom view. All views preserve image
 aspect ratio. Open a grayscale or RGB array with `viewer = twd.show(pixels)`
 or inspect an NFX image with `twd.show(file.images(1).data)`.
