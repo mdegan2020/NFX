@@ -54,13 +54,35 @@ does not calibrate physical monitor pixels across different DPI settings.
 Arrow keys pan the main view when either main or overview has focus; in
 the zoom window they move the zoom view. Shift-arrow moves ten source
 pixels. **+**/**−** also change zoom magnification from the keyboard.
-Closing any window closes its entire display group. Overview resizing keeps
-its title bar on screen.
+Closing any image window closes its entire display group. Overview resizing
+keeps its title bar on screen. The optional cursor window closes independently.
 
 Panning the main view carries the zoom view with it. The zoom viewport stays
 within the visible main image when it fits; if its window covers a larger
 area, it centers over that region and its box outlines the portion visible
 within the main window.
+
+## Cursor location and values
+
+Double-click the main image to open **Cursor Location / Value**. Move the
+pointer over the main, overview, or zoom image to update the text box:
+
+- **Column (X), Row (Y):** one-based source-image coordinates.
+- **Displayed (0-255):** the stretched image value, or an `[R G B]` vector
+  for color images. Graphics such as red boxes and crosshairs are excluded.
+- **Original:** the source value before stretching, labeled with its native
+  data type. RGB values are in `[R G B]` order; NaN/Inf remain visible here.
+
+The overview reports its resampled display value and the original value of
+the source pixel under the pointer. These can differ from applying the
+stretch directly to that single source pixel. Hovering over an empty image
+margin clears the values and shows **Outside image**.
+
+Close the cursor window to dismiss it; all three image windows remain open.
+Double-click the main image again to reopen it. Repeated double-clicks reuse
+the same window. Each display group has its own readout, available through
+the read-only `CursorFigure` handle while open. Closing an image window or
+deleting the viewer also closes its cursor window.
 
 ## Stretch and options
 
@@ -127,7 +149,9 @@ local execution and GUI gesture tests use R2026a on Windows.
 
 `runTests` includes `TwdDisplayTest`: native-data preservation, stretches,
 fixed scales, resizing, bounds, overlays, mouse gestures, keyboard controls,
-independent groups, and cleanup. Gesture tests briefly display their own
+independent groups, and cleanup. `TwdCursorTest` covers cursor gestures,
+coordinates, original and displayed values, overview resampling, and the
+independent readout lifecycle. Gesture tests briefly display their own
 windows. They do not modify existing display groups.
 
 ## Graphics implementation

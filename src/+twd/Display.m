@@ -21,23 +21,51 @@ classdef Display < handle
     %   centered at [1 1]. setZoomFactor changes the integer magnification.
     %   NavigationChanged fires after navigation or resizing, providing an
     %   extension point for future links between independent display groups.
-    %   Closing any window closes the entire group.
+    %   Double-click the main image to open a cursor location/value window.
+    %   Hover over any view to inspect source coordinates, displayed bytes,
+    %   and original values. The cursor window can be closed independently;
+    %   closing an image window closes the entire group.
     %
     %   This desktop utility uses base MATLAB graphics, outside the NFX
     %   MATLAB Coder target. It does not use IMSHOW or change the MATLAB path.
     %
+    %   DISPLAY functions:
+    %       panTo         - Position the main view
+    %       zoomTo        - Position the zoom view
+    %       setZoomFactor - Set integer magnification
+    %       delete        - Close the display group and cursor window
+    %
+    %   DISPLAY properties:
+    %       Data           - Native source pixels
+    %       Limits         - Per-channel stretch limits
+    %       MainFigure     - Full-resolution view handle
+    %       OverviewFigure - Whole-image view handle
+    %       ZoomFigure     - Magnified view handle
+    %       CursorFigure   - Optional cursor window handle
+    %       MainCenter     - Main-view source center
+    %       ZoomCenter     - Zoom-view source center
+    %       ZoomFactor     - Integer magnification
+    %       MainViewport   - Main-view source rectangle
+    %       ZoomViewport   - Zoom-view source rectangle
+    %
     %   See also twd.show
 
     properties (SetAccess = private)
-        Data
-        Limits (:, 2) double
-        MainFigure
-        OverviewFigure
-        ZoomFigure
+        Data % Native source pixels
+        Limits (:, 2) double % Display stretch limits per channel
+        MainFigure % Full-resolution view
+        OverviewFigure % Fitted whole-image view
+        ZoomFigure % Magnified view
+        CursorFigure % Optional cursor readout window
+        % MainCenter - Source [column row] at the main-view center
         MainCenter (1, 2) double = [1 1]
+        % ZoomCenter - Source [column row] at the zoom-view center
         ZoomCenter (1, 2) double = [1 1]
+        % ZoomFactor - Display pixels per source pixel
         ZoomFactor (1, 1) double = 4
+        % MainViewport - Source [left top width height] at pixel edges
         MainViewport (1, 4) double = [0.5 0.5 1 1]
+        % ZoomViewport - Source [left top width height] at pixel edges
         ZoomViewport (1, 4) double = [0.5 0.5 1 1]
     end
 
@@ -51,6 +79,7 @@ classdef Display < handle
         MainBox
         ZoomBox
         Crosshair
+        CursorText
         Title (1, :) char = 'TWD'
         Busy (1, 1) logical = false
         Closing (1, 1) logical = false
@@ -167,7 +196,8 @@ classdef Display < handle
                 return;
             end
             obj.Closing = true;
-            figures = [obj.MainFigure obj.OverviewFigure obj.ZoomFigure];
+            figures = [obj.MainFigure obj.OverviewFigure obj.ZoomFigure ...
+                obj.CursorFigure];
             figures = figures(isgraphics(figures));
             set(figures, 'CloseRequestFcn', '', 'DeleteFcn', '', ...
                 'SizeChangedFcn', '', 'WindowButtonMotionFcn', '', ...
@@ -186,7 +216,8 @@ classdef Display < handle
                 'CloseRequestFcn', @(~, ~) delete(obj), ...
                 'DeleteFcn', @(~, ~) delete(obj), ...
                 'SizeChangedFcn', @(~, ~) obj.resize(kind), ...
-                'WindowButtonMotionFcn', @(~, ~) obj.drag(), ...
+                'WindowButtonDownFcn', @(~, ~) obj.pointerDown(kind), ...
+                'WindowButtonMotionFcn', @(~, ~) obj.motion(kind), ...
                 'WindowButtonUpFcn', @(~, ~) obj.stopDrag(), ...
                 'WindowKeyPressFcn', @(~, event) obj.key(kind, event));
         end
@@ -356,6 +387,10 @@ classdef Display < handle
         function startDrag(obj, kind)
             [ax, fig] = obj.surface(kind);
             point = obj.sourcePoint(ax);
+            if strcmp(kind, 'main') && strcmp(fig.SelectionType, 'open')
+                obj.stopDrag();
+                return;
+            end
             anchor = point;
             if strcmp(kind, 'main') && strcmp(fig.SelectionType, 'alt')
                 kind = 'pan';
@@ -381,6 +416,109 @@ classdef Display < handle
             obj.DragKind = kind;
             obj.DragAnchor = anchor;
             obj.DragCenter = center;
+        end
+
+        function pointerDown(obj, kind)
+            %pointerDown - Open the readout anywhere in the main canvas
+            [ax, fig] = obj.surface(kind);
+            if strcmp(kind, 'main') && strcmp(fig.SelectionType, 'open')
+                point = obj.sourcePoint(ax);
+                obj.stopDrag();
+                obj.openCursor();
+                obj.updateCursor(kind, point);
+            end
+        end
+
+        function openCursor(obj)
+            %openCursor - Create or raise this group's independent readout
+            if isempty(obj.CursorFigure) || ~isgraphics(obj.CursorFigure)
+                position = getpixelposition(obj.MainFigure);
+                position = [position(1:2) + [40 40] 470 145];
+                obj.CursorFigure = figure('Visible', 'off', ...
+                    'Units', 'pixels', 'Position', position, ...
+                    'Name', [obj.Title ' | Cursor Location / Value'], ...
+                    'MenuBar', 'none', 'ToolBar', 'none', ...
+                    'NumberTitle', 'off', 'IntegerHandle', 'off', ...
+                    'WindowStyle', 'normal', 'DockControls', 'off', ...
+                    'Tag', 'twd.cursor', ...
+                    'CloseRequestFcn', @(fig, ~) delete(fig));
+                obj.CursorText = uicontrol(obj.CursorFigure, ...
+                    'Style', 'edit', 'Min', 0, 'Max', 2, ...
+                    'Enable', 'inactive', 'Units', 'normalized', ...
+                    'Position', [0.025 0.05 0.95 0.9], ...
+                    'HorizontalAlignment', 'left', 'FontSize', 11, ...
+                    'FontName', 'FixedWidth', 'BackgroundColor', 'w', ...
+                    'ForegroundColor', 'k', ...
+                    'Tag', 'twd.cursorText', ...
+                    'String', 'Move the pointer over an image pixel.');
+                movegui(obj.CursorFigure, 'onscreen');
+            end
+            figure(obj.CursorFigure);
+        end
+
+        function motion(obj, kind)
+            %motion - Preserve dragging and update the optional readout
+            [ax, ~] = obj.surface(kind);
+            point = obj.sourcePoint(ax);
+            % Keep the pointer's screen position when a drag moves limits.
+            fraction = (point - [ax.XLim(1) ax.YLim(1)]) ./ ...
+                [diff(ax.XLim) diff(ax.YLim)];
+            obj.drag();
+            if ~isvalid(obj) || ~isgraphics(ax)
+                return;
+            end
+            point = [ax.XLim(1) ax.YLim(1)] + fraction .* ...
+                [diff(ax.XLim) diff(ax.YLim)];
+            obj.updateCursor(kind, point);
+        end
+
+        function updateCursor(obj, kind, point)
+            %updateCursor - Inspect source data and the displayed raster
+            if isempty(obj.CursorText) || ~isgraphics(obj.CursorText)
+                return;
+            end
+            [ax, ~, im] = obj.surface(kind);
+            bounds = obj.imageBounds();
+            viewport = [ax.XLim(1) ax.YLim(1) ...
+                diff(ax.XLim) diff(ax.YLim)];
+            bounds = intersectRect(bounds, viewport);
+            if any(~isfinite(point)) || ...
+                    any(point < bounds(1:2)) || ...
+                    any(point >= bounds(1:2) + bounds(3:4))
+                obj.CursorText.String = 'Outside image';
+                return;
+            end
+            % Zoom buttons obscure the image in the lower-left corner.
+            position = ax.Position;
+            screenPoint = position(1:2) + ...
+                [(point(1) - ax.XLim(1)) / diff(ax.XLim) ...
+                 (ax.YLim(2) - point(2)) / diff(ax.YLim)] .* ...
+                position(3:4);
+            if strcmp(kind, 'zoom') && ...
+                    inside(screenPoint, [1 1 42 21])
+                obj.CursorText.String = 'Outside image';
+                return;
+            end
+            pixel = floor(point + 0.5);
+            original = reshape(obj.Data(pixel(2), pixel(1), :), 1, []);
+            raster = im.CData;
+            column = rasterIndex(point(1), im.XData, size(raster, 2));
+            row = rasterIndex(point(2), im.YData, size(raster, 1));
+            displayed = reshape(raster(row, column, ...
+                1:size(obj.Data, 3)), 1, []);
+            viewName = kind;
+            if strcmp(kind, 'overview')
+                viewName = 'overview (resampled)';
+            end
+            precision = 17;
+            if isa(original, 'single')
+                precision = 9;
+            end
+            obj.CursorText.String = {['View: ' viewName]; ...
+                sprintf('Column (X): %d    Row (Y): %d', pixel); ...
+                ['Displayed (0-255): ' mat2str(displayed)]; ...
+                sprintf('Original (%s): %s', class(original), ...
+                    mat2str(original, precision))};
         end
 
         function drag(obj)
@@ -433,17 +571,20 @@ classdef Display < handle
             end
         end
 
-        function [ax, fig] = surface(obj, kind)
+        function [ax, fig, im] = surface(obj, kind)
             switch kind
                 case 'overview'
                     ax = obj.OverviewAxes;
                     fig = obj.OverviewFigure;
+                    im = obj.OverviewImage;
                 case 'zoom'
                     ax = obj.ZoomAxes;
                     fig = obj.ZoomFigure;
+                    im = obj.ZoomImage;
                 otherwise
                     ax = obj.MainAxes;
                     fig = obj.MainFigure;
+                    im = obj.MainImage;
             end
         end
 
@@ -466,6 +607,16 @@ classdef Display < handle
             end
         end
     end
+end
+
+function index = rasterIndex(coordinate, centers, count)
+    %rasterIndex - Find the nearest displayed texel, including singletons
+    step = 1;
+    if count > 1
+        step = (centers(end) - centers(1)) / (count - 1);
+    end
+    index = min(count, max(1, ...
+        floor((coordinate - centers(1)) / step + 0.5) + 1));
 end
 
 function mustBeSize(value)

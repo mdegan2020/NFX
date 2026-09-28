@@ -25,6 +25,8 @@ a fixed 1:1 main view, an overview with a draggable
 viewport box, and an integer-magnified zoom view. All views preserve image
 aspect ratio. Open a grayscale or RGB array with `viewer = twd.show(pixels)`
 or inspect an NFX image with `twd.show(file.images(1).data)`.
+Double-click the main image to open an independent cursor window showing
+source coordinates, displayed intensities, and original pixel values.
 
 ## Example
 
