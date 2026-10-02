@@ -70,6 +70,110 @@ classdef (Hidden) TREStore
         function obj = attach(obj, tre, owner) %#codegen
             %ATTACH - Validate placement and capture the supplied record
             switch class(tre)
+                % BEGIN published TRE attachment
+                case 'nfx.ACCHZB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ACCPOB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ACCVTB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ASTORA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ATTPTA'
+                    legal = any(strcmp(owner, {'file', 'image'}));
+                case 'nfx.BCHIPA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.BNDPLB'
+                    legal = any(strcmp(owner, {'file', 'image'}));
+                case 'nfx.CCINFA'
+                    legal = any(strcmp(owner, {'file', 'image', 'text'}));
+                case 'nfx.COMNTA'
+                    legal = any(strcmp(owner, {'file', 'image', 'text'}));
+                case 'nfx.CSEPHA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.CSEXRA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.CSPROA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.CSSFAA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.EXOPTA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.EXPLTB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.FACCBB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.GEOLOB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.GRDPSB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.IOMAPA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ISACPA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ISASIA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.ISATPA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.J2KLRB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.MAPLOB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.MENSRB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.MITOCA'
+                    legal = any(strcmp(owner, {'file'}));
+                case 'nfx.MTIRPB'
+                    legal = any(strcmp(owner, {'file', 'image'}));
+                case 'nfx.NBLOCA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.PATCHB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.PIAEQA'
+                    legal = any(strcmp(owner, {'image', 'text'}));
+                case 'nfx.PIAEVA'
+                    legal = any(strcmp(owner, {'image', 'text'}));
+                case 'nfx.PIAIMC'
+                    legal = any(strcmp(owner, {'file', 'image'}));
+                case 'nfx.PIAPEB'
+                    legal = any(strcmp(owner, {'image', 'text'}));
+                case 'nfx.PIAPRD'
+                    legal = any(strcmp(owner, {'file'}));
+                case 'nfx.PIATGB'
+                    legal = any(strcmp(owner, {'image', 'text'}));
+                case 'nfx.PIXMTA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.PRJPSB'
+                    legal = any(strcmp(owner, {'file', 'image'}));
+                case 'nfx.REGPTB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.REGPTC'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.RELCCA'
+                    legal = any(strcmp(owner, {'file', 'image', 'text'}));
+                case 'nfx.RSMAPA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.RSMDCA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.RSMECA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.S2EVPA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.SECTGA'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.SNSPSB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.SOURCB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.STDIDC'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.STREOB'
+                    legal = any(strcmp(owner, {'image'}));
+                case 'nfx.SYSIDA'
+                    legal = any(strcmp(owner, {'file', 'image', 'text'}));
+                case 'nfx.USE00A'
+                    legal = any(strcmp(owner, {'image'}));
+                % END published TRE attachment
                 case {'nfx.PIXQLA','nfx.CSCCGA','nfx.MSTGTA','nfx.BLOCKA'}
                     legal = strcmp(owner, 'image');
                 case {'nfx.GEOPSB','nfx.BNDPLC'}

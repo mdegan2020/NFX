@@ -1,6 +1,110 @@
 function displayTRERecords(records) %#codegen
     %displayTRERecords - Dispatch only presentation by the encoded tag
     switch records(1).tag
+        % BEGIN published TRE display dispatch
+        case 'ACCHZB'
+            showACCHZB(records);
+        case 'ACCPOB'
+            showACCPOB(records);
+        case 'ACCVTB'
+            showACCVTB(records);
+        case 'ASTORA'
+            showASTORA(records);
+        case 'ATTPTA'
+            showATTPTA(records);
+        case 'BCHIPA'
+            showBCHIPA(records);
+        case 'BNDPLB'
+            showBNDPLB(records);
+        case 'CCINFA'
+            showCCINFA(records);
+        case 'COMNTA'
+            showCOMNTA(records);
+        case 'CSEPHA'
+            showCSEPHA(records);
+        case 'CSEXRA'
+            showCSEXRA(records);
+        case 'CSPROA'
+            showCSPROA(records);
+        case 'CSSFAA'
+            showCSSFAA(records);
+        case 'EXOPTA'
+            showEXOPTA(records);
+        case 'EXPLTB'
+            showEXPLTB(records);
+        case 'FACCBB'
+            showFACCBB(records);
+        case 'GEOLOB'
+            showGEOLOB(records);
+        case 'GRDPSB'
+            showGRDPSB(records);
+        case 'IOMAPA'
+            showIOMAPA(records);
+        case 'ISACPA'
+            showISACPA(records);
+        case 'ISASIA'
+            showISASIA(records);
+        case 'ISATPA'
+            showISATPA(records);
+        case 'J2KLRB'
+            showJ2KLRB(records);
+        case 'MAPLOB'
+            showMAPLOB(records);
+        case 'MENSRB'
+            showMENSRB(records);
+        case 'MITOCA'
+            showMITOCA(records);
+        case 'MTIRPB'
+            showMTIRPB(records);
+        case 'NBLOCA'
+            showNBLOCA(records);
+        case 'PATCHB'
+            showPATCHB(records);
+        case 'PIAEQA'
+            showPIAEQA(records);
+        case 'PIAEVA'
+            showPIAEVA(records);
+        case 'PIAIMC'
+            showPIAIMC(records);
+        case 'PIAPEB'
+            showPIAPEB(records);
+        case 'PIAPRD'
+            showPIAPRD(records);
+        case 'PIATGB'
+            showPIATGB(records);
+        case 'PIXMTA'
+            showPIXMTA(records);
+        case 'PRJPSB'
+            showPRJPSB(records);
+        case 'REGPTB'
+            showREGPTB(records);
+        case 'REGPTC'
+            showREGPTC(records);
+        case 'RELCCA'
+            showRELCCA(records);
+        case 'RSMAPA'
+            showRSMAPA(records);
+        case 'RSMDCA'
+            showRSMDCA(records);
+        case 'RSMECA'
+            showRSMECA(records);
+        case 'S2EVPA'
+            showS2EVPA(records);
+        case 'SECTGA'
+            showSECTGA(records);
+        case 'SNSPSB'
+            showSNSPSB(records);
+        case 'SOURCB'
+            showSOURCB(records);
+        case 'STDIDC'
+            showSTDIDC(records);
+        case 'STREOB'
+            showSTREOB(records);
+        case 'SYSIDA'
+            showSYSIDA(records);
+        case 'USE00A'
+            showUSE00A(records);
+        % END published TRE display dispatch
         case 'GEOPSB'
             showGEOPSB(records);
         case 'BNDPLC'
@@ -92,6 +196,1018 @@ function displayTRERecords(records) %#codegen
     end
 end
 
+% BEGIN published TRE display values
+function showACCHZB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ACCHZB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('regions', obj.regions);
+end
+
+function showACCPOB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ACCPOB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('regions', obj.regions);
+end
+
+function showACCVTB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ACCVTB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('regions', obj.regions);
+end
+
+function showASTORA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ASTORA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('img_total_rows', obj.img_total_rows);
+    printTREField('img_total_cols', obj.img_total_cols);
+    printTREField('img_index_row', obj.img_index_row);
+    printTREField('img_index_col', obj.img_index_col);
+    printTREField('geoid_offset', obj.geoid_offset);
+    printTREField('alpha_0', obj.alpha_0);
+    printTREField('k_l', obj.k_l);
+    printTREField('c_m', obj.c_m);
+    printTREField('ac_roll', obj.ac_roll);
+    printTREField('ac_pitch', obj.ac_pitch);
+    printTREField('ac_yaw', obj.ac_yaw);
+    printTREField('ac_track_heading', obj.ac_track_heading);
+    printTREField('ap_origin_x', obj.ap_origin_x);
+    printTREField('ap_origin_y', obj.ap_origin_y);
+    printTREField('ap_origin_z', obj.ap_origin_z);
+    printTREField('ap_dir_x', obj.ap_dir_x);
+    printTREField('ap_dir_y', obj.ap_dir_y);
+    printTREField('ap_dir_z', obj.ap_dir_z);
+    printTREField('x_ap_start', obj.x_ap_start);
+    printTREField('x_ap_end', obj.x_ap_end);
+    printTREField('ss_row_shift', obj.ss_row_shift);
+    printTREField('ss_col_shift', obj.ss_col_shift);
+    printTREField('u_hat_x', obj.u_hat_x);
+    printTREField('u_hat_y', obj.u_hat_y);
+    printTREField('u_hat_z', obj.u_hat_z);
+    printTREField('v_hat_x', obj.v_hat_x);
+    printTREField('v_hat_y', obj.v_hat_y);
+    printTREField('v_hat_z', obj.v_hat_z);
+    printTREField('n_hat_x', obj.n_hat_x);
+    printTREField('n_hat_y', obj.n_hat_y);
+    printTREField('n_hat_z', obj.n_hat_z);
+    printTREField('eta_0', obj.eta_0);
+    printTREField('sigma_sm', obj.sigma_sm);
+    printTREField('sigma_sn', obj.sigma_sn);
+    printTREField('s_off', obj.s_off);
+    printTREField('rn_offset', obj.rn_offset);
+    printTREField('r_scl', obj.r_scl);
+    printTREField('r_nav', obj.r_nav);
+    printTREField('r_sc_exact', obj.r_sc_exact);
+    printTREField('c_sc_x', obj.c_sc_x);
+    printTREField('c_sc_y', obj.c_sc_y);
+    printTREField('c_sc_z', obj.c_sc_z);
+    printTREField('k_hat_x', obj.k_hat_x);
+    printTREField('k_hat_y', obj.k_hat_y);
+    printTREField('k_hat_z', obj.k_hat_z);
+    printTREField('l_hat_x', obj.l_hat_x);
+    printTREField('l_hat_y', obj.l_hat_y);
+    printTREField('l_hat_z', obj.l_hat_z);
+    printTREField('p_z', obj.p_z);
+    printTREField('theta_c', obj.theta_c);
+    printTREField('alpha_sl', obj.alpha_sl);
+    printTREField('sigma_tc', obj.sigma_tc);
+end
+
+function showATTPTA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ATTPTA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('att_cs', obj.att_cs);
+    printTREField('id_type', obj.id_type);
+    printTREField('images', obj.images);
+    printTREField('global_constants', obj.global_constants);
+    printTREField('global_variables', obj.global_variables);
+    printTREField('groups', obj.groups);
+end
+
+function showBCHIPA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.BCHIPA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('sde_uuid', obj.sde_uuid);
+    printTREField('num_insts', obj.num_insts);
+    printTREField('instance', obj.instance);
+    printTREField('include_a', obj.include_a);
+    printTREField('tot_orig_bands', obj.tot_orig_bands);
+    printTREField('tot_curr_bands', obj.tot_curr_bands);
+    printTREField('bwp_is', obj.bwp_is);
+    printTREField('sdes', obj.sdes);
+    printTREField('include_b', obj.include_b);
+    printTREField('original_bands', obj.original_bands);
+    printTREField('include_c', obj.include_c);
+    printTREField('current_bands', obj.current_bands);
+end
+
+function showBNDPLB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.BNDPLB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('points', obj.points);
+end
+
+function showCCINFA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.CCINFA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('codes', obj.codes);
+end
+
+function showCOMNTA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.COMNTA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('comment', obj.comment);
+end
+
+function showCSEPHA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.CSEPHA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('ephem_flag', obj.ephem_flag);
+    printTREField('dt_ephem', obj.dt_ephem);
+    printTREField('date_ephem', obj.date_ephem);
+    printTREField('t0_ephem', obj.t0_ephem);
+    printTREField('ephemeris', obj.ephemeris);
+end
+
+function showCSEXRA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.CSEXRA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('sensor', obj.sensor);
+    printTREField('time_first_line_image', obj.time_first_line_image);
+    printTREField('time_image_duration', obj.time_image_duration);
+    printTREField('max_gsd', obj.max_gsd);
+    printTREField('along_scan_gsd', obj.along_scan_gsd);
+    printTREField('cross_scan_gsd', obj.cross_scan_gsd);
+    printTREField('geo_mean_gsd', obj.geo_mean_gsd);
+    printTREField('a_s_vert_gsd', obj.a_s_vert_gsd);
+    printTREField('c_s_vert_gsd', obj.c_s_vert_gsd);
+    printTREField('geo_mean_vert_gsd', obj.geo_mean_vert_gsd);
+    printTREField('gsd_beta_angle', obj.gsd_beta_angle);
+    printTREField('dynamic_range', obj.dynamic_range);
+    printTREField('num_lines', obj.num_lines);
+    printTREField('num_samples', obj.num_samples);
+    printTREField('angle_to_north', obj.angle_to_north);
+    printTREField('obliquity_angle', obj.obliquity_angle);
+    printTREField('az_of_obliquity', obj.az_of_obliquity);
+    printTREField('grd_cover', obj.grd_cover);
+    printTREField('snow_depth_cat', obj.snow_depth_cat);
+    printTREField('sun_azimuth', obj.sun_azimuth);
+    printTREField('sun_elevation', obj.sun_elevation);
+    printTREField('predicted_niirs', obj.predicted_niirs);
+    printTREField('circl_err', obj.circl_err);
+    printTREField('linear_err', obj.linear_err);
+end
+
+function showCSPROA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.CSPROA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('reserved_6', obj.reserved_6);
+    printTREField('bwc', obj.bwc);
+end
+
+function showCSSFAA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.CSSFAA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('bands', obj.bands);
+end
+
+function showEXOPTA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.EXOPTA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('angle_to_north', obj.angle_to_north);
+    printTREField('mean_gsd', obj.mean_gsd);
+    printTREField('dynamic_range', obj.dynamic_range);
+    printTREField('obl_ang', obj.obl_ang);
+    printTREField('roll_ang', obj.roll_ang);
+    printTREField('prime_id', obj.prime_id);
+    printTREField('prime_be', obj.prime_be);
+    printTREField('n_sec', obj.n_sec);
+    printTREField('n_seg', obj.n_seg);
+    printTREField('max_lp_seg', obj.max_lp_seg);
+    printTREField('sun_el', obj.sun_el);
+    printTREField('sun_az', obj.sun_az);
+end
+
+function showEXPLTB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.EXPLTB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('angle_to_north', obj.angle_to_north);
+    printTREField('angle_to_north_accy', obj.angle_to_north_accy);
+    printTREField('squint_angle', obj.squint_angle);
+    printTREField('squint_angle_accy', obj.squint_angle_accy);
+    printTREField('mode', obj.mode);
+    printTREField('graze_ang', obj.graze_ang);
+    printTREField('graze_ang_accy', obj.graze_ang_accy);
+    printTREField('slope_ang', obj.slope_ang);
+    printTREField('polar', obj.polar);
+    printTREField('nsamp', obj.nsamp);
+    printTREField('seq_num', obj.seq_num);
+    printTREField('prime_id', obj.prime_id);
+    printTREField('prime_be', obj.prime_be);
+    printTREField('n_sec', obj.n_sec);
+    printTREField('ipr', obj.ipr);
+end
+
+function showFACCBB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.FACCBB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('attributes', obj.attributes);
+end
+
+function showGEOLOB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.GEOLOB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('arv', obj.arv);
+    printTREField('brv', obj.brv);
+    printTREField('lso', obj.lso);
+    printTREField('pso', obj.pso);
+end
+
+function showGRDPSB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.GRDPSB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('grids', obj.grids);
+end
+
+function showIOMAPA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.IOMAPA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('band_number', obj.band_number);
+    printTREField('map_select', obj.map_select);
+    printTREField('table_id', obj.table_id);
+    printTREField('s1', obj.s1);
+    printTREField('s2', obj.s2);
+    printTREField('output_map', obj.output_map);
+    printTREField('r_whole', obj.r_whole);
+    printTREField('r_fraction', obj.r_fraction);
+    printTREField('xob', obj.xob);
+    printTREField('out_b', obj.out_b);
+end
+
+function showISACPA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ISACPA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('task_id', obj.task_id);
+    printTREField('frame_num', obj.frame_num);
+    printTREField('date_time_utc', obj.date_time_utc);
+    printTREField('ref_pt_lat', obj.ref_pt_lat);
+    printTREField('ref_pt_lon', obj.ref_pt_lon);
+    printTREField('ref_pt_hgt', obj.ref_pt_hgt);
+    printTREField('ref_pt_hdg', obj.ref_pt_hdg);
+    printTREField('ref_pt_spd', obj.ref_pt_spd);
+    printTREField('ref_pt_slt_rng', obj.ref_pt_slt_rng);
+    printTREField('side', obj.side);
+    printTREField('rng_res', obj.rng_res);
+    printTREField('fit', obj.fit);
+    printTREField('rng_spacing', obj.rng_spacing);
+    printTREField('dop_spacing', obj.dop_spacing);
+    printTREField('dop_scale', obj.dop_scale);
+    printTREField('db_res', obj.db_res);
+    printTREField('prf', obj.prf);
+    printTREField('pol_tr', obj.pol_tr);
+    printTREField('pol_re', obj.pol_re);
+    printTREField('wf_cenfrq', obj.wf_cenfrq);
+    printTREField('weight', obj.weight);
+    printTREField('rng_sll', obj.rng_sll);
+    printTREField('dop_sll', obj.dop_sll);
+    printTREField('rng_tay_nbar', obj.rng_tay_nbar);
+    printTREField('dop_tay_nbar', obj.dop_tay_nbar);
+    printTREField('weight_norm', obj.weight_norm);
+    printTREField('img_fom', obj.img_fom);
+    printTREField('ref_trk', obj.ref_trk);
+end
+
+function showISASIA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ISASIA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('snsr_lat', obj.snsr_lat);
+    printTREField('snsr_lon', obj.snsr_lon);
+    printTREField('snsr_hgt', obj.snsr_hgt);
+    printTREField('snsr_n_vel', obj.snsr_n_vel);
+    printTREField('snsr_e_vel', obj.snsr_e_vel);
+    printTREField('snsr_d_vel', obj.snsr_d_vel);
+    printTREField('snsr_lat_err', obj.snsr_lat_err);
+    printTREField('snsr_lon_err', obj.snsr_lon_err);
+    printTREField('snsr_hgt_err', obj.snsr_hgt_err);
+    printTREField('snsr_n_vel_err', obj.snsr_n_vel_err);
+    printTREField('snsr_e_vel_err', obj.snsr_e_vel_err);
+    printTREField('snsr_d_vel_err', obj.snsr_d_vel_err);
+    printTREField('snsr_roll', obj.snsr_roll);
+    printTREField('snsr_pitch', obj.snsr_pitch);
+    printTREField('snsr_yaw', obj.snsr_yaw);
+end
+
+function showISATPA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.ISATPA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('tgt_det', obj.tgt_det);
+    printTREField('tgt_len', obj.tgt_len);
+    printTREField('tgt_len_uncy', obj.tgt_len_uncy);
+    printTREField('tgt_strt_rng', obj.tgt_strt_rng);
+    printTREField('tgt_strt_dop', obj.tgt_strt_dop);
+    printTREField('tgt_end_rng', obj.tgt_end_rng);
+    printTREField('tgt_end_dop', obj.tgt_end_dop);
+    printTREField('tgt_info', obj.tgt_info);
+end
+
+function showJ2KLRB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.J2KLRB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('orig', obj.orig);
+    printTREField('cstream', obj.cstream);
+    printTREField('nlevels_o', obj.nlevels_o);
+    printTREField('nbands_o', obj.nbands_o);
+    printTREField('layers', obj.layers);
+    printTREField('nlevels_i', obj.nlevels_i);
+    printTREField('nbands_i', obj.nbands_i);
+    printTREField('nlayers_i', obj.nlayers_i);
+end
+
+function showMAPLOB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.MAPLOB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('uniloa', obj.uniloa);
+    printTREField('lod', obj.lod);
+    printTREField('lad', obj.lad);
+    printTREField('lso', obj.lso);
+    printTREField('pso', obj.pso);
+end
+
+function showMENSRB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.MENSRB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('acft_loc', obj.acft_loc);
+    printTREField('acft_loc_accy', obj.acft_loc_accy);
+    printTREField('acft_alt', obj.acft_alt);
+    printTREField('rp_loc', obj.rp_loc);
+    printTREField('rp_loc_accy', obj.rp_loc_accy);
+    printTREField('rp_elv', obj.rp_elv);
+    printTREField('of_pc_r', obj.of_pc_r);
+    printTREField('of_pc_a', obj.of_pc_a);
+    printTREField('cosgrz', obj.cosgrz);
+    printTREField('rgcrp', obj.rgcrp);
+    printTREField('rlmap', obj.rlmap);
+    printTREField('rp_row', obj.rp_row);
+    printTREField('rp_col', obj.rp_col);
+    printTREField('c_r_nc', obj.c_r_nc);
+    printTREField('c_r_ec', obj.c_r_ec);
+    printTREField('c_r_dc', obj.c_r_dc);
+    printTREField('c_az_nc', obj.c_az_nc);
+    printTREField('c_az_ec', obj.c_az_ec);
+    printTREField('c_az_dc', obj.c_az_dc);
+    printTREField('c_al_nc', obj.c_al_nc);
+    printTREField('c_al_ec', obj.c_al_ec);
+    printTREField('c_al_dc', obj.c_al_dc);
+    printTREField('total_tiles_cols', obj.total_tiles_cols);
+    printTREField('total_tiles_rows', obj.total_tiles_rows);
+end
+
+function showMITOCA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.MITOCA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('scene_type', obj.scene_type);
+    printTREField('scene_id', obj.scene_id);
+    printTREField('look_composite_index', obj.look_composite_index);
+    printTREField('look_composite_id', obj.look_composite_id);
+    printTREField('look_corner_1', obj.look_corner_1);
+    printTREField('look_corner_2', obj.look_corner_2);
+    printTREField('look_corner_3', obj.look_corner_3);
+    printTREField('look_corner_4', obj.look_corner_4);
+    printTREField('num_volumes', obj.num_volumes);
+    printTREField('look_instance', obj.look_instance);
+    printTREField('volume_num', obj.volume_num);
+    printTREField('sensor_id', obj.sensor_id);
+    printTREField('sensor_id_type', obj.sensor_id_type);
+    printTREField('mplan', obj.mplan);
+    printTREField('volume_composite_index', obj.volume_composite_index);
+    printTREField('volume_composite_id', obj.volume_composite_id);
+    printTREField('volume_corner_1', obj.volume_corner_1);
+    printTREField('volume_corner_2', obj.volume_corner_2);
+    printTREField('volume_corner_3', obj.volume_corner_3);
+    printTREField('volume_corner_4', obj.volume_corner_4);
+    printTREField('components_flag', obj.components_flag);
+    printTREField('num_rows', obj.num_rows);
+    printTREField('num_cols', obj.num_cols);
+    printTREField('dsr', obj.dsr);
+    printTREField('components', obj.components);
+end
+
+function showMTIRPB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.MTIRPB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('mti_dp', obj.mti_dp);
+    printTREField('mti_packet_id', obj.mti_packet_id);
+    printTREField('patch_no', obj.patch_no);
+    printTREField('wamti_frame_no', obj.wamti_frame_no);
+    printTREField('wamti_bar_no', obj.wamti_bar_no);
+    printTREField('datime', obj.datime);
+    printTREField('acft_loc', obj.acft_loc);
+    printTREField('acft_alt', obj.acft_alt);
+    printTREField('acft_alt_unit', obj.acft_alt_unit);
+    printTREField('acft_heading', obj.acft_heading);
+    printTREField('mti_lr', obj.mti_lr);
+    printTREField('squint_angle', obj.squint_angle);
+    printTREField('cosgrz', obj.cosgrz);
+    printTREField('targets', obj.targets);
+end
+
+function showNBLOCA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.NBLOCA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('frame_1_offset', obj.frame_1_offset);
+    printTREField('offsets', obj.offsets);
+end
+
+function showPATCHB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PATCHB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('pat_no', obj.pat_no);
+    printTREField('last_pat_flag', obj.last_pat_flag);
+    printTREField('lnstrt', obj.lnstrt);
+    printTREField('lnstop', obj.lnstop);
+    printTREField('azl', obj.azl);
+    printTREField('nvl', obj.nvl);
+    printTREField('fvl', obj.fvl);
+    printTREField('npixel', obj.npixel);
+    printTREField('fvpix', obj.fvpix);
+    printTREField('frame', obj.frame);
+    printTREField('utc', obj.utc);
+    printTREField('shead', obj.shead);
+    printTREField('gravity', obj.gravity);
+    printTREField('ins_v_nc', obj.ins_v_nc);
+    printTREField('ins_v_ec', obj.ins_v_ec);
+    printTREField('ins_v_dc', obj.ins_v_dc);
+    printTREField('offlat', obj.offlat);
+    printTREField('offlong', obj.offlong);
+    printTREField('track', obj.track);
+    printTREField('gsweep', obj.gsweep);
+    printTREField('shear', obj.shear);
+    printTREField('batch_no', obj.batch_no);
+end
+
+function showPIAEQA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIAEQA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('eqpcode', obj.eqpcode);
+    printTREField('eqpnomen', obj.eqpnomen);
+    printTREField('eqpman', obj.eqpman);
+    printTREField('obtype', obj.obtype);
+    printTREField('ordbat', obj.ordbat);
+    printTREField('ctryprod', obj.ctryprod);
+    printTREField('ctrydsn', obj.ctrydsn);
+    printTREField('objview', obj.objview);
+end
+
+function showPIAEVA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIAEVA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('eventname', obj.eventname);
+    printTREField('eventtype', obj.eventtype);
+end
+
+function showPIAIMC(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIAIMC(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('cloudcvr', obj.cloudcvr);
+    printTREField('srp', obj.srp);
+    printTREField('sensmode', obj.sensmode);
+    printTREField('sensname', obj.sensname);
+    printTREField('source', obj.source);
+    printTREField('comgen', obj.comgen);
+    printTREField('subqual', obj.subqual);
+    printTREField('piamsnnum', obj.piamsnnum);
+    printTREField('camspecs', obj.camspecs);
+    printTREField('projid', obj.projid);
+    printTREField('generation', obj.generation);
+    printTREField('esd', obj.esd);
+    printTREField('othercond', obj.othercond);
+    printTREField('meangsd', obj.meangsd);
+    printTREField('idatum', obj.idatum);
+    printTREField('iellip', obj.iellip);
+    printTREField('preproc', obj.preproc);
+    printTREField('iproj', obj.iproj);
+    printTREField('sattrack', obj.sattrack);
+end
+
+function showPIAPEB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIAPEB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('lastnme', obj.lastnme);
+    printTREField('firstnme', obj.firstnme);
+    printTREField('midnme', obj.midnme);
+    printTREField('dob', obj.dob);
+    printTREField('assoctry', obj.assoctry);
+end
+
+function showPIAPRD(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIAPRD(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('accessid', obj.accessid);
+    printTREField('fmcontrol', obj.fmcontrol);
+    printTREField('subdet', obj.subdet);
+    printTREField('prodcode', obj.prodcode);
+    printTREField('producerse', obj.producerse);
+    printTREField('prodidno', obj.prodidno);
+    printTREField('prodsnme', obj.prodsnme);
+    printTREField('producercd', obj.producercd);
+    printTREField('prodcrtime', obj.prodcrtime);
+    printTREField('mapid', obj.mapid);
+    printTREField('sections', obj.sections);
+    printTREField('organizations', obj.organizations);
+    printTREField('keywords', obj.keywords);
+    printTREField('reports', obj.reports);
+    printTREField('texts', obj.texts);
+end
+
+function showPIATGB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIATGB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('tgtutm', obj.tgtutm);
+    printTREField('piatgaid', obj.piatgaid);
+    printTREField('piactry', obj.piactry);
+    printTREField('piacat', obj.piacat);
+    printTREField('tgtgeo', obj.tgtgeo);
+    printTREField('datum', obj.datum);
+    printTREField('tgtname', obj.tgtname);
+    printTREField('percover', obj.percover);
+    printTREField('tgtlat', obj.tgtlat);
+    printTREField('tgtlon', obj.tgtlon);
+end
+
+function showPIXMTA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PIXMTA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('aisdlvl', obj.aisdlvl);
+    printTREField('origin_x', obj.origin_x);
+    printTREField('origin_y', obj.origin_y);
+    printTREField('scale_x', obj.scale_x);
+    printTREField('scale_y', obj.scale_y);
+    printTREField('sample_mode', obj.sample_mode);
+    printTREField('perband', obj.perband);
+    printTREField('metrics', obj.metrics);
+    printTREField('reserved', obj.reserved);
+    printTREField('all_images', obj.all_images);
+end
+
+function showPRJPSB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.PRJPSB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('prn', obj.prn);
+    printTREField('pco', obj.pco);
+    printTREField('prj', obj.prj);
+    printTREField('xor', obj.xor);
+    printTREField('yor', obj.yor);
+end
+
+function showREGPTB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.REGPTB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('points', obj.points);
+end
+
+function showREGPTC(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.REGPTC(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('points', obj.points);
+end
+
+function showRELCCA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.RELCCA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('reldate', obj.reldate);
+    printTREField('relsours', obj.relsours);
+    printTREField('relccstd', obj.relccstd);
+    printTREField('rcolstd', obj.rcolstd);
+    printTREField('rorgstd', obj.rorgstd);
+    printTREField('coalid', obj.coalid);
+    printTREField('coalcc', obj.coalcc);
+    printTREField('relccodes', obj.relccodes);
+    printTREField('relorg', obj.relorg);
+end
+
+function showRSMAPA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.RSMAPA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('iid', obj.iid);
+    printTREField('edition', obj.edition);
+    printTREField('tid', obj.tid);
+    printTREField('xuol', obj.xuol);
+    printTREField('yuol', obj.yuol);
+    printTREField('zuol', obj.zuol);
+    printTREField('xuxl', obj.xuxl);
+    printTREField('xuyl', obj.xuyl);
+    printTREField('xuzl', obj.xuzl);
+    printTREField('yuxl', obj.yuxl);
+    printTREField('yuyl', obj.yuyl);
+    printTREField('yuzl', obj.yuzl);
+    printTREField('zuxl', obj.zuxl);
+    printTREField('zuyl', obj.zuyl);
+    printTREField('zuzl', obj.zuzl);
+    printTREField('iro', obj.iro);
+    printTREField('irx', obj.irx);
+    printTREField('iry', obj.iry);
+    printTREField('irz', obj.irz);
+    printTREField('irxx', obj.irxx);
+    printTREField('irxy', obj.irxy);
+    printTREField('irxz', obj.irxz);
+    printTREField('iryy', obj.iryy);
+    printTREField('iryz', obj.iryz);
+    printTREField('irzz', obj.irzz);
+    printTREField('ico', obj.ico);
+    printTREField('icx', obj.icx);
+    printTREField('icy', obj.icy);
+    printTREField('icz', obj.icz);
+    printTREField('icxx', obj.icxx);
+    printTREField('icxy', obj.icxy);
+    printTREField('icxz', obj.icxz);
+    printTREField('icyy', obj.icyy);
+    printTREField('icyz', obj.icyz);
+    printTREField('iczz', obj.iczz);
+    printTREField('gxo', obj.gxo);
+    printTREField('gyo', obj.gyo);
+    printTREField('gzo', obj.gzo);
+    printTREField('gxr', obj.gxr);
+    printTREField('gyr', obj.gyr);
+    printTREField('gzr', obj.gzr);
+    printTREField('gs', obj.gs);
+    printTREField('gxx', obj.gxx);
+    printTREField('gxy', obj.gxy);
+    printTREField('gxz', obj.gxz);
+    printTREField('gyx', obj.gyx);
+    printTREField('gyy', obj.gyy);
+    printTREField('gyz', obj.gyz);
+    printTREField('gzx', obj.gzx);
+    printTREField('gzy', obj.gzy);
+    printTREField('gzz', obj.gzz);
+    printTREField('parval', obj.parval);
+end
+
+function showRSMDCA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.RSMDCA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('iid', obj.iid);
+    printTREField('edition', obj.edition);
+    printTREField('tid', obj.tid);
+    printTREField('images', obj.images);
+    printTREField('xuol', obj.xuol);
+    printTREField('yuol', obj.yuol);
+    printTREField('zuol', obj.zuol);
+    printTREField('xuxl', obj.xuxl);
+    printTREField('xuyl', obj.xuyl);
+    printTREField('xuzl', obj.xuzl);
+    printTREField('yuxl', obj.yuxl);
+    printTREField('yuyl', obj.yuyl);
+    printTREField('yuzl', obj.yuzl);
+    printTREField('zuxl', obj.zuxl);
+    printTREField('zuyl', obj.zuyl);
+    printTREField('zuzl', obj.zuzl);
+    printTREField('iro', obj.iro);
+    printTREField('irx', obj.irx);
+    printTREField('iry', obj.iry);
+    printTREField('irz', obj.irz);
+    printTREField('irxx', obj.irxx);
+    printTREField('irxy', obj.irxy);
+    printTREField('irxz', obj.irxz);
+    printTREField('iryy', obj.iryy);
+    printTREField('iryz', obj.iryz);
+    printTREField('irzz', obj.irzz);
+    printTREField('ico', obj.ico);
+    printTREField('icx', obj.icx);
+    printTREField('icy', obj.icy);
+    printTREField('icz', obj.icz);
+    printTREField('icxx', obj.icxx);
+    printTREField('icxy', obj.icxy);
+    printTREField('icxz', obj.icxz);
+    printTREField('icyy', obj.icyy);
+    printTREField('icyz', obj.icyz);
+    printTREField('iczz', obj.iczz);
+    printTREField('gxo', obj.gxo);
+    printTREField('gyo', obj.gyo);
+    printTREField('gzo', obj.gzo);
+    printTREField('gxr', obj.gxr);
+    printTREField('gyr', obj.gyr);
+    printTREField('gzr', obj.gzr);
+    printTREField('gs', obj.gs);
+    printTREField('gxx', obj.gxx);
+    printTREField('gxy', obj.gxy);
+    printTREField('gxz', obj.gxz);
+    printTREField('gyx', obj.gyx);
+    printTREField('gyy', obj.gyy);
+    printTREField('gyz', obj.gyz);
+    printTREField('gzx', obj.gzx);
+    printTREField('gzy', obj.gzy);
+    printTREField('gzz', obj.gzz);
+    printTREField('dercov', obj.dercov);
+end
+
+function showRSMECA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.RSMECA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('iid', obj.iid);
+    printTREField('edition', obj.edition);
+    printTREField('tid', obj.tid);
+    printTREField('inclic', obj.inclic);
+    printTREField('incluc', obj.incluc);
+    printTREField('cvdate', obj.cvdate);
+    printTREField('xuol', obj.xuol);
+    printTREField('yuol', obj.yuol);
+    printTREField('zuol', obj.zuol);
+    printTREField('xuxl', obj.xuxl);
+    printTREField('xuyl', obj.xuyl);
+    printTREField('xuzl', obj.xuzl);
+    printTREField('yuxl', obj.yuxl);
+    printTREField('yuyl', obj.yuyl);
+    printTREField('yuzl', obj.yuzl);
+    printTREField('zuxl', obj.zuxl);
+    printTREField('zuyl', obj.zuyl);
+    printTREField('zuzl', obj.zuzl);
+    printTREField('iro', obj.iro);
+    printTREField('irx', obj.irx);
+    printTREField('iry', obj.iry);
+    printTREField('irz', obj.irz);
+    printTREField('irxx', obj.irxx);
+    printTREField('irxy', obj.irxy);
+    printTREField('irxz', obj.irxz);
+    printTREField('iryy', obj.iryy);
+    printTREField('iryz', obj.iryz);
+    printTREField('irzz', obj.irzz);
+    printTREField('ico', obj.ico);
+    printTREField('icx', obj.icx);
+    printTREField('icy', obj.icy);
+    printTREField('icz', obj.icz);
+    printTREField('icxx', obj.icxx);
+    printTREField('icxy', obj.icxy);
+    printTREField('icxz', obj.icxz);
+    printTREField('icyy', obj.icyy);
+    printTREField('icyz', obj.icyz);
+    printTREField('iczz', obj.iczz);
+    printTREField('gxo', obj.gxo);
+    printTREField('gyo', obj.gyo);
+    printTREField('gzo', obj.gzo);
+    printTREField('gxr', obj.gxr);
+    printTREField('gyr', obj.gyr);
+    printTREField('gzr', obj.gzr);
+    printTREField('gs', obj.gs);
+    printTREField('gxx', obj.gxx);
+    printTREField('gxy', obj.gxy);
+    printTREField('gxz', obj.gxz);
+    printTREField('gyx', obj.gyx);
+    printTREField('gyy', obj.gyy);
+    printTREField('gyz', obj.gyz);
+    printTREField('gzx', obj.gzx);
+    printTREField('gzy', obj.gzy);
+    printTREField('gzz', obj.gzz);
+    printTREField('groups', obj.groups);
+    printTREField('map', obj.map);
+    printTREField('urr', obj.urr);
+    printTREField('urc', obj.urc);
+    printTREField('ucc', obj.ucc);
+    printTREField('row_correlations', obj.row_correlations);
+    printTREField('column_correlations', obj.column_correlations);
+end
+
+function showS2EVPA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.S2EVPA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('quantity_name', obj.quantity_name);
+    printTREField('uom', obj.uom);
+    printTREField('first_band', obj.first_band);
+    printTREField('last_band', obj.last_band);
+    printTREField('coef', obj.coef);
+end
+
+function showSECTGA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.SECTGA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('sec_id', obj.sec_id);
+    printTREField('sec_be', obj.sec_be);
+end
+
+function showSNSPSB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.SNSPSB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('sensors', obj.sensors);
+end
+
+function showSOURCB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.SOURCB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('is_sca', obj.is_sca);
+    printTREField('cpatch', obj.cpatch);
+    printTREField('sources', obj.sources);
+end
+
+function showSTDIDC(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.STDIDC(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('acquisition_date', obj.acquisition_date);
+    printTREField('mission', obj.mission);
+    printTREField('pass', obj.pass);
+    printTREField('op_num', obj.op_num);
+    printTREField('start_segment', obj.start_segment);
+    printTREField('repro_num', obj.repro_num);
+    printTREField('replay_regen', obj.replay_regen);
+    printTREField('blank_fill', obj.blank_fill);
+    printTREField('start_column', obj.start_column);
+    printTREField('start_row', obj.start_row);
+    printTREField('end_segment', obj.end_segment);
+    printTREField('end_column', obj.end_column);
+    printTREField('end_row', obj.end_row);
+    printTREField('country', obj.country);
+    printTREField('wac', obj.wac);
+    printTREField('location', obj.location);
+end
+
+function showSTREOB(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.STREOB(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('st_id', obj.st_id);
+    printTREField('n_mates', obj.n_mates);
+    printTREField('mate_instance', obj.mate_instance);
+    printTREField('b_conv', obj.b_conv);
+    printTREField('e_conv', obj.e_conv);
+    printTREField('b_asym', obj.b_asym);
+    printTREField('e_asym', obj.e_asym);
+    printTREField('b_bie', obj.b_bie);
+    printTREField('e_bie', obj.e_bie);
+end
+
+function showSYSIDA(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.SYSIDA(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('platform_id', obj.platform_id);
+    printTREField('payload_id', obj.payload_id);
+    printTREField('sensor_id', obj.sensor_id);
+end
+
+function showUSE00A(records) %#codegen
+    [obj, ok, status] = readTRE(records, nfx.USE00A(), 1, []);
+    if ~ok
+        fprintf('    %s: %s\n', status.code, status.message);
+        return
+    end
+    printTREField('angle_to_north', obj.angle_to_north);
+    printTREField('mean_gsd', obj.mean_gsd);
+    printTREField('dynamic_range', obj.dynamic_range);
+    printTREField('obl_ang', obj.obl_ang);
+    printTREField('roll_ang', obj.roll_ang);
+    printTREField('n_ref', obj.n_ref);
+    printTREField('rev_num', obj.rev_num);
+    printTREField('n_seg', obj.n_seg);
+    printTREField('max_lp_seg', obj.max_lp_seg);
+    printTREField('sun_el', obj.sun_el);
+    printTREField('sun_az', obj.sun_az);
+end
+% END published TRE display values
 function showACFTB(records) %#codegen
     %showACFTB - Decode one statically typed temporary for display
     [obj, ok, status] = readTRE(records, nfx.ACFTB(), 1, []);

@@ -61,6 +61,143 @@ classdef TextSegment
                 obj.tre_records, nfx.SECURA(), index, options.ID);
         end
 
+        % BEGIN published TRE accessors
+        function [tre, ok, status] = CCINFA(obj, index, options) %#codegen
+            %CCINFA - Retrieve an independent editable CCINFA value
+            %   [TRE, OK, STATUS] = OBJ.CCINFA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CCINFA and OK=false.
+            %
+            %   See also nfx.CCINFA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CCINFA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = COMNTA(obj, index, options) %#codegen
+            %COMNTA - Retrieve an independent editable COMNTA value
+            %   [TRE, OK, STATUS] = OBJ.COMNTA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar COMNTA and OK=false.
+            %
+            %   See also nfx.COMNTA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.COMNTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAEQA(obj, index, options) %#codegen
+            %PIAEQA - Retrieve an independent editable PIAEQA value
+            %   [TRE, OK, STATUS] = OBJ.PIAEQA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAEQA and OK=false.
+            %
+            %   See also nfx.PIAEQA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAEQA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAEVA(obj, index, options) %#codegen
+            %PIAEVA - Retrieve an independent editable PIAEVA value
+            %   [TRE, OK, STATUS] = OBJ.PIAEVA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAEVA and OK=false.
+            %
+            %   See also nfx.PIAEVA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAEVA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAPEB(obj, index, options) %#codegen
+            %PIAPEB - Retrieve an independent editable PIAPEB value
+            %   [TRE, OK, STATUS] = OBJ.PIAPEB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAPEB and OK=false.
+            %
+            %   See also nfx.PIAPEB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAPEB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIATGB(obj, index, options) %#codegen
+            %PIATGB - Retrieve an independent editable PIATGB value
+            %   [TRE, OK, STATUS] = OBJ.PIATGB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIATGB and OK=false.
+            %
+            %   See also nfx.PIATGB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIATGB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = RELCCA(obj, index, options) %#codegen
+            %RELCCA - Retrieve an independent editable RELCCA value
+            %   [TRE, OK, STATUS] = OBJ.RELCCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar RELCCA and OK=false.
+            %
+            %   See also nfx.RELCCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.RELCCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SYSIDA(obj, index, options) %#codegen
+            %SYSIDA - Retrieve an independent editable SYSIDA value
+            %   [TRE, OK, STATUS] = OBJ.SYSIDA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SYSIDA and OK=false.
+            %
+            %   See also nfx.SYSIDA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.TextSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SYSIDA(), index, options.ID);
+        end
+        % END published TRE accessors
         function [tre, ok, status] = ENGRDA(obj, index, options) %#codegen
             %ENGRDA - Retrieve an independent editable ENGRDA value
             %   [TRE, OK, STATUS] = OBJ.ENGRDA(INDEX) selects the logical

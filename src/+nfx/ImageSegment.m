@@ -242,6 +242,840 @@ classdef ImageSegment
                 obj.tre_records, nfx.BLOCKA(), index, options.ID);
         end
 
+        % BEGIN published TRE accessors
+        function [tre, ok, status] = ACCHZB(obj, index, options) %#codegen
+            %ACCHZB - Retrieve an independent editable ACCHZB value
+            %   [TRE, OK, STATUS] = OBJ.ACCHZB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ACCHZB and OK=false.
+            %
+            %   See also nfx.ACCHZB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ACCHZB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ACCPOB(obj, index, options) %#codegen
+            %ACCPOB - Retrieve an independent editable ACCPOB value
+            %   [TRE, OK, STATUS] = OBJ.ACCPOB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ACCPOB and OK=false.
+            %
+            %   See also nfx.ACCPOB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ACCPOB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ACCVTB(obj, index, options) %#codegen
+            %ACCVTB - Retrieve an independent editable ACCVTB value
+            %   [TRE, OK, STATUS] = OBJ.ACCVTB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ACCVTB and OK=false.
+            %
+            %   See also nfx.ACCVTB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ACCVTB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ASTORA(obj, index, options) %#codegen
+            %ASTORA - Retrieve an independent editable ASTORA value
+            %   [TRE, OK, STATUS] = OBJ.ASTORA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ASTORA and OK=false.
+            %
+            %   See also nfx.ASTORA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ASTORA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ATTPTA(obj, index, options) %#codegen
+            %ATTPTA - Retrieve an independent editable ATTPTA value
+            %   [TRE, OK, STATUS] = OBJ.ATTPTA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ATTPTA and OK=false.
+            %
+            %   See also nfx.ATTPTA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ATTPTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = BCHIPA(obj, index, options) %#codegen
+            %BCHIPA - Retrieve an independent editable BCHIPA value
+            %   [TRE, OK, STATUS] = OBJ.BCHIPA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar BCHIPA and OK=false.
+            %
+            %   See also nfx.BCHIPA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.BCHIPA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = BNDPLB(obj, index, options) %#codegen
+            %BNDPLB - Retrieve an independent editable BNDPLB value
+            %   [TRE, OK, STATUS] = OBJ.BNDPLB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar BNDPLB and OK=false.
+            %
+            %   See also nfx.BNDPLB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.BNDPLB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CCINFA(obj, index, options) %#codegen
+            %CCINFA - Retrieve an independent editable CCINFA value
+            %   [TRE, OK, STATUS] = OBJ.CCINFA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CCINFA and OK=false.
+            %
+            %   See also nfx.CCINFA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CCINFA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = COMNTA(obj, index, options) %#codegen
+            %COMNTA - Retrieve an independent editable COMNTA value
+            %   [TRE, OK, STATUS] = OBJ.COMNTA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar COMNTA and OK=false.
+            %
+            %   See also nfx.COMNTA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.COMNTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSEPHA(obj, index, options) %#codegen
+            %CSEPHA - Retrieve an independent editable CSEPHA value
+            %   [TRE, OK, STATUS] = OBJ.CSEPHA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CSEPHA and OK=false.
+            %
+            %   See also nfx.CSEPHA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSEPHA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSEXRA(obj, index, options) %#codegen
+            %CSEXRA - Retrieve an independent editable CSEXRA value
+            %   [TRE, OK, STATUS] = OBJ.CSEXRA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CSEXRA and OK=false.
+            %
+            %   See also nfx.CSEXRA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSEXRA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSPROA(obj, index, options) %#codegen
+            %CSPROA - Retrieve an independent editable CSPROA value
+            %   [TRE, OK, STATUS] = OBJ.CSPROA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CSPROA and OK=false.
+            %
+            %   See also nfx.CSPROA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSPROA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = CSSFAA(obj, index, options) %#codegen
+            %CSSFAA - Retrieve an independent editable CSSFAA value
+            %   [TRE, OK, STATUS] = OBJ.CSSFAA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar CSSFAA and OK=false.
+            %
+            %   See also nfx.CSSFAA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.CSSFAA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = EXOPTA(obj, index, options) %#codegen
+            %EXOPTA - Retrieve an independent editable EXOPTA value
+            %   [TRE, OK, STATUS] = OBJ.EXOPTA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar EXOPTA and OK=false.
+            %
+            %   See also nfx.EXOPTA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.EXOPTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = EXPLTB(obj, index, options) %#codegen
+            %EXPLTB - Retrieve an independent editable EXPLTB value
+            %   [TRE, OK, STATUS] = OBJ.EXPLTB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar EXPLTB and OK=false.
+            %
+            %   See also nfx.EXPLTB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.EXPLTB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = FACCBB(obj, index, options) %#codegen
+            %FACCBB - Retrieve an independent editable FACCBB value
+            %   [TRE, OK, STATUS] = OBJ.FACCBB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar FACCBB and OK=false.
+            %
+            %   See also nfx.FACCBB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.FACCBB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = GEOLOB(obj, index, options) %#codegen
+            %GEOLOB - Retrieve an independent editable GEOLOB value
+            %   [TRE, OK, STATUS] = OBJ.GEOLOB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar GEOLOB and OK=false.
+            %
+            %   See also nfx.GEOLOB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.GEOLOB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = GRDPSB(obj, index, options) %#codegen
+            %GRDPSB - Retrieve an independent editable GRDPSB value
+            %   [TRE, OK, STATUS] = OBJ.GRDPSB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar GRDPSB and OK=false.
+            %
+            %   See also nfx.GRDPSB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.GRDPSB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = IOMAPA(obj, index, options) %#codegen
+            %IOMAPA - Retrieve an independent editable IOMAPA value
+            %   [TRE, OK, STATUS] = OBJ.IOMAPA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar IOMAPA and OK=false.
+            %
+            %   See also nfx.IOMAPA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.IOMAPA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ISACPA(obj, index, options) %#codegen
+            %ISACPA - Retrieve an independent editable ISACPA value
+            %   [TRE, OK, STATUS] = OBJ.ISACPA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ISACPA and OK=false.
+            %
+            %   See also nfx.ISACPA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ISACPA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ISASIA(obj, index, options) %#codegen
+            %ISASIA - Retrieve an independent editable ISASIA value
+            %   [TRE, OK, STATUS] = OBJ.ISASIA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ISASIA and OK=false.
+            %
+            %   See also nfx.ISASIA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ISASIA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = ISATPA(obj, index, options) %#codegen
+            %ISATPA - Retrieve an independent editable ISATPA value
+            %   [TRE, OK, STATUS] = OBJ.ISATPA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar ISATPA and OK=false.
+            %
+            %   See also nfx.ISATPA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.ISATPA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = J2KLRB(obj, index, options) %#codegen
+            %J2KLRB - Retrieve an independent editable J2KLRB value
+            %   [TRE, OK, STATUS] = OBJ.J2KLRB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar J2KLRB and OK=false.
+            %
+            %   See also nfx.J2KLRB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.J2KLRB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MAPLOB(obj, index, options) %#codegen
+            %MAPLOB - Retrieve an independent editable MAPLOB value
+            %   [TRE, OK, STATUS] = OBJ.MAPLOB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar MAPLOB and OK=false.
+            %
+            %   See also nfx.MAPLOB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MAPLOB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MENSRB(obj, index, options) %#codegen
+            %MENSRB - Retrieve an independent editable MENSRB value
+            %   [TRE, OK, STATUS] = OBJ.MENSRB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar MENSRB and OK=false.
+            %
+            %   See also nfx.MENSRB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MENSRB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = MTIRPB(obj, index, options) %#codegen
+            %MTIRPB - Retrieve an independent editable MTIRPB value
+            %   [TRE, OK, STATUS] = OBJ.MTIRPB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar MTIRPB and OK=false.
+            %
+            %   See also nfx.MTIRPB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.MTIRPB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = NBLOCA(obj, index, options) %#codegen
+            %NBLOCA - Retrieve an independent editable NBLOCA value
+            %   [TRE, OK, STATUS] = OBJ.NBLOCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar NBLOCA and OK=false.
+            %
+            %   See also nfx.NBLOCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.NBLOCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PATCHB(obj, index, options) %#codegen
+            %PATCHB - Retrieve an independent editable PATCHB value
+            %   [TRE, OK, STATUS] = OBJ.PATCHB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PATCHB and OK=false.
+            %
+            %   See also nfx.PATCHB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PATCHB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAEQA(obj, index, options) %#codegen
+            %PIAEQA - Retrieve an independent editable PIAEQA value
+            %   [TRE, OK, STATUS] = OBJ.PIAEQA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAEQA and OK=false.
+            %
+            %   See also nfx.PIAEQA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAEQA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAEVA(obj, index, options) %#codegen
+            %PIAEVA - Retrieve an independent editable PIAEVA value
+            %   [TRE, OK, STATUS] = OBJ.PIAEVA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAEVA and OK=false.
+            %
+            %   See also nfx.PIAEVA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAEVA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAIMC(obj, index, options) %#codegen
+            %PIAIMC - Retrieve an independent editable PIAIMC value
+            %   [TRE, OK, STATUS] = OBJ.PIAIMC(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAIMC and OK=false.
+            %
+            %   See also nfx.PIAIMC.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAIMC(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIAPEB(obj, index, options) %#codegen
+            %PIAPEB - Retrieve an independent editable PIAPEB value
+            %   [TRE, OK, STATUS] = OBJ.PIAPEB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIAPEB and OK=false.
+            %
+            %   See also nfx.PIAPEB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIAPEB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIATGB(obj, index, options) %#codegen
+            %PIATGB - Retrieve an independent editable PIATGB value
+            %   [TRE, OK, STATUS] = OBJ.PIATGB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIATGB and OK=false.
+            %
+            %   See also nfx.PIATGB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIATGB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PIXMTA(obj, index, options) %#codegen
+            %PIXMTA - Retrieve an independent editable PIXMTA value
+            %   [TRE, OK, STATUS] = OBJ.PIXMTA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PIXMTA and OK=false.
+            %
+            %   See also nfx.PIXMTA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PIXMTA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = PRJPSB(obj, index, options) %#codegen
+            %PRJPSB - Retrieve an independent editable PRJPSB value
+            %   [TRE, OK, STATUS] = OBJ.PRJPSB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar PRJPSB and OK=false.
+            %
+            %   See also nfx.PRJPSB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.PRJPSB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = REGPTB(obj, index, options) %#codegen
+            %REGPTB - Retrieve an independent editable REGPTB value
+            %   [TRE, OK, STATUS] = OBJ.REGPTB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar REGPTB and OK=false.
+            %
+            %   See also nfx.REGPTB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.REGPTB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = REGPTC(obj, index, options) %#codegen
+            %REGPTC - Retrieve an independent editable REGPTC value
+            %   [TRE, OK, STATUS] = OBJ.REGPTC(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar REGPTC and OK=false.
+            %
+            %   See also nfx.REGPTC.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.REGPTC(), index, options.ID);
+        end
+
+        function [tre, ok, status] = RELCCA(obj, index, options) %#codegen
+            %RELCCA - Retrieve an independent editable RELCCA value
+            %   [TRE, OK, STATUS] = OBJ.RELCCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar RELCCA and OK=false.
+            %
+            %   See also nfx.RELCCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.RELCCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = RSMAPA(obj, index, options) %#codegen
+            %RSMAPA - Retrieve an independent editable RSMAPA value
+            %   [TRE, OK, STATUS] = OBJ.RSMAPA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar RSMAPA and OK=false.
+            %
+            %   See also nfx.RSMAPA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.RSMAPA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = RSMDCA(obj, index, options) %#codegen
+            %RSMDCA - Retrieve an independent editable RSMDCA value
+            %   [TRE, OK, STATUS] = OBJ.RSMDCA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar RSMDCA and OK=false.
+            %
+            %   See also nfx.RSMDCA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.RSMDCA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = RSMECA(obj, index, options) %#codegen
+            %RSMECA - Retrieve an independent editable RSMECA value
+            %   [TRE, OK, STATUS] = OBJ.RSMECA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar RSMECA and OK=false.
+            %
+            %   See also nfx.RSMECA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.RSMECA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = S2EVPA(obj, index, options) %#codegen
+            %S2EVPA - Retrieve an independent editable S2EVPA value
+            %   [TRE, OK, STATUS] = OBJ.S2EVPA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar S2EVPA and OK=false.
+            %
+            %   See also nfx.S2EVPA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.S2EVPA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SECTGA(obj, index, options) %#codegen
+            %SECTGA - Retrieve an independent editable SECTGA value
+            %   [TRE, OK, STATUS] = OBJ.SECTGA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SECTGA and OK=false.
+            %
+            %   See also nfx.SECTGA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SECTGA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SNSPSB(obj, index, options) %#codegen
+            %SNSPSB - Retrieve an independent editable SNSPSB value
+            %   [TRE, OK, STATUS] = OBJ.SNSPSB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SNSPSB and OK=false.
+            %
+            %   See also nfx.SNSPSB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SNSPSB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SOURCB(obj, index, options) %#codegen
+            %SOURCB - Retrieve an independent editable SOURCB value
+            %   [TRE, OK, STATUS] = OBJ.SOURCB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SOURCB and OK=false.
+            %
+            %   See also nfx.SOURCB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SOURCB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = STDIDC(obj, index, options) %#codegen
+            %STDIDC - Retrieve an independent editable STDIDC value
+            %   [TRE, OK, STATUS] = OBJ.STDIDC(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar STDIDC and OK=false.
+            %
+            %   See also nfx.STDIDC.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.STDIDC(), index, options.ID);
+        end
+
+        function [tre, ok, status] = STREOB(obj, index, options) %#codegen
+            %STREOB - Retrieve an independent editable STREOB value
+            %   [TRE, OK, STATUS] = OBJ.STREOB(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar STREOB and OK=false.
+            %
+            %   See also nfx.STREOB.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.STREOB(), index, options.ID);
+        end
+
+        function [tre, ok, status] = SYSIDA(obj, index, options) %#codegen
+            %SYSIDA - Retrieve an independent editable SYSIDA value
+            %   [TRE, OK, STATUS] = OBJ.SYSIDA(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar SYSIDA and OK=false.
+            %
+            %   See also nfx.SYSIDA.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.SYSIDA(), index, options.ID);
+        end
+
+        function [tre, ok, status] = USE00A(obj, index, options) %#codegen
+            %USE00A - Retrieve an independent editable USE00A value
+            %   [TRE, OK, STATUS] = OBJ.USE00A(INDEX) selects the logical
+            %   occurrence in attachment order; INDEX defaults to 1.
+            %   ID=ID selects an attachment identity instead. Failure
+            %   returns a default scalar USE00A and OK=false.
+            %
+            %   See also nfx.USE00A.deserialize, treCount
+            arguments
+                obj (1,1) nfx.ImageSegment
+                index = 1
+                options.ID = []
+            end
+            [tre, ok, status] = readTRE( ...
+                obj.tre_records, nfx.USE00A(), index, options.ID);
+        end
+        % END published TRE accessors
         function [tre, ok, status] = ENGRDA(obj, index, options) %#codegen
             %ENGRDA - Retrieve an independent editable ENGRDA value
             %   [TRE, OK, STATUS] = OBJ.ENGRDA(INDEX) selects the logical

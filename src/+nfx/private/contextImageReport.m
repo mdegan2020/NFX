@@ -5,6 +5,7 @@ function report = contextImageReport(contexts,images) %#codegen
         records = contexts(k).records; header = images(contexts(k).image).header;
         report = mergeReport(report, ...
             supportImageReport(records, images(contexts(k).image)), '');
+        report = mergeReport(report, storedValueReport(records, header), '');
         coverage = unknownTREReport(records);
         inherited = unknownTREReport(contexts(k).file_records);
         report = mergeReport(report, coverage, '');

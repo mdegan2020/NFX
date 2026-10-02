@@ -104,6 +104,110 @@ function valid = leafLegal(tag,payload,scope,aggregate,asynchronous) %#codegen
         return
     end
     switch tag
+        % BEGIN published TRE wrapper placement
+        case 'ACCHZB'
+            valid = scope == 2 && ~aggregate;
+        case 'ACCPOB'
+            valid = scope == 2 && ~aggregate;
+        case 'ACCVTB'
+            valid = scope == 2 && ~aggregate;
+        case 'ASTORA'
+            valid = scope == 2 && ~aggregate;
+        case 'ATTPTA'
+            valid = true;
+        case 'BCHIPA'
+            valid = scope == 2 && ~aggregate;
+        case 'BNDPLB'
+            valid = true;
+        case 'CCINFA'
+            valid = true;
+        case 'COMNTA'
+            valid = true;
+        case 'CSEPHA'
+            valid = scope == 2 && ~aggregate;
+        case 'CSEXRA'
+            valid = scope == 2 && ~aggregate;
+        case 'CSPROA'
+            valid = scope == 2 && ~aggregate;
+        case 'CSSFAA'
+            valid = scope == 2 && ~aggregate;
+        case 'EXOPTA'
+            valid = scope == 2 && ~aggregate;
+        case 'EXPLTB'
+            valid = scope == 2 && ~aggregate;
+        case 'FACCBB'
+            valid = scope == 2 && ~aggregate;
+        case 'GEOLOB'
+            valid = scope == 2 && ~aggregate;
+        case 'GRDPSB'
+            valid = scope == 2 && ~aggregate;
+        case 'IOMAPA'
+            valid = scope == 2 && ~aggregate;
+        case 'ISACPA'
+            valid = scope == 2 && ~aggregate;
+        case 'ISASIA'
+            valid = scope == 2 && ~aggregate;
+        case 'ISATPA'
+            valid = scope == 2 && ~aggregate;
+        case 'J2KLRB'
+            valid = scope == 2 && ~aggregate;
+        case 'MAPLOB'
+            valid = scope == 2 && ~aggregate;
+        case 'MENSRB'
+            valid = scope == 2 && ~aggregate;
+        case 'MITOCA'
+            valid = scope == 1;
+        case 'MTIRPB'
+            valid = true;
+        case 'NBLOCA'
+            valid = scope == 2 && ~aggregate;
+        case 'PATCHB'
+            valid = scope == 2 && ~aggregate;
+        case 'PIAEQA'
+            valid = scope == 2 && ~aggregate;
+        case 'PIAEVA'
+            valid = scope == 2 && ~aggregate;
+        case 'PIAIMC'
+            valid = true;
+        case 'PIAPEB'
+            valid = scope == 2 && ~aggregate;
+        case 'PIAPRD'
+            valid = scope == 1;
+        case 'PIATGB'
+            valid = scope == 2 && ~aggregate;
+        case 'PIXMTA'
+            valid = scope == 2 && ~aggregate;
+        case 'PRJPSB'
+            valid = true;
+        case 'REGPTB'
+            valid = scope == 2 && ~aggregate;
+        case 'REGPTC'
+            valid = scope == 2 && ~aggregate;
+        case 'RELCCA'
+            valid = true;
+        case 'RSMAPA'
+            valid = scope == 2 && ~aggregate;
+        case 'RSMDCA'
+            valid = scope == 2 && ~aggregate;
+        case 'RSMECA'
+            valid = scope == 2 && ~aggregate;
+        case 'S2EVPA'
+            valid = scope == 2 && ~aggregate;
+        case 'SECTGA'
+            valid = scope == 2 && ~aggregate;
+        case 'SNSPSB'
+            valid = scope == 2 && ~aggregate;
+        case 'SOURCB'
+            valid = scope == 2 && ~aggregate;
+        case 'STDIDC'
+            valid = scope == 2 && ~aggregate;
+        case 'STREOB'
+            valid = scope == 2 && ~aggregate;
+        case 'SYSIDA'
+            valid = true;
+        case 'USE00A'
+            valid = scope == 2 && ~aggregate;
+        % END published TRE wrapper placement
         case {'PIXQLA','CSCCGA','MSTGTA','BLOCKA'}
             valid = scope == 2 && ~aggregate;
         case {'GEOPSB','BNDPLC','XMLDCA','SECURA','ENGRDA'}

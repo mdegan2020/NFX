@@ -31,7 +31,8 @@ classdef (Abstract) TRE
             %   A concrete TRE may expand one logical attachment into several
             %   records when its standard defines continuation instances.
             data = payload(obj);
-            limit = 99985 + 3 * strcmp(obj.cetag, 'SECURA');
+            limit = 99985 + 3 * any(strcmp(obj.cetag, ...
+                {'SECURA','NBLOCA','RSMDCA','ATTPTA'}));
             if isempty(data) || numel(data) > limit
                 error('nfx:TRELength', 'TRE payload exceeds its supported physical length.');
             end
@@ -49,7 +50,8 @@ classdef (Abstract) TRE
                 obj (1,1) nfx.TRE
             end
             data = payload(obj);
-            limit = 99985 + 3 * strcmp(obj.cetag, 'SECURA');
+            limit = 99985 + 3 * any(strcmp(obj.cetag, ...
+                {'SECURA','NBLOCA','RSMDCA','ATTPTA'}));
             if isempty(data) || numel(data) > limit
                 error('nfx:TRELength', 'TRE payload exceeds its supported physical length.');
             end

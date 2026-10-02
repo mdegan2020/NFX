@@ -1,5 +1,8 @@
 # Additional TRE support
 
+See [Published TRE coverage](CURRENT_TRES.md) for the subsequent expansion
+to 94 concrete tags and its remaining reference and validation gaps.
+
 These extensions use the same snapshot, removal, display and typed lookup
 API as RPC00B. Field names follow the standard's mnemonics in lowercase.
 Deserializers return an independent concrete object plus `ok` and `status`.
@@ -91,8 +94,7 @@ BNDPLC validates non-touching simple rings with clockwise exteriors and
 alternating nested holes. Geographic validation uses unwrapped longitude
 and latitude in a local coordinate plane, with ring spans below 180 degrees.
 It does not perform ellipsoidal/geodesic or polar topology. Meter-coordinate
-rings require PRJPSB, which has no concrete decoder yet; an imported opaque
-PRJPSB can be retained, with incomplete semantic validation. Supporting these
+rings require PRJPSB, which now has a concrete field decoder. Supporting these
 two GeoSDE records does not constitute a complete GeoSDE georeferencing model.
 
 XMLDCA retains its original XML-related content encoding. NFX validates the
@@ -110,7 +112,8 @@ external. `SecurityDocumentUnchecked` therefore makes `report.complete` and
 This is envelope support, not security-policy validation or certification.
 
 SECURA's Appendix AI maximum is 99,988 payload bytes. NFX handles that
-specific limit through overflow; other concrete TREs retain the common
+specific limit through overflow. ATTPTA, NBLOCA and RSMDCA also support their
+99,988-byte limits; other concrete TREs retain the common
 99,985-byte maximum. Unknown five-digit payloads up to 99,999 bytes can still
 be preserved without a schema claim.
 

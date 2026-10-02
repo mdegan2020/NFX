@@ -10,6 +10,9 @@ NODISPLY pixel-quality masks and binary/percentage cloud-cover grids.
 The guide describes owner rules, engineering-data conversion, and validation
 boundaries for polygons, XML and security documents.
 
+[Published TRE coverage](CURRENT_TRES.md) lists 51 additional concrete
+classes, their validation boundaries, and the definitions still unavailable.
+
 Targets MATLAB R2023b and newer; tested locally on R2026a. Native reading and writing use base MATLAB. The regression suite also requires Image Processing Toolbox for independent MathWorks reader checks. No GDAL or NITRO dependency.
 
 An optional [OpenJPEG prototype](prototypes/openjpeg/README.md) adds Windows-only
