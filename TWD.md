@@ -147,7 +147,9 @@ uses base MATLAB graphics without `imshow`, Java helpers, Python, or Image
 Processing Toolbox. It uses APIs available in the project's R2023b+ range;
 local execution and GUI gesture tests use R2026a on Windows.
 
-`runTests` includes `TwdDisplayTest`: native-data preservation, stretches,
+`runTwdTests` runs the viewer suite independently of NFX. Add `Coverage=true`
+to generate viewer-only reports under ignored `coverage/twd/`.
+`TwdDisplayTest` covers native-data preservation, stretches,
 fixed scales, resizing, bounds, overlays, mouse gestures, keyboard controls,
 independent groups, and cleanup. `TwdCursorTest` covers cursor gestures,
 coordinates, original and displayed values, overview resampling, and the

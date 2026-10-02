@@ -95,7 +95,31 @@ alternating nested holes. Geographic validation uses unwrapped longitude
 and latitude in a local coordinate plane, with ring spans below 180 degrees.
 It does not perform ellipsoidal/geodesic or polar topology. Meter-coordinate
 rings require PRJPSB, which now has a concrete field decoder. Supporting these
-two GeoSDE records does not constitute a complete GeoSDE georeferencing model.
+GeoSDE records does not constitute a complete GeoSDE georeferencing model.
+
+The April 2024 Appendix P defines 15 TREs, all with concrete NFX classes:
+GEOPSB, PRJPSB, GRDPSB, GEOLOB, MAPLOB, REGPTB, REGPTC, BNDPLB, BNDPLC,
+ACCPOB, ACCHZB, ACCVTB, SNSPSB, SOURCB, and FACCBB. See
+[current TRE support](CURRENT_TRES.md) for the additional field schemas and
+their validation boundaries.
+
+BNDPLC decoding accepts the variable decimal and exponent coordinate
+formats allowed by Table P-9a, footnote 2. Original attached payloads remain
+unchanged when read and written. Serializing a separately decoded object
+uses NFX's numeric formatting. For example:
+
+```matlab
+rings = struct('lon', [-123 -123 -122 -122], ...
+               'lat', [45 46 46 45], 'height', []);
+polygon = nfx.BNDPLC(rings);
+image = image + nfx.GEOPSB() + polygon;
+[editable, ok, status] = image.BNDPLC();
+```
+
+Use an existing file-level GEOPSB when present, since Appendix P prohibits
+simultaneous file-level and image-level coordinate references. Supply empty
+heights for 2-D rings or one height per vertex for 3-D rings. Counts and
+payload lengths derive automatically from the supplied arrays.
 
 XMLDCA retains its original XML-related content encoding. NFX validates the
 container, descriptive fields and supplied checksum. It does not interpret

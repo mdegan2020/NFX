@@ -15,7 +15,7 @@ classdef GLASFileTest < NfxTest
             end
         end
         function documentedExampleRunsWithoutReferenceFiles(t)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             t.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root,'examples')));
             file = glasExample(); t.verifyTrue(file.validate().valid); name = fullfile(t.folder,'example.ntf'); file.write(name);
             t.verifyEqual(nitfread(name),reshape(uint16(1:35),5,7));

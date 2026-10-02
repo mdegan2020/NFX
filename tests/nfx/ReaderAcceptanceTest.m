@@ -69,7 +69,7 @@ classdef ReaderAcceptanceTest < NfxTest
         end
 
         function readingExampleRunsWithoutPrivateFixtures(t)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             t.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root, 'examples')));
             [original, edited] = readingExample(t.folder);
             t.verifyEqual(readBytes(fullfile(t.folder, 'reader-source.ntf')), ...

@@ -32,7 +32,7 @@ classdef MIECollectionTest < NfxTest
             t.verifyError(@() collection.write(t.folder),'nfx:Invalid'); t.verifyEmpty(dir(fullfile(t.folder,'*.ntf')));
         end
         function documentedCollectionExampleIsSelfContained(t)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             t.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root,'examples')));
             collection = mieExample(); files = collection.plan();
             t.verifyEqual(numel(files),5); t.verifyEqual(numel(files(1).file.images),1);

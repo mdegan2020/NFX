@@ -141,7 +141,11 @@ raw physical `tre_records` are unchanged.
 
 Lengths, counts, conditional headers and source bounds are checked before
 content is reconstructed. Supplied structural values must agree with the
-decoded data. Known TRE payloads follow the NFX writer's canonical rules.
+decoded data. Known TRE payloads generally follow the NFX writer's canonical
+rules. BNDPLC also accepts the variable decimal and exponent coordinate
+representations defined by Appendix P, Table P-9a. Its counts and dimension
+fields remain strict. Decoding produces editable numeric coordinates;
+untouched attached records retain the original coordinate formatting.
 Imported metadata retains its original extended/user/overflow partition
 until attachments change. One overflow area per owner is supported; generic
 DESs precede overflow DESs in owner order. Unsupported layouts and conflicting

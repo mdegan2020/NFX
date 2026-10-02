@@ -9,6 +9,9 @@ classdef (Sealed) BNDPLC < nfx.TRE
     %   ring topology. Clockwise rings add coverage; counterclockwise rings
     %   remove it. Geographic topology uses unwrapped longitude/latitude
     %   coordinates and supports rings narrower than 180 degrees.
+    %   Decoding accepts the variable decimal and exponent coordinate
+    %   formats defined by Table P-9a. Attached records retain their bytes;
+    %   serializing a decoded object uses NFX coordinate formatting.
     %
     %   See also GEOPSB, TRE, File, ImageSegment
 
@@ -35,31 +38,33 @@ classdef (Sealed) BNDPLC < nfx.TRE
             end
             obj = nfx.BNDPLC();
             reader = nfx.internal.TREReader(data);
-            [count, reader] = reader.count(3, 94, 999);
-            [dims, reader] = reader.number(1, 2, 3, true);
+            [count, reader] = polygonCount(reader, 3, 94, 999);
+            [dimension, reader] = reader.choice('23');
+            dims = 2;
+            if reader.ok, dims = double(dimension) - double('0'); end
             ring = struct('lon', zeros(1, 0), 'lat', zeros(1, 0), ...
                 'height', zeros(1, 0));
             rings = repmat(ring, 1, count);
             for k = 1:count
-                [n, reader] = reader.count(4, 15 * dims, 3332);
+                [n, reader] = polygonCount(reader, 4, 15 * dims, 3332);
                 if ~reader.ok, break; end
                 rings(k).lon = zeros(1, n);
                 rings(k).lat = zeros(1, n);
                 if dims == 3, rings(k).height = zeros(1, n); end
                 for j = 1:n
-                    [rings(k).lon(j), reader] = reader.number( ...
-                        15, -99999999999999, 999999999999999);
-                    [rings(k).lat(j), reader] = reader.number( ...
-                        15, -99999999999999, 999999999999999);
+                    [rings(k).lon(j), reader] = polygonNumber( ...
+                        reader, -99999999999999, 999999999999999);
+                    [rings(k).lat(j), reader] = polygonNumber( ...
+                        reader, -99999999999999, 999999999999999);
                     if dims == 3
-                        [rings(k).height(j), reader] = reader.number( ...
-                            15, -999999999999.9, 999999999999.9);
+                        [rings(k).height(j), reader] = polygonNumber( ...
+                            reader, -999999999999.9, 999999999999.9);
                     end
                 end
             end
             if reader.ok, obj.rings = rings; end
             [obj, ok, status] = finishTREDecode( ...
-                obj, reader, nfx.BNDPLC());
+                obj, reader, nfx.BNDPLC(), false);
         end
     end
     methods
@@ -132,6 +137,42 @@ classdef (Sealed) BNDPLC < nfx.TRE
                     end
                 end
             end
+        end
+    end
+end
+
+function [count, reader] = polygonCount( ...
+        reader, width, minimum, maximum) %#codegen
+    %polygonCount - Require decimal digits in structural BCS-N counts
+    first = reader.position;
+    [count, reader] = reader.count(width, minimum, maximum);
+    if reader.ok
+        raw = reader.data(first:first + width - 1);
+        if any(raw < '0' | raw > '9')
+            reader = reader.fail('InvalidNumber', ...
+                'Polygon counts must contain only decimal digits.');
+            count = 0;
+        end
+    end
+end
+
+function [value, reader] = polygonNumber(reader, lower, upper) %#codegen
+    %polygonNumber - Check signed limits and reject exponent underflow
+    first = reader.position;
+    [value, reader] = reader.number(15, lower, upper);
+    if ~reader.ok, return; end
+    raw = reader.data(first:first + 14);
+    firstDigit = find(raw ~= ' ', 1);
+    if raw(firstDigit) == '+' && value > -lower
+        reader = reader.fail('InvalidNumber', ...
+            'A signed coordinate exceeds its specified range.');
+    elseif value == 0
+        exponent = find(raw == 'E' | raw == 'e', 1);
+        if ~isempty(exponent) && ...
+                any(raw(1:exponent - 1) >= '1' & ...
+                    raw(1:exponent - 1) <= '9')
+            reader = reader.fail('InvalidNumber', ...
+                'A nonzero coordinate underflows double precision.');
         end
     end
 end

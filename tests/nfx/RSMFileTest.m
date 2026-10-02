@@ -131,7 +131,7 @@ classdef RSMFileTest < NfxTest
             t.verifyEqual(readBytes(name),uint8('PRESERVE'));
         end
         function publishedExampleWritesAnIndependentSyntheticFile(t)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             t.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root,'examples')));
             file = rsmExample(); t.verifyTrue(file.validate().valid);
             name = fullfile(t.folder,'example.ntf'); file.write(name); parsed = inspectContainer(name);

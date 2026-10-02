@@ -165,7 +165,7 @@ classdef SNIPProfileTest < NfxTest
             r = rebuild(file,image+other).validate(SNIP_COMPLIANT=true); t.verifyTrue(r.valid,evalc('disp(r.issues)'));
         end
         function documentedExampleIsSelfContained(t)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             t.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root,'examples')));
             file = snipExample(); r = file.validate(SNIP_COMPLIANT=true);
             t.assertTrue(r.valid,evalc('disp(r.issues)'));

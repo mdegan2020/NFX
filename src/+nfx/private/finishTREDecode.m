@@ -1,5 +1,12 @@
-function [obj, ok, status] = finishTREDecode(obj, reader, unset) %#codegen
+function [obj, ok, status] = finishTREDecode( ...
+        obj, reader, unset, canonical) %#codegen
     %finishTREDecode - Validate a complete concrete value before exposing it
+    arguments
+        obj
+        reader
+        unset
+        canonical (1,1) logical = true
+    end
     reader = reader.finish();
     ok = reader.ok;
     status = decodeStatus(reader.code, reader.message, reader.position);
@@ -9,7 +16,7 @@ function [obj, ok, status] = finishTREDecode(obj, reader, unset) %#codegen
             ok = false;
             status = decodeStatus('InvalidMetadata', ...
                 report.issues(1).message, reader.position);
-        elseif ~isequal(obj.payload(), reader.data)
+        elseif canonical && ~isequal(obj.payload(), reader.data)
             ok = false;
             status = decodeStatus('NoncanonicalPayload', ...
                 'The payload is outside the supported NFX encoding.', ...

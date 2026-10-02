@@ -200,7 +200,7 @@ classdef TREDecodeVariantsTest < NfxTest
         end
 
         function exampleCanWriteAfterEditing(t)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             t.applyFixture(matlab.unittest.fixtures.PathFixture( ...
                 fullfile(root, 'examples')));
             [image, original, edited] = inspectionExample();

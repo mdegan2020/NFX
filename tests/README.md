@@ -1,6 +1,18 @@
 # NFX test and compatibility notes
 
-From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLAB. The runner errors on invalid test files, failed tests, or incomplete tests. Base MATLAB supplies `matlab.unittest` and statement coverage; Image Processing Toolbox supplies `nitfread`, `nitfinfo`, and `isnitf`. Tests require no local reference library, design documents, GDAL, or NITRO.
+From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLAB
+for NFX only. Its classes and fixtures live in `tests/nfx/`; coverage measures
+`src/+nfx/` and reports go under ignored `coverage/nfx/`.
+
+Run `runTwdTests()` or `runTwdTests(Coverage=true)` separately for the viewer.
+Its classes live in `tests/twd/`; coverage measures `src/+twd/` and reports go
+under ignored `coverage/twd/`. TWD gesture tests require MATLAB desktop and
+briefly open their own windows. Neither runner selects the other suite.
+
+Both runners error on invalid test files, failed tests, or incomplete tests.
+Base MATLAB supplies `matlab.unittest` and statement coverage; Image Processing
+Toolbox supplies `nitfread`, `nitfinfo`, and `isnitf` for NFX round trips. Tests
+require no local reference library, design documents, GDAL, or NITRO.
 
 ## What the suite checks
 
@@ -12,6 +24,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 | `ReaderMetadataTest`, `FileReadTest` | Complete native file reads, raw snapshots, overflow ownership, continuation groups, independent edits, resource limits and I/O failures |
 | `UnknownTRETest` | Opaque snapshots, owner/area preservation, wrappers, overflow, removal, incomplete semantic reports and independent DES invariants |
 | `AdditionalTRETest` | Independent bytes for nine extensions, polygon topology, quality/cloud relationships, engineering types, XML CRC, SECURA envelope limits and file round trips |
+| `BNDPLCTest` | Appendix P-9a coordinate representations, strict structural counts, physical limits, independent editable decoding and exact original payload preservation through file/image/wrapper round trips |
 | `SensorDESReadTest` | Typed DES variants, header/payload agreement, raw-versus-verified trust, shared model associations and malformed support data |
 | `JPEG2000ReadTest` | Native backend pixels, both profiles, untouched codestream preservation, missing/failing codecs and detected corruption warnings |
 | `CollectionReadTest`, `CollectionManifestReadTest` | Complete collections and explicit lists, exact timing above flintmax, cross-file contexts, quick looks, missing/unavailable blocks, 650 members and FILE002 |
@@ -157,7 +170,7 @@ entire repository or every possible metadata combination.
 On Windows MATLAB:
 
 ```matlab
-addpath('tests');
+addpath(fullfile('tests', 'nfx'));
 observations = measureMemory();
 ```
 

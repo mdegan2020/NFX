@@ -11,10 +11,10 @@ function observations = measureMemory(side)
     arguments
         side (1,1) double {mustBeInteger,mustBePositive} = 8192
     end
-    root = fileparts(fileparts(mfilename('fullpath')));
+    root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
     previous = path;
     paths = onCleanup(@() path(previous));
-    addpath(fullfile(root,'src'),fullfile(root,'tests','helpers'));
+    addpath(fullfile(root,'src'),fullfile(root,'tests','nfx','helpers'));
     filename = [tempname '.ntf'];
     cleanup = onCleanup(@() removeFile(filename));
     [warm,~,~] = fixtureFile();

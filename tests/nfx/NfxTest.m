@@ -5,9 +5,11 @@ classdef (Abstract) NfxTest < matlab.unittest.TestCase
     end
     methods (TestClassSetup)
         function configurePaths(testCase)
-            root = fileparts(fileparts(mfilename('fullpath')));
-            testCase.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root, 'src')));
-            testCase.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(root, 'tests', 'helpers')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+            testCase.applyFixture(matlab.unittest.fixtures.PathFixture( ...
+                fullfile(root, 'src')));
+            testCase.applyFixture(matlab.unittest.fixtures.PathFixture( ...
+                fullfile(root, 'tests', 'nfx', 'helpers')));
         end
     end
     methods (TestMethodSetup)

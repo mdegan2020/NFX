@@ -11,7 +11,7 @@ classdef TwdCursorTest < matlab.uitest.TestCase
 
     methods (TestClassSetup)
         function configurePaths(testCase)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             testCase.applyFixture(matlab.unittest.fixtures.PathFixture( ...
                 fullfile(root, 'src')));
         end

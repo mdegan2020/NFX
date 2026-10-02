@@ -6,7 +6,7 @@ classdef CoderKitTest < NfxTest
     end
     methods (TestClassSetup)
         function kitPath(testCase)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             testCase.applyFixture(matlab.unittest.fixtures.PathFixture(root));
             testCase.applyFixture(matlab.unittest.fixtures.PathFixture( ...
                 fullfile(root, 'coder-tests')));
@@ -91,7 +91,7 @@ classdef CoderKitTest < NfxTest
             testCase.verifyError(@() nfxkit.cases('unknown', testCase.folder), 'nfxkit:Probe');
         end
         function copiedBundleRunsAndArchives(testCase)
-            root = fileparts(fileparts(mfilename('fullpath')));
+            root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             archive = exportCoderTests(OutputFolder=testCase.folder);
             extracted = fullfile(testCase.folder, 'copied'); mkdir(extracted);
             files = unzip(archive, extracted);

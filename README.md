@@ -368,7 +368,14 @@ Collection writing validates every planned file and every destination before pub
 results = runTests(Coverage=true);
 ```
 
-The suite includes independent byte checks, MATLAB reader round trips, metadata and layout boundaries, snapshot/removal behavior, and injected filesystem failures. Reports go under ignored `coverage/`; generated files use temporary fixtures. See [test and compatibility notes](tests/README.md).
+This runs only the NFX suite in `tests/nfx/`, including independent byte checks,
+MATLAB reader round trips, metadata and layout boundaries, snapshot/removal
+behavior, and injected filesystem failures. Reports go under ignored
+`coverage/nfx/`; generated files use temporary fixtures.
+
+Run the independent viewer suite in `tests/twd/` with `runTwdTests` (optionally
+`Coverage=true`). Its reports go under `coverage/twd/`. See
+[test and compatibility notes](tests/README.md).
 
 Classified products, LUTs, compression beyond the documented C8 prototype, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation is restricted to NFX-MIE-NC1. RPC fitting and evaluation are outside scope.
 
