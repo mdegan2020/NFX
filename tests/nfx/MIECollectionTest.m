@@ -1,5 +1,16 @@
 classdef MIECollectionTest < NfxTest
     methods (Test)
+        function unsupportedEncodingHasCapabilityDiagnostic(t)
+            collection = fixtureMIECollection();
+            collection.layers(1).mi_req_decoder = 'CB';
+            collection.layers(1).mi_req_profile = 'ISO/IEC 15444-1';
+            collection.layers(1).mi_req_level = 'class2';
+            t.verifyTrue(collection.layers(1).validate().valid);
+            report = collection.validate();
+            t.verifyFalse(report.valid);
+            t.verifyEqual(report.issues(1).id, 'UnsupportedFeature');
+        end
+
         function largeCCSPositionsUseAnEarlierImageAnchor(t)
             collection = fixtureMIECollection();
             sets = collection.camera_sets.camera_sets;

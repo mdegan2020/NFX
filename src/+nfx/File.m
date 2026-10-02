@@ -45,6 +45,7 @@ classdef File
         contextDefinitions
         readMaxPixels = flintmax
         readMaxBytes = flintmax
+        readMemoryWarningBytes = 4 * 2^30
     end
     methods (Static)
         function [file, ok, status] = read(filename, options)
@@ -63,6 +64,8 @@ classdef File
             %   ... = nfx.File.read(...,MaxBytes=N,MaxPixels=M) bounds bytes
             %   read and retained samples. Both default to FLINTMAX; finite
             %   caller budgets carry forward to subsequent read methods.
+            %   MemoryWarningBytes defaults to 4*2^30 bytes (4 GiB). Larger
+            %   estimated buffers warn and continue. Inf disables warnings.
             %   This host entry point guarantees the implemented NFX subset;
             %   it is not a general reader for all legal NITF encodings.
             %
@@ -75,12 +78,13 @@ classdef File
                 filename
                 options.MaxBytes = flintmax
                 options.MaxPixels = flintmax
+                options.MemoryWarningBytes = 4 * 2^30
                 options.readAll = false
                 options.readSegment = []
             end
             [file, ok, status] = nfx.internal.readFile( ...
                 filename, options.MaxBytes, options.MaxPixels, ...
-                options.readAll, options.readSegment);
+                options.readAll, options.readSegment, options.MemoryWarningBytes);
         end
     end
     methods (Static, Access = {?nfx.internal.FileReader, ?nfx.internal.CollectionReader})
@@ -94,9 +98,10 @@ classdef File
         end
     end
     methods (Access = ?nfx.internal.FileReader)
-        function obj = readLimits(obj, maxPixels, maxBytes)
+        function obj = readLimits(obj, maxPixels, maxBytes, memoryWarningBytes)
             %readLimits - Retain caller budgets for later explicit reads
             obj.readMaxPixels = maxPixels; obj.readMaxBytes = maxBytes;
+            obj.readMemoryWarningBytes = memoryWarningBytes;
         end
     end
     methods
@@ -659,15 +664,18 @@ classdef File
             %   OBJ = readAll(OBJ) loads all deferred image segments.
             %   [OBJ, OK, STATUS] also returns diagnostics on failure.
             %   ... = readAll(...,MaxPixels=N,MaxBytes=M) bounds this read.
+            %   MemoryWarningBytes overrides the retained advisory threshold.
             %
             %   See also readSegment, nfx.ImageSegment.read
             arguments
                 obj (1,1) nfx.File
                 options.MaxPixels = obj.readMaxPixels
                 options.MaxBytes = obj.readMaxBytes
+                options.MemoryWarningBytes = obj.readMemoryWarningBytes
             end
             [obj, ok, status] = obj.readSegment(1:numel(obj.imageValues), ...
-                MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes);
+                MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes, ...
+                MemoryWarningBytes=options.MemoryWarningBytes);
         end
         function [obj, ok, status] = readSegment(obj, indices, options)
             %readSegment - Retain pixels for selected image segment indices
@@ -676,6 +684,7 @@ classdef File
             %   Existing pixels are retained. All headers remain available.
             %   MaxPixels bounds the total retained samples after loading;
             %   MaxBytes bounds the newly read encoded image payloads.
+            %   MemoryWarningBytes overrides the retained advisory threshold.
             %
             %   See also readAll, nfx.ImageSegment.read
             arguments
@@ -683,36 +692,37 @@ classdef File
                 indices
                 options.MaxPixels = obj.readMaxPixels
                 options.MaxBytes = obj.readMaxBytes
+                options.MemoryWarningBytes = obj.readMemoryWarningBytes
             end
             status = nfx.internal.readStatus(); ok = false;
             if ~nfx.internal.validImageSelection(indices) || ...
                     any(indices > numel(obj.imageValues)) || ...
                     ~nfx.internal.validReadLimit(options.MaxPixels) || ...
-                    ~nfx.internal.validReadLimit(options.MaxBytes)
+                    ~nfx.internal.validReadLimit(options.MaxBytes) || ...
+                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
                 status.code = 'InvalidInput';
-                status.message = 'Supply existing distinct image indices and positive read limits.';
+                status.message = ['Supply existing distinct image indices, positive read limits, ' ...
+                    'and nonnegative MemoryWarningBytes (Inf allowed).'];
                 return
             end
-            samples = 0; encoded = 0;
-            for k = 1:numel(obj.imageValues)
-                image = obj.imageValues(k);
-                if image.pixelsLoaded || any(indices == k)
-                    h = image.header;
-                    samples = samples + h.nrows * h.ncols * ...
-                        image.number_bands * image.number_frames;
-                end
-                if ~image.pixelsLoaded && any(indices == k), encoded = encoded + image.li; end
-            end
+            [retained, workspace, samples, encoded] = ...
+                nfx.internal.imageReadMemory(obj.imageValues, indices);
             if samples > options.MaxPixels || encoded > options.MaxBytes
                 status.code = 'ResourceLimit';
                 status.message = sprintf(['Selected read retains %.0f samples (MaxPixels %.0f) ' ...
                     'and loads %.0f encoded bytes (MaxBytes %.0f).'], ...
                     samples, options.MaxPixels, encoded, options.MaxBytes); return
             end
+            if encoded > 0
+                metadata = obj.header.fl - sum([obj.imageValues.li]);
+                nfx.internal.warnMemory(retained + workspace + 2 * metadata, ...
+                    options.MemoryWarningBytes);
+            end
             candidate = obj;
             for k = indices
                 [image, ok, status] = candidate.imageValues(k).read( ...
-                    MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes);
+                    MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes, ...
+                    MemoryWarningBytes=Inf);
                 if ~ok, status.index = k; return; end
                 candidate.imageValues(k) = image;
             end
@@ -1021,7 +1031,7 @@ classdef File
             report = mergeReport(report, validate(h), 'header.');
             report = addIssue(report,obj.contextDirty,'CollectionContextChanged','collection', ...
                 'Edit the source collection and replan after changing a file with inherited collection metadata.', ...
-                'NFX-MIE-NC1 collection snapshot integrity');
+                'NFX collection snapshot integrity');
             reference = 'JBP 2025.1, 5.11 and 5.14';
             report = addIssue(report, h.numi+h.numt+h.numdes == 0, 'SegmentCount', ...
                 'images/texts/des', 'Attach at least one data segment.', reference);
@@ -1071,6 +1081,8 @@ classdef File
                 'images.header.idlvl', 'Display levels must be unique across all images.', reference);
             for k = 1:h.numi
                 parent = plan.images(k).header.ialvl;
+                report = mergeReport(report, layerEncodingReport(plan.images(k), obj.store.records), ...
+                    sprintf('images(%d).', k));
                 timing = plan.images(k).tre_records;
                 for j = find(strcmp({timing.tag},'MTIMSA'))
                     report = addIssue(report,str2double(char(timing(j).payload(1:3))) ~= k, ...

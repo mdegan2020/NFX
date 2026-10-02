@@ -1,27 +1,30 @@
-function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, selected)
+function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, selected, memoryWarningBytes)
     %readFile - Validate host options, load bounded bytes, and restore a File
     if nargin < 4, readAll = false; end
     if nargin < 5, selected = []; end
+    if nargin < 6, memoryWarningBytes = 4 * 2^30; end
     file = nfx.File(); ok = false; status = nfx.internal.readStatus();
     validName = (ischar(filename) && isrow(filename)) || ...
         (isstring(filename) && isscalar(filename) && ~ismissing(filename));
     if ~validName || strlength(filename) == 0 || any(char(filename) == 0) || ...
             ~nfx.internal.validReadLimit(maxBytes) || ...
             ~nfx.internal.validReadLimit(maxPixels) || ...
+            ~nfx.internal.validMemoryWarning(memoryWarningBytes) || ...
             ~islogical(readAll) || ~isscalar(readAll) || ...
             ~nfx.internal.validImageSelection(selected) || ...
             (readAll && ~isempty(selected))
         status.code = 'InvalidInput';
         status.message = ['Supply a filename, finite positive limits, a logical readAll, ' ...
-            'and distinct image indices. Use either readAll or readSegment.'];
+            'a nonnegative MemoryWarningBytes (Inf allowed), and distinct ' ...
+            'image indices. Use either readAll or readSegment.'];
         return
     end
     filename = char(filename);
-    [data, identity, ok, status] = nfx.internal.loadMetadata(filename, maxBytes);
+    [data, identity, ok, status] = nfx.internal.loadMetadata(filename, maxBytes, memoryWarningBytes);
     status.path = filename;
     if ~ok, return; end
     [file, ok, status] = nfx.internal.FileReader.readMetadata( ...
-        data, identity, maxPixels, maxBytes);
+        data, identity, maxPixels, maxBytes, memoryWarningBytes);
     if ~ok, file = nfx.File(); status.path = filename; return; end
     if readAll, selected = 1:numel(file.images); end
     if ~isempty(selected)
@@ -37,7 +40,8 @@ function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, s
                     encoded, maxBytes);
             else
                 [file, ok, status] = file.readSegment(selected, ...
-                    MaxPixels=maxPixels, MaxBytes=maxBytes);
+                    MaxPixels=maxPixels, MaxBytes=maxBytes, ...
+                    MemoryWarningBytes=memoryWarningBytes);
             end
         end
     end

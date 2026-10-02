@@ -16,10 +16,12 @@ classes, their validation boundaries, and the definitions still unavailable.
 Targets MATLAB R2023b and newer; tested locally on R2026a. Native reading and writing use base MATLAB. The regression suite also requires Image Processing Toolbox for independent MathWorks reader checks. No GDAL or NITRO dependency.
 
 An optional [OpenJPEG prototype](prototypes/openjpeg/README.md) adds Windows-only
-lossless NPJE/EPJE JPEG 2000 still-image segments. It requires the pinned
+lossless NPJE/EPJE JPEG 2000 single-frame segments, including motion frames.
+It requires the pinned
 OpenJPEG 2.5.4 executable for compression; writing captured segments needs no
-codec. This experimental path is outside the MATLAB Coder goal and the existing
-SNIP/MIE profile support. Run its tests with `runTests(OpenJPEG=encoder)`.
+codec. This experimental path is outside the MATLAB Coder goal and compressed
+SNIP support. MIE collections can use the documented C8 configuration.
+Run its tests with `runTests(OpenJPEG=encoder)`.
 
 ## Image viewer
 
@@ -345,7 +347,7 @@ assert(collection.validate().valid);
 paths = collection.write(pwd);  % Publishes imagery first, manifest last
 ```
 
-`MIECollection` implements the original-resolution uncompressed **NFX-MIE-NC1** writing scope. Supply arrays of `MIMCSA` layer summaries, `CAMSDA` camera sets, `MICIDA` core identities, and `TMINTA` interval definitions. Append `MotionBlock` values containing an image, editable `MTIMSA` timing, and exact start/end timestamps. Counts vary at runtime. Supply camera UUID and interval index in each block; image index, camera-set/layer references, temporal-block index, and frame count derive from the collection. Do not also attach MTIMSA to the block image.
+`MIECollection` supports original-resolution NC temporal blocks and single-frame C8 snapshots. Supply arrays of `MIMCSA` layer summaries, `CAMSDA` camera sets, `MICIDA` core identities, and `TMINTA` interval definitions. Append `MotionBlock` values containing an image, editable `MTIMSA` timing, and exact start/end timestamps. Counts vary at runtime. Supply camera UUID and interval index in each block; image index, camera-set/layer references, temporal-block index, and frame count derive from the collection. Do not also attach MTIMSA to the block image.
 
 - Pixels are rows-by-columns-by-bands-by-frames, with a constant native class and shape within each segment. A single frame uses IMODE B; multiple monochrome frames use F and multiple multiband frames use T. Bytes run through spatial blocks, frames, bands, rows, then columns. Edge padding, ABPP, LI, and motion complexity levels 51/54/57 derive automatically.
 - Camera dimensions and CCS placement, layer rate bounds, consecutive chronological intervals, nonoverlapping camera blocks, and exact frame timestamps are checked before output. One constant `dt` applies to **every** frame, including the first offset from `base_timestamp`. Integer arithmetic preserves products beyond uint64 without double rounding. Unknown fractional timestamp digits retain their precision; comparisons use the precision common to both operands. Motion block ends are exclusive; a supplied still may have equal start/end times.
@@ -362,6 +364,50 @@ CONTXA resolves image/frame indices and collection camera-set, camera, interval 
 
 Collection writing validates every planned file and every destination before publishing. Each file keeps the ordinary temporary-write/replace protection. A later filesystem failure reports the failed path and all paths already published, and leaves the old manifest untouched until the final publication step. This is **not a collection-wide transaction**. Retry/recovery and concurrent writers require caller coordination. `Overwrite=true` explicitly allows per-file replacement.
 
+### Compressed motion frames
+
+Prepare each single-frame image with `image.compress(encoder, Profile='NPJE')`
+or `Profile='EPJE'`, then supply it to a `MotionBlock`. Both profiles support
+native `uint8`/`uint16` MONO, RGB and MULTI arrays within the
+[codec's documented bounds](prototypes/openjpeg/README.md). See
+[`compressedCollectionExample`](examples/compressedCollectionExample.m) for
+a complete synthetic two-frame collection.
+
+For this C8 configuration, the layer's `MIMCSA` decoder fields are:
+
+```matlab
+layer.mi_req_decoder = 'C8';
+layer.mi_req_profile = 'ISO/IEC 15444-1';
+layer.mi_req_level = 'class2';
+```
+
+NPJE and EPJE are encoder selections; `MI_REQ_PROFILE` uses the formal JPEG
+2000 profile name above (STDI-0002 Appendix AF, AF5.1). Every segment in a
+layer must agree with that layer's decoder. Different layers may use NC and
+C8 in the same collection. `IC`, `COMRAT`, `J2KLRA`, lengths and complexity
+derive from the captured encoding. Validation and writing never invoke the
+codec or alter pixels.
+
+A motion frame retains its actual nonzero nominal rate and `.M` category.
+An empty `MTIMSA.dt` places a single frame at its supplied base timestamp;
+a supplied delta remains an offset. One frame per segment uses legacy NITF
+complexity levels 3/5/6/7/9, derived from actual dimensions, representations,
+counts and lengths. Frame count across the collection alone does not select
+51/54/57. These rules follow MIE4NITF 1.3.3 sections 6.9.4.4 and 9.2 and
+Appendix AF's MTIMSA definition.
+
+NFX preserves supplied camera placement, acquisition times, geometry and
+sensor-model metadata, including RSM sections and ordinary TRE overflow.
+It does not choose segmentation, assign application identities, fit models,
+resample imagery or invent acquisition timing. Both file and collection
+readers preserve supported codestream bytes for rewriting. Masked C8 (M8),
+multi-frame compressed segments (CB/MB), IMODE X and reduced-resolution
+collections remain outside the implemented collection subset; this is not
+a claim of support for every MIE4NITF combination.
+
+Host readers use caller-selected limits and advisory memory warnings above
+4 GiB by default. See [memory policy and limits](READING.md#limits-and-diagnostics).
+
 ## Tests and limits
 
 ```matlab
@@ -377,7 +423,7 @@ Run the independent viewer suite in `tests/twd/` with `runTwdTests` (optionally
 `Coverage=true`). Its reports go under `coverage/twd/`. See
 [test and compatibility notes](tests/README.md).
 
-Classified products, LUTs, compression beyond the documented C8 prototype, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation is restricted to NFX-MIE-NC1. RPC fitting and evaluation are outside scope.
+Classified products, LUTs, compression beyond the documented C8 prototype, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation covers the original-resolution NC and single-frame C8 subset described above. RPC fitting and evaluation are outside scope.
 
 MATLAB Coder remains a design priority: implementation uses qualified names, applicable `%#codegen` annotations, and native pixel storage. No Coder license is available, and compiled compatibility is **not verified**. Temporary-file creation and publication still need a supported, tested generated-code path. The small `publishCollection` host helper isolates try/catch needed to report partial publication; its callers and metadata/byte paths retain generation intent. R2023b execution is also unverified.
 

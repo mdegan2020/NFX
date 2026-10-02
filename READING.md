@@ -136,8 +136,8 @@ raw physical `tre_records` are unchanged.
 | Text | Supported STA text and subheaders, including text-only files |
 | Generic DESs | Exact payload and supported subheader bytes; no semantic claim about arbitrary registered data |
 | GLAS/GFM DESs | Typed CSATTB, CSEPHB, CSSFAB and CSCSDB layouts already supported by the writer |
-| JPEG2000 | Existing lossless NPJE/EPJE C8 still-image output |
-| Collections | Original-resolution uncompressed MIE collections, explicit members, manifests, quick looks and unavailable blocks |
+| JPEG2000 | Existing lossless NPJE/EPJE C8 output, including single motion frames |
+| Collections | Original-resolution NC and single-frame C8 MIE collections, explicit members, manifests, quick looks and unavailable blocks |
 
 Lengths, counts, conditional headers and source bounds are checked before
 content is reconstructed. Supplied structural values must agree with the
@@ -278,9 +278,27 @@ counts all retained image samples after a file-level read, including each
 band and frame; a segment-level read counts only that segment. Initial
 budgets carry forward; method options override them for that operation.
 
-`MIECollection.read` continues to read eagerly, with defaults of `2^30`
-source bytes, `2^28` decoded samples and 10,000 files. Its limits apply across
-members. Use `File.read` to inspect a single member without loading pixels.
+`MIECollection.read` reads eagerly through the same segment reader, without
+buffering entire source files. Its `MaxBytes`, `MaxPixels` and `MaxFiles`
+defaults are all `flintmax`. Explicit limits apply across all members:
+`MaxBytes` counts complete source-file lengths, and `MaxPixels` counts native
+samples across bands and frames. Use `File.read` to inspect a single member
+without loading pixels.
+
+All host read methods accept `MemoryWarningBytes`, defaulting to `4*2^30`
+bytes (4 GiB). Above that estimate, warning `nfx:MemoryUsage` is issued and
+processing **continues**. Use `Inf` to disable the warning, or a nonnegative
+double threshold to choose another value. File reads retain the threshold
+for later file/segment reads, including temporary `.data` access.
+
+Estimates include retained native arrays, retained C8 codestreams, known
+metadata buffers and space for one segment's payload and native-size copy.
+Skipped pixels are excluded. Collection estimates accumulate across members.
+Codec workspace, MATLAB overhead, caller-held copies and other applications
+can increase actual memory use. Warnings are advisory estimates, not an
+available-RAM test or a guarantee against allocation failure. MATLAB's own
+warning settings still apply, including caller settings that promote warnings
+to errors. Explicit `Max*` budgets remain hard limits.
 
 ```matlab
 [file, ok, status] = nfx.File.read('source.ntf', ...

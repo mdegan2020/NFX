@@ -27,6 +27,9 @@ require no local reference library, design documents, GDAL, or NITRO.
 | `BNDPLCTest` | Appendix P-9a coordinate representations, strict structural counts, physical limits, independent editable decoding and exact original payload preservation through file/image/wrapper round trips |
 | `SensorDESReadTest` | Typed DES variants, header/payload agreement, raw-versus-verified trust, shared model associations and malformed support data |
 | `JPEG2000ReadTest` | Native backend pixels, both profiles, untouched codestream preservation, missing/failing codecs and detected corruption warnings |
+| `CompressedCollectionTest` | Both profiles, uint8/uint16 MONO/RGB/MULTI, single-frame timing, 20 independent frames, layer declarations, RSM sections/geometry/overflow, independent pixel reads and exact collection rewrite |
+| `ReadMemoryTest` | Advisory warnings, deferred-read inheritance, native sample budgets, aggregate collections and invalid threshold diagnostics |
+| `CompressedScaleTest` (opt-in) | One and twenty 5000-by-15000 uint16 frames: original dimensions, complexity level, native pixels and preserved compressed snapshots |
 | `CollectionReadTest`, `CollectionManifestReadTest` | Complete collections and explicit lists, exact timing above flintmax, cross-file contexts, quick looks, missing/unavailable blocks, 650 members and FILE002 |
 | `ReaderAcceptanceTest` | Supported RSM/ECF GLAS SNIP round trips, profile boundaries, preserving unrelated content during image edits and the public reading example |
 | `RPC00BTest` | Exact field widths, signs, coefficient order, rounding, exponent limits, unset values, strict types, and nonzero normalization |
@@ -93,6 +96,7 @@ The common format suites above test each record's conditional fields and byte or
 | SNIP sections 7.2.1 and 6.6; GLAS/GFM Appendix M | `SNIPProfileTest`, GLAS suites: ECF, UUID companions, scanner/frame acquisition timing, support-sample coverage and optional reserved-area rejection |
 | SNIP section 7.2.3; SENSRB Appendix Z | `SensorContinuationTest` implements generic splitting; `SNIPProfileTest` explicitly rejects SENSRB as the sole SNIP path without the separately distributed mensuration profile |
 | MIE4NITF 1.3.3 section 6, Tables 14-15; Appendix AF | `MotionStorageTest`, `MotionBlockTest`, `MIECollectionTest`: original-resolution NC, B/F/T layout, native data, complexity levels, runtime camera/layer/set/interval counts and exact timing |
+| MIE4NITF 1.3.3 sections 6.9.4.4 and 9.2; Appendix AF AF5.1/AF5.7 | `CompressedCollectionTest`: single-frame C8, formal decoder/profile/class declarations, actual motion timing, legacy complexity levels and independent reader round trips |
 | MIE sections 6.11-6.12; requirements 99, 103, 105, 109, 110, 116, 121 | `MIECollectionTest`, `MIEManifestTest`, `MIEQuicklookTest`: complete shared catalogs, canonical names, missing blocks, manifest mappings, FILE001/002 whole-entry splits and quick-look scopes |
 | Appendix AF context/override semantics | `FrameContextTest`, `CollectionContextTest`: physical precedence, frame/time boundaries, nested scopes, cross-file targets and explicit ambiguous-override failure |
 | MISB ST 1204.3 Appendix E and Table 14 | `MICIDATest`: all ten published MIIS examples and a separately implemented permutation oracle |
@@ -105,7 +109,7 @@ Reference decisions:
 - The current Appendix M explicit CSCSDB adjustment-correlation fields conflict with older zero-reserved packing/minimum-length statements. Generic bytes follow the counted field definitions. That optional area fails the sole GLAS SNIP path until the conflict is resolved.
 - CSDIDA Appendix AS identifies 9I as airborne/WAMI and AU as Aurora. The selected airborne profile uses 9I; other airborne registrations require a verified catalog update.
 
-`MIECollection.validate` checks the complete NFX-MIE-NC1 collection, including generated imagery and manifest distinctions. `File.validate` alone checks an individual generic NITF file; it cannot establish a complete external collection. An individually imported NFX MIE member exposes stored content with `context_complete=false` and requires `MIECollection.read` before full context/model validation or writing. Profile checks do not prove scientific calibration/geolocation, truthful provider declarations, actual image-center targeting, inherited parent metadata or external certification. SENSRB-only SNIP mensuration remains blocked by the unavailable NGA profile; independent RSM/ECF GLAS cases are implemented.
+`MIECollection.validate` checks the complete supported NC/C8 collection, including generated imagery and manifest distinctions. `File.validate` alone checks an individual generic NITF file; it cannot establish a complete external collection. An individually imported NFX MIE member exposes stored content with `context_complete=false` and requires `MIECollection.read` before full context/model validation or writing. Profile checks do not prove scientific calibration/geolocation, truthful provider declarations, actual image-center targeting, inherited parent metadata or external certification. SENSRB-only SNIP mensuration remains blocked by the unavailable NGA profile; independent RSM/ECF GLAS cases are implemented.
 
 ## Coverage review
 
@@ -118,7 +122,7 @@ See [the prototype notes](../prototypes/openjpeg/README.md) for setup and scope.
 byte counts and pre/post MATLAB memory; it does not measure transient peaks or
 encoder-process memory. These are observations, not portable resource bounds.
 
-Coverage reports include every implementation file under `src/`, including private helpers. Inspect `coverage/html/index.html` and `coverage/cobertura.xml` after a run. No coverage exclusions are applied.
+NFX coverage reports include every implementation file under `src/+nfx/`, including private helpers. Inspect `coverage/nfx/html/index.html` and `coverage/nfx/cobertura.xml` after a coverage run. No NFX source exclusions are applied.
 
 Known defensive paths that are not exercised by the normal public file workflow:
 
@@ -164,6 +168,27 @@ polygon topology, cloud references and quality-image associations. Uncovered
 lines are mainly constructor alternatives and defensive formatting/input
 branches. This percentage covers the newly added source files, not the
 entire repository or every possible metadata combination.
+
+## Opt-in large compressed collection
+
+The 2026-10-02 verification passed 2,900 NFX tests with OpenJPEG, followed by
+241 affected tests after two review fixes, including two new regressions.
+The single 5000-by-15000 frame test also passed, with independent `nitfread`
+verification. This covers 2,903 distinct passing cases; TWD was not run.
+The twenty-frame full-resolution case is available but was not executed
+on the busy development machine. A fresh GPT-6 Astra Extra High review
+confirmed both findings resolved; Code Analyzer reported no issues in the
+changed MATLAB files. Compiled compatibility and R2023b remain unverified.
+
+`runTests(OpenJPEG=encoder)` includes the bounded compressed collection
+matrix and a 20-frame sequence of small images. It excludes `LargeData` tests.
+Run `runTests(OpenJPEG=encoder, LargeData=true)` to additionally qualify one
+and twenty 5000-by-15000 uint16 frames (3 GB of source pixels for twenty).
+The round trip retains
+source and decoded arrays, plus codestreams and codec workspace; allow ample
+free RAM and temporary disk space. This synthetic ramp case verifies scale
+and exact pixels, not real-scene compression ratios or decoder certification.
+An external operational reader should also qualify representative products.
 
 ## Memory observation
 

@@ -1,5 +1,5 @@
 classdef MIECollection
-    %MIECollection - Assemble original-resolution uncompressed motion files
+    %MIECollection - Assemble original-resolution motion imagery files
     %   OBJ = MIECollection(base_name=NAME,header=HEADER,layers=LAYERS,
     %   camera_sets=SETS,camera_ids=IDS,intervals=INTERVALS) supplies collection
     %   definitions using MIMCSA, CAMSDA, MICIDA and TMINTA value arrays.
@@ -20,8 +20,10 @@ classdef MIECollection
     %   and selection comments. All are copied into the generated manifest.
     %   Set MANIFEST_MTIMFA=true to include every block mapping there too.
     %
-    %   This profile preserves uint8/uint16 pixels and supplied metadata.
-    %   It performs no compression, resampling or sensor-model evaluation.
+    %   NC temporal blocks and single-frame C8 snapshots preserve uint8 or
+    %   uint16 pixels and supplied metadata. Compress images explicitly with
+    %   ImageSegment.compress before assembly. Planning performs no encoding,
+    %   resampling or sensor-model evaluation.
     %
     %   See also MotionBlock, File, MTIMSA
 
@@ -122,18 +124,22 @@ classdef MIECollection
             %   does not matter. Directories are never scanned for members.
             %
             %   MaxBytes and MaxPixels bound aggregate bytes and decoded
-            %   samples; defaults are 2^30 and 2^28. MaxFiles defaults to
-            %   10000. Failure returns a default scalar and diagnostic.
+            %   samples; both default to FLINTMAX, as does MaxFiles.
+            %   MemoryWarningBytes defaults to 4*2^30 bytes (4 GiB). Larger
+            %   estimated buffers warn and continue. Inf disables warnings.
+            %   Failure returns a default scalar and diagnostic.
             %
             %   See also File.read, plan, write
             arguments
                 source
-                options.MaxBytes = 2^30
-                options.MaxPixels = 2^28
-                options.MaxFiles = 10000
+                options.MaxBytes = flintmax
+                options.MaxPixels = flintmax
+                options.MaxFiles = flintmax
+                options.MemoryWarningBytes = 4 * 2^30
             end
             [collection, ok, status] = nfx.internal.CollectionReader.read( ...
-                source, options.MaxBytes, options.MaxPixels, options.MaxFiles);
+                source, options.MaxBytes, options.MaxPixels, options.MaxFiles, ...
+                options.MemoryWarningBytes);
         end
     end
     methods (Static, Access = ?nfx.internal.CollectionReader)
@@ -151,7 +157,7 @@ classdef MIECollection
         function [files, report] = bindReadFiles(files)
             %bindReadFiles - Validate imports against their complete context
             inputs = collectionContextInputs(files);
-            report = newReport('NFX-MIE-NC1 imported collection');
+            report = newReport('MIE imported collection');
             for k = 1:numel(files)
                 files(k).file = bindContext(files(k).file, inputs(k));
                 report = mergeReport(report, validate(files(k).file), ...
@@ -163,7 +169,7 @@ classdef MIECollection
         function [files,report] = completePlan(obj) %#codegen
             %completePlan - Bind all collection contexts before file preflight
             [files,report] = mieCollectionPlan(obj);
-            report.scope = 'NFX-MIE-NC1 complete collection';
+            report.scope = 'MIE complete collection';
             if ~report.valid, return; end
             for k = 1:numel(files)
                 for j = 1:numel(obj.importedLayouts)

@@ -150,14 +150,18 @@ classdef (TestTags = {'OpenJPEG'}) OpenJPEGTest < NfxTest
             image = makeImage(zeros(32,'uint16'),'MONO'); image.header.pjust = 'L';
             t.verifyError(@() image.compress(t.encoder),'nfx:JPEG2000Scope');
         end
-        function motionCategoryRejected(t)
+        function singleMotionFrameCanBeCompressed(t)
             image = makeImage(zeros(32,'uint8'),'MONO'); image.header.icat = 'VIS.M';
-            t.verifyError(@() image.compress(t.encoder),'nfx:JPEG2000Scope');
+            image = image.compress(t.encoder);
+            t.verifyTrue(image.validate().valid);
+            t.verifyEqual(image.header.ic,'C8');
         end
-        function motionEditInvalidatesSnapshot(t)
+        function motionCategoryPreservesSnapshot(t)
             image = makeImage(zeros(32,'uint8'),'MONO').compress(t.encoder);
+            before = image.compression.codestream;
             image.header.icat = 'VIS.M';
-            t.verifyFalse(image.validate().valid);
+            t.verifyTrue(image.validate().valid);
+            t.verifyEqual(image.compression.codestream,before);
         end
         function executablePathWithSpaces(t)
             destination = fullfile(t.folder,'codec with spaces');

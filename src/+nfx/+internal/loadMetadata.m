@@ -1,5 +1,6 @@
-function [source, identity, ok, status] = loadMetadata(filename, maxBytes)
+function [source, identity, ok, status] = loadMetadata(filename, maxBytes, memoryWarningBytes)
     %loadMetadata - Seek over imagery and retain headers and support data
+    if nargin < 3, memoryWarningBytes = 4 * 2^30; end
     source = struct('bytes', zeros(1, 0, 'uint8'), ...
         'ranges', zeros(0, 3), 'length', 0);
     identity = struct('path', '', 'length', 0, 'modified', 0);
@@ -58,6 +59,7 @@ function [source, identity, ok, status] = loadMetadata(filename, maxBytes)
                 'Metadata requires %.0f bytes; MaxBytes is %.0f.', total, maxBytes);
             return
         end
+        nfx.internal.warnMemory(2 * total, memoryWarningBytes);
         bytes = zeros(1, total, 'uint8'); bytes(1:hl) = header;
         for k = 2:size(ranges, 1)
             bytes(ranges(k, 3) + (1:ranges(k, 2))) = ...

@@ -22,7 +22,7 @@ file.write(fullfile('artifacts', 'openjpeg', 'example.ntf'), ...
 disp(metrics)
 ```
 
-For an existing valid still image with right-justified pixels and 1024-square
+For an existing valid single frame with right-justified pixels and 1024-square
 blocks:
 
 ```matlab
@@ -45,7 +45,7 @@ removed. User TRE attachments retain their IDs, order and removal behavior.
 
 ## Implemented configuration
 
-- Dense real `uint8` and `uint16` still images, including RGB and multispectral
+- Dense real `uint8` and `uint16` single frames, including RGB and multispectral
   arrays. Both dimensions must be at least 32. Partial edge tiles are supported.
 - Native component precision (8 or 16), no component/color transform, no sample
   subsampling, reversible 5–3 wavelet, two guard bits, 64-square codeblocks,
@@ -85,7 +85,8 @@ Codec tests include an independent file-based marker parser, corrupted marker
 rejection, exact MATLAB `imread`/`nitfread` round trips, multiband and edge cases,
 reduced-resolution NPJE/EPJE comparisons, snapshot behavior and mixed segments.
 
-The final R2026a Update 4 run passed **1,056 tests**, including 43 optional
+The initial prototype qualification on R2026a Update 4 passed **1,056 tests**,
+including 43 optional
 OpenJPEG tests, with no failures or incomplete tests. Implementation line
 coverage was **8,803 / 8,853 (99.44%)**. Uncovered prototype lines include
 external-codec/version failure and defensive format/size branches; the large
@@ -99,10 +100,19 @@ indices/lengths, PLT packet coverage/counts and physical ordering. It is not a
 general JPEG 2000 validator, does not decode entropy data or prove requested
 rate-control targets, and is not a conformance certification.
 
-Lossy/visually lossless encoding, compressed motion, masks, arbitrary
-codestream import, heterogeneous component precision and SNIP/MIE compressed
-profile enforcement are outside this prototype. The existing SNIP validator
-explicitly rejects C8; the existing MIE collection profile remains NC-only.
+Single motion frames may carry `.M` categories and MTIMSA timing. Collections
+can assemble these captured C8 snapshots without invoking the encoder during
+planning or writing; see [compressed collections](../../README.md#compressed-motion-frames).
+`MemoryWarningBytes` on `compress` or `nfx.JPEG2000` defaults to 4 GiB and warns
+without blocking when two native-size buffers exceed that threshold. This
+estimate excludes additional codec workspace and compressed output; it is
+not a peak-memory guarantee. `Inf` silences the warning.
+
+Lossy/visually lossless encoding, multi-frame compressed segments (CB/MB),
+IMODE X, masks, arbitrary codestream import, heterogeneous component precision
+and compressed SNIP enforcement remain outside this prototype. The SNIP
+validator explicitly rejects C8. Collection support covers original-resolution
+NC and the documented single-frame NPJE/EPJE C8 configuration.
 This optional encoding path is exempt from the MATLAB Coder goal. Execution has
 been tested on MATLAB R2026a Update 4; compiled compatibility is not claimed.
 

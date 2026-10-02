@@ -5,7 +5,7 @@ function [definitions,report] = mieCollectionDefinitions(collection) %#codegen
     entry = struct('definition',camera,'set',0,'index',0,'position',[0 0]);
     interval = struct('time_interval_index',0,'start_timestamp','','end_timestamp','');
     definitions = struct('cameras',repmat(entry,1,0),'sets',0,'intervals',repmat(interval,1,0));
-    report = newReport('NFX-MIE-NC1 collection definitions');
+    report = newReport('MIE collection definitions');
     name = char(collection.base_name);
     invalidName = isempty(strtrim(name)) || ~strcmp(name,strtrim(name)) || ...
         any(ismember(name,'\/:*?"<>|')) || any(double(name) < 32) || any(strcmp(name,{'.','..'}));
@@ -24,8 +24,13 @@ function [definitions,report] = mieCollectionDefinitions(collection) %#codegen
         'ManifestRequired','manifest','Manifest metadata and quick looks require manifest output.');
     for k = 1:numel(collection.layers)
         item = collection.layers(k); report = mergeReport(report,validate(item),sprintf('layers(%.0f).',k));
-        report = mieIssue(report,~strcmp(item.mi_req_decoder,'NC') || item.t_rset ~= 0, ...
-            'MIEEncoding','layers','NFX-MIE-NC1 requires original-resolution uncompressed NC layers.');
+        report = mieIssue(report,~any(strcmp(item.mi_req_decoder,{'NC','C8'})) || item.t_rset ~= 0, ...
+            'UnsupportedFeature','layers','Collection support currently covers original-resolution NC and single-frame C8 imagery.');
+        if strcmp(item.mi_req_decoder,'C8')
+            report = mieIssue(report,~strcmp(strtrim(item.mi_req_profile),'ISO/IEC 15444-1') || ...
+                ~strcmp(strtrim(item.mi_req_level),'class2'), 'UnsupportedFeature','layers', ...
+                'The supported C8 encoder uses ISO/IEC 15444-1, class2 (for both NPJE and EPJE).');
+        end
         rates = [item.nominal_frame_rate item.min_frame_rate item.max_frame_rate];
         report = mieIssue(report,any(isnan(rates)) || rates(1) < rates(2) || rates(1) > rates(3), ...
             'CollectionRates','layers','Supply complete nominal/minimum/maximum rates with nominal inside the bounds.');

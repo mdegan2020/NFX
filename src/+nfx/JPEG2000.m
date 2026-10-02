@@ -1,6 +1,6 @@
 classdef JPEG2000
     %JPEG2000 - Experimental lossless NPJE or EPJE OpenJPEG snapshot
-    %   OBJ = JPEG2000(DATA,ENCODER) encodes a still uint8 or uint16 array
+    %   OBJ = JPEG2000(DATA,ENCODER) encodes one uint8 or uint16 image frame
     %   using the OpenJPEG 2.5.4 Windows executable at ENCODER. DATA uses
     %   rows-by-columns-by-bands order and retains its native precision.
     %   JPEG2000 with no arguments creates an uninitialized value.
@@ -11,6 +11,7 @@ classdef JPEG2000
     %   NPJE is limited to 16382 tiles; EPJE to 65535 tiles. EPJE admits at
     %   most 3276 bands and requires packet lengths to fit one PLT per part.
     %   It requires Windows and is outside NFX's Coder compatibility goal.
+    %   MemoryWarningBytes defaults to 4 GiB; Inf disables advisory warnings.
     %
     %   JPEG2000 functions:
     %       inspect - Check the bounded prototype codestream structure
@@ -39,12 +40,16 @@ classdef JPEG2000
                 data {mustBePixels} = zeros(0, 0, 'uint8')
                 encoder = ''
                 options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
+                options.MemoryWarningBytes = 4 * 2^30
             end
             if nargin == 0, return, end
             mustBeTextScalar(encoder); mustBeNonzeroLengthText(encoder);
             if isempty(data) || ndims(data) > 3 || min(size(data,1),size(data,2)) < 32 || ...
                     size(data,3) > 16384 || ceil(size(data,1)/1024)*ceil(size(data,2)/1024) > 65535
-                error('nfx:JPEG2000Scope','Expected a still image at least 32-by-32, at most 16384 bands and 65535 tiles.');
+                error('nfx:JPEG2000Scope','Expected one frame at least 32-by-32, at most 16384 bands and 65535 tiles.');
+            end
+            if ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
+                error('nfx:MemoryWarningBytes', 'MemoryWarningBytes must be nonnegative (Inf allowed).');
             end
             obj.profile = char(options.Profile);
             if strcmp(obj.profile,'EPJE') && size(data,3)*20 > 65532
@@ -53,6 +58,8 @@ classdef JPEG2000
             if strcmp(obj.profile,'NPJE') && ceil(size(data,1)/1024)*ceil(size(data,2)/1024) > 16382
                 error('nfx:JPEG2000Scope','The NPJE prototype uses one TLM and supports at most 16382 tiles.');
             end
+            nfx.internal.warnMemory(2 * numel(data) * (1 + isa(data, 'uint16')), ...
+                options.MemoryWarningBytes);
             [obj.codestream,obj.metrics] = encodeOpenJPEG(data,char(encoder),obj.profile);
             obj.info = inspectJPEG2000(obj.codestream,obj.profile);
             expected = [size(data,1) size(data,2) size(data,3)];

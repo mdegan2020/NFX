@@ -9,11 +9,14 @@ function results = runTests(options)
     %
     %   RESULTS = runTests(OpenJPEG=ENCODER) includes the optional Windows
     %   OpenJPEG 2.5.4 tests. NFX_OPENJPEG supplies the default executable path.
+    %   LargeData=true also includes full-resolution compression tests.
+    %   The 20-frame test retains several GB and requires OpenJPEG.
     %
     %   See also runTwdTests, runtests, matlab.unittest.TestRunner
     arguments
         options.Coverage (1,1) logical = false
         options.OpenJPEG {mustBeTextScalar} = getenv('NFX_OPENJPEG')
+        options.LargeData (1,1) logical = false
     end
     root = fileparts(mfilename('fullpath'));
     runner = matlab.unittest.TestRunner.withTextOutput;
@@ -26,6 +29,9 @@ function results = runTests(options)
         suite = suite.selectIf(~matlab.unittest.selectors.HasTag('OpenJPEG'));
         fprintf(['Optional OpenJPEG tests excluded; supply ' ...
             'OpenJPEG=ENCODER to include them.\n']);
+    end
+    if ~options.LargeData
+        suite = suite.selectIf(~matlab.unittest.selectors.HasTag('LargeData'));
     end
     if options.Coverage
         output = fullfile(root, 'coverage', 'nfx');

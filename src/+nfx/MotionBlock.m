@@ -38,7 +38,7 @@ classdef MotionBlock
         end
         function report = validate(obj) %#codegen
             %VALIDATE - Check supplied boundaries and exact frame containment
-            report = newReport('NFX uncompressed MIE temporal block');
+            report = newReport('MIE temporal block');
             reference = 'NGA.STND.0044 1.3.3, 6.4; STDI Appendix AF, AF5.5 and AF5.7';
             report = addIssue(report,~validUUID(obj.timing.camera_id),'CameraUUID','timing.camera_id', ...
                 'Supply the camera UUID for this temporal block.',reference);

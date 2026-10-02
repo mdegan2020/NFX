@@ -1724,18 +1724,22 @@ classdef ImageSegment
             %
             %   ... = READ(...,MaxPixels=N,MaxBytes=M) overrides the stored
             %   sample and encoded-payload limits for this read operation.
+            %   MemoryWarningBytes overrides the retained advisory threshold.
             %
             %   See also nfx.File.readSegment, pixelsLoaded
             arguments
                 obj (1,1) nfx.ImageSegment
                 options.MaxPixels = obj.source.maxPixels
                 options.MaxBytes = obj.source.maxBytes
+                options.MemoryWarningBytes = obj.source.memoryWarningBytes
             end
             status = nfx.internal.readStatus(); ok = false;
             if ~nfx.internal.validReadLimit(options.MaxPixels) || ...
-                    ~nfx.internal.validReadLimit(options.MaxBytes)
+                    ~nfx.internal.validReadLimit(options.MaxBytes) || ...
+                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
                 status.code = 'InvalidInput';
-                status.message = 'Read limits must be positive finite double integers.'; return
+                status.message = ['Read limits must be positive finite double integers; ' ...
+                    'MemoryWarningBytes must be nonnegative (Inf allowed).']; return
             end
             if isempty(obj.source.path)
                 coverage = unknownTREReport(obj.store.records);
@@ -1753,6 +1757,10 @@ classdef ImageSegment
                 status.message = sprintf('Image requires %.0f samples; MaxPixels is %.0f.', ...
                     samples, options.MaxPixels);
                 status.path = source.path; status.index = source.index; return
+            end
+            if source.entry.location.dataLength <= options.MaxBytes
+                [retained, workspace] = nfx.internal.imageReadMemory(obj, 1);
+                nfx.internal.warnMemory(retained + workspace, options.MemoryWarningBytes);
             end
             [bytes, ok, status] = nfx.internal.loadImageSource(source, options.MaxBytes);
             if ~ok, return; end
@@ -1819,26 +1827,32 @@ classdef ImageSegment
             %   OBJ = COMPRESS(OBJ,ENCODER) selects NPJE using the supplied
             %   OpenJPEG 2.5.4 Windows executable. Native pixels remain in DATA.
             %
-            %   OBJ = COMPRESS(...,Profile=VALUE) selects NPJE or EPJE. Still,
-            %   right-justified images with 1024-square blocks are supported.
+            %   OBJ = COMPRESS(...,Profile=VALUE) selects NPJE or EPJE. Single
+            %   frames with right justification and 1024-square blocks are
+            %   supported, including individual frames of motion imagery.
             %   ABPP and NBPP both describe native codestream precision. Pixel
             %   edits restore NC storage; other encoding edits need validation.
+            %   MemoryWarningBytes defaults to 4 GiB; Inf disables warnings.
             arguments
                 obj (1,1) nfx.ImageSegment
                 encoder {mustBeTextScalar, mustBeNonzeroLengthText}
                 options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
+                options.MemoryWarningBytes = 4 * 2^30
+            end
+            if ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
+                error('nfx:MemoryWarningBytes', 'MemoryWarningBytes must be nonnegative (Inf allowed).');
             end
             requireValid(validate(obj));
             if ~isempty(obj.source.path)
-                [obj, loaded, status] = obj.read();
+                [obj, loaded, status] = obj.read(MemoryWarningBytes=options.MemoryWarningBytes);
                 if ~loaded, error('nfx:ReadPixels', '%s', status.message); end
             end
             h = obj.header;
-            if obj.number_frames ~= 1 || ~strcmp(h.pjust,'R') || h.nppbh ~= 1024 || h.nppbv ~= 1024 || ...
-                    endsWith(char(h.icat),'.M') || any(strcmp({obj.store.records.tag},'MTIMSA'))
-                error('nfx:JPEG2000Scope','Compression requires still, right-justified imagery and 1024-square blocks.');
+            if obj.number_frames ~= 1 || ~strcmp(h.pjust,'R') || h.nppbh ~= 1024 || h.nppbv ~= 1024
+                error('nfx:JPEG2000Scope','Compression requires one frame, right justification, and 1024-square blocks.');
             end
-            obj.compressed = nfx.JPEG2000(obj.pixels,encoder,Profile=options.Profile);
+            obj.compressed = nfx.JPEG2000(obj.pixels,encoder,Profile=options.Profile, ...
+                MemoryWarningBytes=options.MemoryWarningBytes);
             obj.store = obj.store.repack();
         end
         function obj = uncompress(obj)
@@ -1921,8 +1935,7 @@ classdef ImageSegment
             report = mergeReport(report, validate(obj.header), 'header.');
             h = obj.header;
             report = addIssue(report,strcmp(h.ic, 'C8') && ...
-                (h.nppbh ~= 1024 || h.nppbv ~= 1024 || ~strcmp(h.pjust,'R') || obj.number_frames ~= 1 || ...
-                endsWith(char(h.icat),'.M') || any(strcmp({obj.store.records.tag},'MTIMSA'))), ...
+                (h.nppbh ~= 1024 || h.nppbv ~= 1024 || ~strcmp(h.pjust,'R') || obj.number_frames ~= 1), ...
                 'JPEG2000Snapshot','compression','Restore 1024-square blocks and right justification, or uncompress the image.', ...
                 'BPJ2K01.20, Table 8-2 and Appendices D/E');
             reference = 'JBP 2025.1, 5.9 and 5.13; STDI-0002-1 App E, E.3.12';

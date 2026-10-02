@@ -3,12 +3,15 @@ classdef (Hidden) CollectionReader
     % Collections grow after source-size/count checks; no maximum buffer is
     % allocated for every possible file or temporal block.
     methods (Static)
-        function [collection, ok, status] = read(source, maxBytes, maxPixels, maxFiles)
+        function [collection, ok, status] = read(source, maxBytes, maxPixels, maxFiles, memoryWarningBytes)
+            if nargin < 5, memoryWarningBytes = 4 * 2^30; end
             collection = nfx.MIECollection(); ok = false;
             status = nfx.internal.readStatus(); status.scope = 'collection';
-            if ~validLimit(maxBytes) || ~validLimit(maxPixels) || ~validLimit(maxFiles)
+            if ~validLimit(maxBytes) || ~validLimit(maxPixels) || ~validLimit(maxFiles) || ...
+                    ~nfx.internal.validMemoryWarning(memoryWarningBytes)
                 status.code = 'InvalidInput';
-                status.message = 'Collection limits must be positive finite double integers.';
+                status.message = ['Collection limits must be positive finite double integers; ' ...
+                    'MemoryWarningBytes must be nonnegative (Inf allowed).'];
                 return
             end
             manifestInput = isText(source);
@@ -42,6 +45,7 @@ classdef (Hidden) CollectionReader
                 'camera_set_index', 0, 'time_interval_index', 0, 'manifest', false);
             files = repmat(item, 1, 0); names = cell(1, 0);
             bytes = 0; samples = 0; first = 1;
+            retained = 0; warned = false;
             while first <= numel(paths)
                 filename = paths{first};
                 [~, stem, extension] = fileparts(filename); name = [stem extension];
@@ -51,12 +55,37 @@ classdef (Hidden) CollectionReader
                 if ~isfile(filename)
                     status = problem('MissingFile', 'A required collection file is absent.', filename); return
                 end
-                [raw, loaded, child] = nfx.internal.loadReadFile(filename, maxBytes - bytes);
+                info = dir(filename);
+                if isempty(info)
+                    status = problem('MissingFile', 'A required collection file is absent.', filename); return
+                end
+                if info.bytes > maxBytes - bytes
+                    status = problem('ResourceLimit', ...
+                        'Aggregate collection file bytes exceed MaxBytes.', filename); return
+                end
+                [file, loaded, child] = nfx.File.read(filename, ...
+                    MaxBytes=maxBytes - bytes, MaxPixels=max(1, maxPixels - samples), ...
+                    MemoryWarningBytes=Inf);
                 if ~loaded, status = child; return, end
-                [file, loaded, child] = nfx.internal.FileReader.readBytes(raw, maxPixels - samples, false);
+                fileBytes = file.header.fl;
+                if fileBytes > maxBytes - bytes
+                    status = problem('ResourceLimit', ...
+                        'Aggregate collection file bytes exceed MaxBytes.', filename); return
+                end
+                images = file.images;
+                [native, workspace, count] = nfx.internal.imageReadMemory(images, 1:numel(images));
+                if count > maxPixels - samples
+                    status = problem('ResourceLimit', ...
+                        'Aggregate decoded image samples exceed MaxPixels.', filename); return
+                end
+                metadata = fileBytes - sum([images.li]);
+                retained = retained + native + 2 * metadata;
+                if ~warned
+                    warned = nfx.internal.warnMemory(retained + workspace, memoryWarningBytes);
+                end
+                [file, loaded, child] = file.readAll(MemoryWarningBytes=Inf);
                 if ~loaded, status = child; status.path = filename; return, end
-                bytes = bytes + numel(raw);
-                for k = 1:numel(file.images), samples = samples + numel(file.images(k).data); end
+                bytes = bytes + fileBytes; samples = samples + count;
                 current = item; current.filename = name; current.file = file;
                 files(end + 1) = current; names{end + 1} = name; %#ok<AGROW>
                 if first == 1 && manifestInput
@@ -125,6 +154,7 @@ classdef (Hidden) CollectionReader
             [definitions, report] = nfx.MIECollection.readDefinitions(collection);
             if ~report.valid
                 status.code = 'MalformedFile'; status.message = report.issues(1).message;
+                if strcmp(report.issues(1).id, 'UnsupportedFeature'), status.code = 'UnsupportedFeature'; end
                 collection = nfx.MIECollection(); return
             end
             expected = expectedNames(base, sets, intervals, definitions.sets);
