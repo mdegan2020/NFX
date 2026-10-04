@@ -3,15 +3,18 @@ classdef (Hidden) CollectionReader
     % Collections grow after source-size/count checks; no maximum buffer is
     % allocated for every possible file or temporal block.
     methods (Static)
-        function [collection, ok, status] = read(source, maxBytes, maxPixels, maxFiles, memoryWarningBytes)
+        function [collection, ok, status] = read(source, maxBytes, maxPixels, maxFiles, memoryWarningBytes, backend, threads)
             if nargin < 5, memoryWarningBytes = 4 * 2^30; end
+            if nargin < 6, backend = 'auto'; end
+            if nargin < 7, threads = 4; end
             collection = nfx.MIECollection(); ok = false;
             status = nfx.internal.readStatus(); status.scope = 'collection';
             if ~validLimit(maxBytes) || ~validLimit(maxPixels) || ~validLimit(maxFiles) || ...
-                    ~nfx.internal.validMemoryWarning(memoryWarningBytes)
+                    ~nfx.internal.validMemoryWarning(memoryWarningBytes) || ...
+                    ~nfx.internal.validJPEG2000Options(backend, threads)
                 status.code = 'InvalidInput';
                 status.message = ['Collection limits must be positive finite double integers; ' ...
-                    'MemoryWarningBytes must be nonnegative (Inf allowed).'];
+                    'MemoryWarningBytes must be nonnegative (Inf allowed); check JPEG2000 options.'];
                 return
             end
             manifestInput = isText(source);
@@ -65,7 +68,7 @@ classdef (Hidden) CollectionReader
                 end
                 [file, loaded, child] = nfx.File.read(filename, ...
                     MaxBytes=maxBytes - bytes, MaxPixels=max(1, maxPixels - samples), ...
-                    MemoryWarningBytes=Inf);
+                    MemoryWarningBytes=Inf, JPEG2000Backend=backend, JPEG2000Threads=threads);
                 if ~loaded, status = child; return, end
                 fileBytes = file.header.fl;
                 if fileBytes > maxBytes - bytes

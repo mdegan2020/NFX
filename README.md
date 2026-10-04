@@ -17,11 +17,13 @@ Targets MATLAB R2023b and newer; tested locally on R2026a. Native reading and wr
 
 An optional [OpenJPEG prototype](prototypes/openjpeg/README.md) adds Windows-only
 lossless NPJE/EPJE JPEG 2000 single-frame segments, including motion frames.
-It requires the pinned
-OpenJPEG 2.5.4 executable for compression; writing captured segments needs no
+Choose the downloadable OpenJPEG 2.5.4 executable or build the optional
+[in-memory MEX backend](prototypes/openjpeg/README.md#in-memory-mex-backend).
+The MEX supports encoding and decoding; writing captured segments needs no
 codec. This experimental path is outside the MATLAB Coder goal and compressed
 SNIP support. MIE collections can use the documented C8 configuration.
-Run its tests with `runTests(OpenJPEG=encoder)`.
+Run its tests with `runTests(OpenJPEG=encoder, OpenJPEGMex=true)` after building
+the MEX, or omit `OpenJPEGMex` to test the basic executable setup.
 
 ## Image viewer
 
@@ -75,7 +77,8 @@ end
 
 The bounded reader supports the layouts NFX writes: native still/motion
 pixels, multiple images, text, TREs/wrappers/overflow, generic and typed sensor
-DESs, and existing lossless NPJE/EPJE segments. JPEG2000 decoding uses MATLAB;
+DESs, and existing lossless NPJE/EPJE segments. JPEG2000 decoding uses the
+optional MEX when installed and MATLAB otherwise;
 reading and unchanged-codestream rewriting require no OpenJPEG encoder.
 
 `File.read` loads headers, TREs, text and DESs by default, skipping image

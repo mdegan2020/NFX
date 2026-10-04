@@ -1,8 +1,10 @@
-function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, selected, memoryWarningBytes)
+function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, selected, memoryWarningBytes, backend, threads)
     %readFile - Validate host options, load bounded bytes, and restore a File
     if nargin < 4, readAll = false; end
     if nargin < 5, selected = []; end
     if nargin < 6, memoryWarningBytes = 4 * 2^30; end
+    if nargin < 7, backend = 'auto'; end
+    if nargin < 8, threads = 4; end
     file = nfx.File(); ok = false; status = nfx.internal.readStatus();
     validName = (ischar(filename) && isrow(filename)) || ...
         (isstring(filename) && isscalar(filename) && ~ismissing(filename));
@@ -10,13 +12,14 @@ function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, s
             ~nfx.internal.validReadLimit(maxBytes) || ...
             ~nfx.internal.validReadLimit(maxPixels) || ...
             ~nfx.internal.validMemoryWarning(memoryWarningBytes) || ...
+            ~nfx.internal.validJPEG2000Options(backend, threads) || ...
             ~islogical(readAll) || ~isscalar(readAll) || ...
             ~nfx.internal.validImageSelection(selected) || ...
             (readAll && ~isempty(selected))
         status.code = 'InvalidInput';
         status.message = ['Supply a filename, finite positive limits, a logical readAll, ' ...
             'a nonnegative MemoryWarningBytes (Inf allowed), and distinct ' ...
-            'image indices. Use either readAll or readSegment.'];
+            'image indices and valid JPEG2000 options. Use either readAll or readSegment.'];
         return
     end
     filename = char(filename);
@@ -24,7 +27,7 @@ function [file, ok, status] = readFile(filename, maxBytes, maxPixels, readAll, s
     status.path = filename;
     if ~ok, return; end
     [file, ok, status] = nfx.internal.FileReader.readMetadata( ...
-        data, identity, maxPixels, maxBytes, memoryWarningBytes);
+        data, identity, maxPixels, maxBytes, memoryWarningBytes, backend, threads);
     if ~ok, file = nfx.File(); status.path = filename; return; end
     if readAll, selected = 1:numel(file.images); end
     if ~isempty(selected)

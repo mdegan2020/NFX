@@ -1725,6 +1725,8 @@ classdef ImageSegment
             %   ... = READ(...,MaxPixels=N,MaxBytes=M) overrides the stored
             %   sample and encoded-payload limits for this read operation.
             %   MemoryWarningBytes overrides the retained advisory threshold.
+            %   JPEG2000Backend (auto/mex/matlab) and JPEG2000Threads override
+            %   the stored codec choices. Auto uses MEX when installed.
             %
             %   See also nfx.File.readSegment, pixelsLoaded
             arguments
@@ -1732,14 +1734,17 @@ classdef ImageSegment
                 options.MaxPixels = obj.source.maxPixels
                 options.MaxBytes = obj.source.maxBytes
                 options.MemoryWarningBytes = obj.source.memoryWarningBytes
+                options.JPEG2000Backend = obj.source.jpeg2000Backend
+                options.JPEG2000Threads = obj.source.jpeg2000Threads
             end
             status = nfx.internal.readStatus(); ok = false;
             if ~nfx.internal.validReadLimit(options.MaxPixels) || ...
                     ~nfx.internal.validReadLimit(options.MaxBytes) || ...
-                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
+                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes) || ...
+                    ~nfx.internal.validJPEG2000Options(options.JPEG2000Backend, options.JPEG2000Threads)
                 status.code = 'InvalidInput';
                 status.message = ['Read limits must be positive finite double integers; ' ...
-                    'MemoryWarningBytes must be nonnegative (Inf allowed).']; return
+                    'MemoryWarningBytes must be nonnegative (Inf allowed); check JPEG2000 options.']; return
             end
             if isempty(obj.source.path)
                 coverage = unknownTREReport(obj.store.records);
@@ -1768,7 +1773,8 @@ classdef ImageSegment
             snapshot = nfx.JPEG2000.empty(1, 0);
             if strcmp(entry.layout.ic, 'C8')
                 [snapshot, decodedPixels, ok, status] = nfx.JPEG2000.restoreRead( ...
-                    bytes, entry, obj.tre_records, options.MaxPixels);
+                    bytes, entry, obj.tre_records, options.MaxPixels, ...
+                    options.JPEG2000Backend, options.JPEG2000Threads);
             elseif entry.layout.nbpp == 8
                 [decodedPixels, ok, status] = nfx.internal.readPixels( ...
                     bytes, entry, options.MaxPixels, zeros(0, 0, 'uint8'));
@@ -1826,6 +1832,9 @@ classdef ImageSegment
             %COMPRESS - Capture an experimental OpenJPEG lossless codestream
             %   OBJ = COMPRESS(OBJ,ENCODER) selects NPJE using the supplied
             %   OpenJPEG 2.5.4 Windows executable. Native pixels remain in DATA.
+            %   OBJ = COMPRESS(OBJ,Backend="mex") uses in-memory MEX instead.
+            %   Without ENCODER, auto (default) also selects MEX. Threads=1
+            %   is the default for either encoder; build with buildOpenJPEGMex.
             %
             %   OBJ = COMPRESS(...,Profile=VALUE) selects NPJE or EPJE. Single
             %   frames with right justification and 1024-square blocks are
@@ -1835,9 +1844,11 @@ classdef ImageSegment
             %   MemoryWarningBytes defaults to 4 GiB; Inf disables warnings.
             arguments
                 obj (1,1) nfx.ImageSegment
-                encoder {mustBeTextScalar, mustBeNonzeroLengthText}
+                encoder {mustBeTextScalar} = ''
                 options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
                 options.MemoryWarningBytes = 4 * 2^30
+                options.Backend {mustBeTextScalar, mustBeMember(options.Backend, {'auto', 'cli', 'mex'})} = 'auto'
+                options.Threads = 1
             end
             if ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
                 error('nfx:MemoryWarningBytes', 'MemoryWarningBytes must be nonnegative (Inf allowed).');
@@ -1852,7 +1863,8 @@ classdef ImageSegment
                 error('nfx:JPEG2000Scope','Compression requires one frame, right justification, and 1024-square blocks.');
             end
             obj.compressed = nfx.JPEG2000(obj.pixels,encoder,Profile=options.Profile, ...
-                MemoryWarningBytes=options.MemoryWarningBytes);
+                MemoryWarningBytes=options.MemoryWarningBytes, ...
+                Backend=options.Backend, Threads=options.Threads);
             obj.store = obj.store.repack();
         end
         function obj = uncompress(obj)

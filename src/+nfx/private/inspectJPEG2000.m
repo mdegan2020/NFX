@@ -1,6 +1,12 @@
 function info = inspectJPEG2000(data,profile)
     %inspectJPEG2000 - Validate the bounded BPJ2K01.20 lossless configuration
     info = parseJPEG2000(data);
+    if strcmp(profile, 'auto')
+        check(numel(info.cod) >= 2 && any(info.cod(2) == [0 1]), ...
+            'Cannot identify the supported NPJE/EPJE progression.');
+        profile = 'NPJE';
+        if info.cod(2) == 1, profile = 'EPJE'; end
+    end
     epje = strcmp(profile,'EPJE');
     check(info.rsiz == 2,'Expected JPEG 2000 Profile-1.');
     check(all(info.tile_size == 1024) && all(info.offsets == 0),'Expected aligned 1024-square tiles.');

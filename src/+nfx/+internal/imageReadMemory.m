@@ -13,8 +13,11 @@ function [retained, workspace, samples, encoded] = imageReadMemory(images, indic
         if ~image.pixelsLoaded && selected
             encoded = encoded + image.li;
             % One segment is decoded at a time. Include its input buffer
-            % and a native-size copy; codec workspace is implementation-specific.
-            workspace = max(workspace, image.li + count * h.nbpp / 8);
+            % and a native-size copy. C8 may also hold int32 codec components;
+            % internal tile/packet workspace can add to this lower estimate.
+            components = 0;
+            if strcmp(h.ic, 'C8'), components = 4 * count; end
+            workspace = max(workspace, image.li + count * h.nbpp / 8 + components);
         end
     end
 end

@@ -1,7 +1,7 @@
 classdef (Hidden) FileReader
     %FileReader - Restore supported NITF snapshots through checked boundaries
     methods (Static)
-        function [file, ok, status] = readMetadata(source, identity, maxPixels, maxBytes, memoryWarningBytes)
+        function [file, ok, status] = readMetadata(source, identity, maxPixels, maxBytes, memoryWarningBytes, backend, threads)
             %readMetadata - Restore complete metadata with deferred imagery
             file = nfx.File();
             [index, ok, status] = nfx.internal.indexNITF(source);
@@ -18,6 +18,8 @@ classdef (Hidden) FileReader
                 descriptor.entry = entry; descriptor.index = k;
                 descriptor.maxPixels = maxPixels; descriptor.maxBytes = maxBytes;
                 descriptor.memoryWarningBytes = memoryWarningBytes;
+                descriptor.jpeg2000Backend = char(backend);
+                descriptor.jpeg2000Threads = threads;
                 descriptor.fileHeader = nfx.internal.sourceBytes(source, 0, index.hl);
                 descriptor.imageHeader = nfx.internal.sourceBytes(source, ...
                     entry.location.headerOffset, entry.location.headerLength);
@@ -43,7 +45,7 @@ classdef (Hidden) FileReader
             pending = all(ismember({'MIMCSA','CAMSDA','MICIDA','TMINTA'}, tags));
             file = nfx.File.restoreRead(index.header, images, parts.texts, ...
                 parts.des, parts.fileRecords, pending, parts.filePacking);
-            file = file.readLimits(maxPixels, maxBytes, memoryWarningBytes);
+            file = file.readLimits(maxPixels, maxBytes, memoryWarningBytes, backend, threads);
             if pending, report = file.validateReadStructure();
             else, report = file.validate();
             end

@@ -128,6 +128,8 @@ classdef MIECollection
             %   MemoryWarningBytes defaults to 4*2^30 bytes (4 GiB). Larger
             %   estimated buffers warn and continue. Inf disables warnings.
             %   Failure returns a default scalar and diagnostic.
+            %   JPEG2000Backend=auto/mex/matlab and JPEG2000Threads=4 pass
+            %   through to File.read for all compressed collection frames.
             %
             %   See also File.read, plan, write
             arguments
@@ -136,10 +138,12 @@ classdef MIECollection
                 options.MaxPixels = flintmax
                 options.MaxFiles = flintmax
                 options.MemoryWarningBytes = 4 * 2^30
+                options.JPEG2000Backend = 'auto'
+                options.JPEG2000Threads = 4
             end
             [collection, ok, status] = nfx.internal.CollectionReader.read( ...
                 source, options.MaxBytes, options.MaxPixels, options.MaxFiles, ...
-                options.MemoryWarningBytes);
+                options.MemoryWarningBytes, options.JPEG2000Backend, options.JPEG2000Threads);
         end
     end
     methods (Static, Access = ?nfx.internal.CollectionReader)

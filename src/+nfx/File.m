@@ -46,6 +46,8 @@ classdef File
         readMaxPixels = flintmax
         readMaxBytes = flintmax
         readMemoryWarningBytes = 4 * 2^30
+        readJPEG2000Backend = 'auto'
+        readJPEG2000Threads = 4
     end
     methods (Static)
         function [file, ok, status] = read(filename, options)
@@ -60,6 +62,10 @@ classdef File
             %   ... = nfx.File.read(...,readAll=true) also retains all pixels.
             %   ... = nfx.File.read(...,readSegment=[1 2]) retains only those
             %   image segments. Specify at most one of these selections.
+            %   JPEG2000Backend="auto" uses MEX when installed, otherwise
+            %   MATLAB. Select "mex" or "matlab" explicitly to force one.
+            %   JPEG2000Threads=4 controls MEX threads. Both choices carry
+            %   forward to deferred segment reads and temporary DATA reads.
             %
             %   ... = nfx.File.read(...,MaxBytes=N,MaxPixels=M) bounds bytes
             %   read and retained samples. Both default to FLINTMAX; finite
@@ -79,12 +85,15 @@ classdef File
                 options.MaxBytes = flintmax
                 options.MaxPixels = flintmax
                 options.MemoryWarningBytes = 4 * 2^30
+                options.JPEG2000Backend = 'auto'
+                options.JPEG2000Threads = 4
                 options.readAll = false
                 options.readSegment = []
             end
             [file, ok, status] = nfx.internal.readFile( ...
                 filename, options.MaxBytes, options.MaxPixels, ...
-                options.readAll, options.readSegment, options.MemoryWarningBytes);
+                options.readAll, options.readSegment, options.MemoryWarningBytes, ...
+                options.JPEG2000Backend, options.JPEG2000Threads);
         end
     end
     methods (Static, Access = {?nfx.internal.FileReader, ?nfx.internal.CollectionReader})
@@ -98,10 +107,11 @@ classdef File
         end
     end
     methods (Access = ?nfx.internal.FileReader)
-        function obj = readLimits(obj, maxPixels, maxBytes, memoryWarningBytes)
+        function obj = readLimits(obj, maxPixels, maxBytes, memoryWarningBytes, backend, threads)
             %readLimits - Retain caller budgets for later explicit reads
             obj.readMaxPixels = maxPixels; obj.readMaxBytes = maxBytes;
             obj.readMemoryWarningBytes = memoryWarningBytes;
+            obj.readJPEG2000Backend = char(backend); obj.readJPEG2000Threads = threads;
         end
     end
     methods
@@ -665,6 +675,7 @@ classdef File
             %   [OBJ, OK, STATUS] also returns diagnostics on failure.
             %   ... = readAll(...,MaxPixels=N,MaxBytes=M) bounds this read.
             %   MemoryWarningBytes overrides the retained advisory threshold.
+            %   JPEG2000Backend and JPEG2000Threads override stored choices.
             %
             %   See also readSegment, nfx.ImageSegment.read
             arguments
@@ -672,10 +683,14 @@ classdef File
                 options.MaxPixels = obj.readMaxPixels
                 options.MaxBytes = obj.readMaxBytes
                 options.MemoryWarningBytes = obj.readMemoryWarningBytes
+                options.JPEG2000Backend = obj.readJPEG2000Backend
+                options.JPEG2000Threads = obj.readJPEG2000Threads
             end
             [obj, ok, status] = obj.readSegment(1:numel(obj.imageValues), ...
                 MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes, ...
-                MemoryWarningBytes=options.MemoryWarningBytes);
+                MemoryWarningBytes=options.MemoryWarningBytes, ...
+                JPEG2000Backend=options.JPEG2000Backend, ...
+                JPEG2000Threads=options.JPEG2000Threads);
         end
         function [obj, ok, status] = readSegment(obj, indices, options)
             %readSegment - Retain pixels for selected image segment indices
@@ -685,6 +700,7 @@ classdef File
             %   MaxPixels bounds the total retained samples after loading;
             %   MaxBytes bounds the newly read encoded image payloads.
             %   MemoryWarningBytes overrides the retained advisory threshold.
+            %   JPEG2000Backend and JPEG2000Threads override stored choices.
             %
             %   See also readAll, nfx.ImageSegment.read
             arguments
@@ -693,16 +709,19 @@ classdef File
                 options.MaxPixels = obj.readMaxPixels
                 options.MaxBytes = obj.readMaxBytes
                 options.MemoryWarningBytes = obj.readMemoryWarningBytes
+                options.JPEG2000Backend = obj.readJPEG2000Backend
+                options.JPEG2000Threads = obj.readJPEG2000Threads
             end
             status = nfx.internal.readStatus(); ok = false;
             if ~nfx.internal.validImageSelection(indices) || ...
                     any(indices > numel(obj.imageValues)) || ...
                     ~nfx.internal.validReadLimit(options.MaxPixels) || ...
                     ~nfx.internal.validReadLimit(options.MaxBytes) || ...
-                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
+                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes) || ...
+                    ~nfx.internal.validJPEG2000Options(options.JPEG2000Backend, options.JPEG2000Threads)
                 status.code = 'InvalidInput';
                 status.message = ['Supply existing distinct image indices, positive read limits, ' ...
-                    'and nonnegative MemoryWarningBytes (Inf allowed).'];
+                    'nonnegative MemoryWarningBytes (Inf allowed), and valid JPEG2000 options.'];
                 return
             end
             [retained, workspace, samples, encoded] = ...
@@ -722,7 +741,8 @@ classdef File
             for k = indices
                 [image, ok, status] = candidate.imageValues(k).read( ...
                     MaxPixels=options.MaxPixels, MaxBytes=options.MaxBytes, ...
-                    MemoryWarningBytes=Inf);
+                    MemoryWarningBytes=Inf, JPEG2000Backend=options.JPEG2000Backend, ...
+                    JPEG2000Threads=options.JPEG2000Threads);
                 if ~ok, status.index = k; return; end
                 candidate.imageValues(k) = image;
             end

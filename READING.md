@@ -202,11 +202,31 @@ See [inspectTREPayload](examples/inspectTREPayload.m) for a bounded example.
 
 ## JPEG2000
 
-When pixels are requested, NFX uses MATLAB's `imread` JPEG2000 backend
-through a temporary raw codestream file. Missing codec support and detected
-corruption return a diagnostic. Decoder corruption warnings count as failure;
-caller warning settings are restored. Loading a selected image decodes its
-complete pixel array and needs memory for those samples.
+When pixels are requested, `JPEG2000Backend='auto'` uses the optional OpenJPEG
+MEX if installed, otherwise MATLAB's `imread` through a temporary raw
+codestream file. The MEX decodes entirely in memory. See the
+[build instructions](prototypes/openjpeg/README.md#in-memory-mex-backend).
+
+```matlab
+[file, ok, status] = nfx.File.read('capture.ntf', ...
+    JPEG2000Backend='mex', JPEG2000Threads=4);
+pixels = file.images(1).data;
+[file, ok, status] = file.readAll();
+```
+
+The backend and thread count are retained for deferred reads, including
+temporary `.data` reads. `readAll`, `readSegment`, and segment `read` accept
+overrides for that operation. `MIECollection.read` forwards both options to
+its files. The default reader thread count is 4; it controls only MEX
+decoding. Force `JPEG2000Backend='matlab'` to retain the original reader path.
+Metadata-only reads do not require either decoder.
+
+Missing codec support and detected corruption return a diagnostic. A selected
+MEX backend failure does not retry with MATLAB. Decoder corruption warnings
+count as failure; MATLAB caller warning settings are restored. Loading a
+selected image decodes its complete pixel array and needs memory for those
+samples, compressed bytes, and codec workspace. Memory warnings include an
+estimate for OpenJPEG's int32 component buffers but do not predict peak usage.
 
 No OpenJPEG encoder is needed to read or rewrite an unchanged compressed
 image. Its compression snapshot retains the original codestream, J2KLRA and

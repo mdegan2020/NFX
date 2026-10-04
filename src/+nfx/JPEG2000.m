@@ -5,6 +5,11 @@ classdef JPEG2000
     %   rows-by-columns-by-bands order and retains its native precision.
     %   JPEG2000 with no arguments creates an uninitialized value.
     %
+    %   OBJ = JPEG2000(DATA,Backend="mex") uses the optional in-memory MEX.
+    %   Omit ENCODER when using MEX. Backend="auto" (default) selects the
+    %   executable when ENCODER is supplied, otherwise MEX. Threads defaults
+    %   to 1 for either encoder. Run buildOpenJPEGMex to build the MEX once.
+    %
     %   OBJ = JPEG2000(...,Profile=VALUE) selects "NPJE" (default) or
     %   "EPJE". Both use 1024-square tiles, six resolutions and 20 layers.
     %   This prototype supports images at least 32 pixels along each axis.
@@ -15,6 +20,7 @@ classdef JPEG2000
     %
     %   JPEG2000 functions:
     %       inspect - Check the bounded prototype codestream structure
+    %       decode  - Decode a supported raw codestream to native pixels
     %
     %   JPEG2000 properties:
     %       codestream - Immutable raw JPEG 2000 bytes
@@ -41,9 +47,22 @@ classdef JPEG2000
                 encoder = ''
                 options.Profile {mustBeTextScalar, mustBeMember(options.Profile,{'NPJE','EPJE'})} = 'NPJE'
                 options.MemoryWarningBytes = 4 * 2^30
+                options.Backend {mustBeTextScalar, mustBeMember(options.Backend, {'auto', 'cli', 'mex'})} = 'auto'
+                options.Threads = 1
             end
             if nargin == 0, return, end
-            mustBeTextScalar(encoder); mustBeNonzeroLengthText(encoder);
+            mustBeTextScalar(encoder);
+            if ~nfx.internal.validJPEG2000Options('auto', options.Threads)
+                error('nfx:OpenJPEGThreads', 'Threads must be a positive int32-range double integer.');
+            end
+            backend = char(options.Backend);
+            if strcmp(backend, 'auto')
+                backend = 'mex';
+                if strlength(encoder) > 0, backend = 'cli'; end
+            end
+            if strcmp(backend, 'mex') && strlength(encoder) > 0
+                error('nfx:OpenJPEGBackend', 'Omit the executable path when selecting Backend="mex".');
+            end
             if isempty(data) || ndims(data) > 3 || min(size(data,1),size(data,2)) < 32 || ...
                     size(data,3) > 16384 || ceil(size(data,1)/1024)*ceil(size(data,2)/1024) > 65535
                 error('nfx:JPEG2000Scope','Expected one frame at least 32-by-32, at most 16384 bands and 65535 tiles.');
@@ -58,9 +77,18 @@ classdef JPEG2000
             if strcmp(obj.profile,'NPJE') && ceil(size(data,1)/1024)*ceil(size(data,2)/1024) > 16382
                 error('nfx:JPEG2000Scope','The NPJE prototype uses one TLM and supports at most 16382 tiles.');
             end
-            nfx.internal.warnMemory(2 * numel(data) * (1 + isa(data, 'uint16')), ...
+            nativeBytes = numel(data) * (1 + isa(data, 'uint16'));
+            estimate = 2 * nativeBytes;
+            if strcmp(backend, 'mex'), estimate = estimate + 4 * numel(data); end
+            nfx.internal.warnMemory(estimate, ...
                 options.MemoryWarningBytes);
-            [obj.codestream,obj.metrics] = encodeOpenJPEG(data,char(encoder),obj.profile);
+            if strcmp(backend, 'mex')
+                [obj.codestream, obj.metrics] = encodeOpenJPEGMex( ...
+                    data, obj.profile, options.Threads);
+            else
+                [obj.codestream, obj.metrics] = encodeOpenJPEG( ...
+                    data, char(encoder), obj.profile, options.Threads);
+            end
             obj.info = inspectJPEG2000(obj.codestream,obj.profile);
             expected = [size(data,1) size(data,2) size(data,3)];
             precision = 8+8*isa(data,'uint16');
@@ -75,8 +103,10 @@ classdef JPEG2000
         end
     end
     methods (Static, Access = {?nfx.internal.FileReader, ?nfx.ImageSegment})
-        function [obj, pixels, ok, status] = restoreRead(data, entry, records, maxPixels)
+        function [obj, pixels, ok, status] = restoreRead(data, entry, records, maxPixels, backend, threads)
             %restoreRead - Validate and decode an existing compression snapshot
+            if nargin < 5, backend = 'auto'; end
+            if nargin < 6, threads = 4; end
             obj = nfx.JPEG2000.empty(1, 0);
             pixels = zeros(0, 0, 'uint8'); ok = false;
             status = nfx.internal.readStatus(); status.scope = 'image';
@@ -124,7 +154,7 @@ classdef JPEG2000
                 status.message = 'Stored J2KLRA or COMRAT disagrees with the codestream.';
                 return
             end
-            [pixels, ok, child] = nfx.internal.decodeJPEG2000(data);
+            [pixels, ok, child] = nfx.internal.decodeJPEG2000(data, backend, threads, maxPixels);
             if ~ok
                 status.code = child.code; status.message = child.message; return
             end
@@ -144,6 +174,45 @@ classdef JPEG2000
         end
     end
     methods (Static)
+        function pixels = decode(data, options)
+            %DECODE - Decode a supported raw NPJE or EPJE codestream
+            %   PIXELS = nfx.JPEG2000.decode(DATA) validates uint8 row DATA
+            %   and returns its native uint8/uint16 rows-by-columns-by-bands
+            %   pixels. Backend="auto" uses the MEX when installed, otherwise
+            %   MATLAB imread. Backend="mex" or "matlab" forces that backend.
+            %   Threads defaults to 4 and controls only the MEX decoder.
+            %   MaxPixels bounds decoded samples; its default is FLINTMAX.
+            %   MemoryWarningBytes defaults to 4 GiB; Inf disables warnings.
+            %
+            %   See also inspect, nfx.File.read
+            arguments
+                data {mustBeByteRow}
+                options.Backend = 'auto'
+                options.Threads = 4
+                options.MaxPixels = flintmax
+                options.MemoryWarningBytes = 4 * 2^30
+            end
+            if ~nfx.internal.validJPEG2000Options(options.Backend, options.Threads) || ...
+                    ~nfx.internal.validReadLimit(options.MaxPixels) || ...
+                    ~nfx.internal.validMemoryWarning(options.MemoryWarningBytes)
+                error('nfx:JPEG2000Options', 'Invalid backend, threads, or memory options.');
+            end
+            info = inspectJPEG2000(data, 'auto');
+            count = prod(info.dimensions);
+            if count > options.MaxPixels
+                error('nfx:OpenJPEGResourceLimit', 'Decoded samples exceed MaxPixels.');
+            end
+            nfx.internal.warnMemory(numel(data) + count * (4 + info.precision / 8), ...
+                options.MemoryWarningBytes);
+            [pixels, ok, status] = nfx.internal.decodeJPEG2000( ...
+                data, options.Backend, options.Threads, options.MaxPixels);
+            if ~ok, error('nfx:JPEG2000Decode', '%s: %s', status.code, status.message); end
+            if ~isequal([size(pixels, 1), size(pixels, 2), size(pixels, 3)], info.dimensions) || ...
+                    ~(isa(pixels, 'uint8') || isa(pixels, 'uint16')) || ...
+                    8 + 8 * isa(pixels, 'uint16') ~= info.precision || ndims(pixels) > 3
+                error('nfx:JPEG2000Geometry', 'Decoded samples disagree with the codestream.');
+            end
+        end
         function info = inspect(data, profile)
             %INSPECT - Inspect the prototype's lossless profile structure
             %   INFO = INSPECT(DATA,PROFILE) checks raw codestream DATA for

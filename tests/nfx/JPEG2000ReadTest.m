@@ -180,7 +180,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
         end
 
         function codecFailureReturnsADiagnostic(t)
-            [pixels, ok, status] = nfx.internal.decodeJPEG2000(uint8('invalid'));
+            [pixels, ok, status] = nfx.internal.decodeJPEG2000(uint8('invalid'), 'matlab');
             t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
             t.verifyEmpty(pixels);
         end
@@ -200,7 +200,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             restoreWarning = onCleanup(@() warning(previous));
             warning(warningState, id);
             handles = fileHandles(); temporary = dir(fullfile(tempdir, '*.j2c'));
-            [copy, ok, status] = nfx.File.read(path, readAll=true);
+            [copy, ok, status] = nfx.File.read(path, readAll=true, JPEG2000Backend='matlab');
             t.verifyFalse(ok); t.verifyEqual(status.code, 'MalformedFile');
             t.verifyEmpty(copy.images);
             t.verifyEqual(warning('query', id).state, warningState);
@@ -224,7 +224,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
                     expected = 'MalformedFile';
             end
             handles = fileHandles(); injectIOFailure(t, 'imread', body);
-            [copy, ok, status] = nfx.File.read(path, readAll=true);
+            [copy, ok, status] = nfx.File.read(path, readAll=true, JPEG2000Backend='matlab');
             t.verifyFalse(ok); t.verifyEqual(status.code, expected);
             t.verifyEmpty(copy.images); t.verifyEqual(fileHandles(), handles);
         end
@@ -234,7 +234,7 @@ classdef (TestTags = {'OpenJPEG'}) JPEG2000ReadTest < NfxTest
             handles = fileHandles();
             temporary = dir(fullfile(tempdir, '*.j2c'));
             injectIOFailure(t, 'fwrite', sprintf('function count=fwrite(varargin)\ncount=0;\nend\n'));
-            [copy, ok, status] = nfx.File.read(path, readAll=true);
+            [copy, ok, status] = nfx.File.read(path, readAll=true, JPEG2000Backend='matlab');
             t.verifyFalse(ok); t.verifyEqual(status.code, 'IOError');
             t.verifyEmpty(copy.images); t.verifyEqual(fileHandles(), handles);
             remaining = dir(fullfile(tempdir, '*.j2c'));

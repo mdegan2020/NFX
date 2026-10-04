@@ -1,0 +1,16 @@
+function [bytes, metrics] = encodeOpenJPEGMex(data, profile, threads)
+    %encodeOpenJPEGMex - Encode memory buffers using the optional native codec
+    nfx.internal.requireOpenJPEGMex();
+    started = tic;
+    bytes = nfx.internal.openjpegMex('encode', data, profile, threads);
+    seconds = toc(started);
+    generated = numel(bytes);
+    started = tic;
+    bytes = normalizeJPEG2000(bytes, profile);
+    metrics = struct('encode_seconds', seconds, ...
+        'normalize_seconds', toc(started), ...
+        'raw_bytes', numel(data) * (1 + isa(data, 'uint16')), ...
+        'encoder_bytes', generated, 'codestream_bytes', numel(bytes), ...
+        'temporary_bytes', 0, 'encoder_version', '2.5.4', ...
+        'threads', threads, 'backend', 'mex');
+end

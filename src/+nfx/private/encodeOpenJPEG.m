@@ -1,4 +1,4 @@
-function [bytes,metrics] = encodeOpenJPEG(data,encoder,profile)
+function [bytes,metrics] = encodeOpenJPEG(data,encoder,profile,threads)
     %encodeOpenJPEG - Run the pinned codec with bounded raw-file staging
     if ~ispc, error('nfx:OpenJPEGPlatform','The prototype requires Windows.'); end
     if ~isfile(encoder) || ~endsWith(lower(encoder),'.exe')
@@ -33,9 +33,9 @@ function [bytes,metrics] = encodeOpenJPEG(data,encoder,profile)
     ratios = [sprintf('%.12g,',precision./targets) '1'];
     progression = 'LRCP'; split = '';
     if strcmp(profile,'EPJE'), progression = 'RLCP'; split = ' -TP R'; end
-    command = sprintf('%s -i %s -o %s -F %d,%d,%d,%d,u -r %s -n 6 -b 64,64 -t 1024,1024 -p %s -mct 0 -GuardBits 2 -PLT -TLM -threads 1 -C NFX_OpenJPEG_2.5.4%s', ...
+    command = sprintf('%s -i %s -o %s -F %d,%d,%d,%d,u -r %s -n 6 -b 64,64 -t 1024,1024 -p %s -mct 0 -GuardBits 2 -PLT -TLM -threads %d -C NFX_OpenJPEG_2.5.4%s', ...
         quotePath(encoder),quotePath(input),quotePath(output),size(data,2),size(data,1),size(data,3), ...
-        precision,ratios,progression,split);
+        precision,ratios,progression,threads,split);
     started = tic;
     [status,log] = system(command);
     seconds = toc(started);
@@ -53,7 +53,7 @@ function [bytes,metrics] = encodeOpenJPEG(data,encoder,profile)
     metrics = struct('encode_seconds',seconds,'normalize_seconds',toc(started), ...
         'raw_bytes',numel(data)*precision/8,'encoder_bytes',generated, ...
         'codestream_bytes',numel(bytes),'temporary_bytes',numel(data)*precision/8+generated, ...
-        'encoder_version','2.5.4','threads',1);
+        'encoder_version','2.5.4','threads',threads,'backend','cli');
 end
 
 function value = quotePath(value)

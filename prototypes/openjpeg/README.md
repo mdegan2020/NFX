@@ -1,15 +1,17 @@
 # OpenJPEG prototype
 
 Experimental Windows-only, numerically lossless JPEG 2000 encoding for NFX.
-The pinned encoder is OpenJPEG 2.5.4. MATLAB controls the codec executable;
+The pinned codec is OpenJPEG 2.5.4. MATLAB can use an executable or an optional
+in-memory MEX backend;
 Python, GDAL, NITRO and MATLAB Coder are not required.
 
 ## Try it
 
 From the repository root, run `./tools/setupOpenJPEG.ps1` in PowerShell. It
 downloads the official Windows x64 release, verifies the pinned SHA-256, and
-extracts it under ignored `artifacts/openjpeg/`. The distribution includes its
-license notices. The script prints the executable path. No codec is downloaded
+extracts it under ignored `artifacts/openjpeg/`. OpenJPEG's license is reproduced
+in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). The script prints the
+executable path. No codec is downloaded
 automatically during ordinary toolbox use or testing.
 
 ```matlab
@@ -65,7 +67,7 @@ removed. User TRE attachments retain their IDs, order and removal behavior.
   PLT can hold at most 65,532 packet-length bytes. Variable-length entries can
   impose a stricter data-dependent limit. The encoder output is rejected if
   its packet lengths need multiple PLTs. The NPJE component bound is 16,384.
-- OpenJPEG CLI output has its TLMs rebuilt for the profile and its Rsiz set to
+- OpenJPEG output from either backend has its TLMs rebuilt and its Rsiz set to
   Profile-1 only after the bounded coding configuration is checked. Whole
   tile-parts are copied; entropy-coded bytes are not recompressed.
 - Each NITF image stores one raw codestream with `IC=C8`, derived `LI`, `COMRAT`
@@ -104,9 +106,10 @@ Single motion frames may carry `.M` categories and MTIMSA timing. Collections
 can assemble these captured C8 snapshots without invoking the encoder during
 planning or writing; see [compressed collections](../../README.md#compressed-motion-frames).
 `MemoryWarningBytes` on `compress` or `nfx.JPEG2000` defaults to 4 GiB and warns
-without blocking when two native-size buffers exceed that threshold. This
-estimate excludes additional codec workspace and compressed output; it is
-not a peak-memory guarantee. `Inf` silences the warning.
+without blocking when the estimated buffers exceed that threshold. The estimate
+includes two native-size buffers and, for MEX, its int32 component arrays.
+Additional tile/packet workspace and compressed output can increase memory;
+this is not a peak-memory guarantee. `Inf` silences the warning.
 
 Lossy/visually lossless encoding, multi-frame compressed segments (CB/MB),
 IMODE X, masks, arbitrary codestream import, heterogeneous component precision
@@ -116,12 +119,112 @@ NC and the documented single-frame NPJE/EPJE C8 configuration.
 This optional encoding path is exempt from the MATLAB Coder goal. Execution has
 been tested on MATLAB R2026a Update 4; compiled compatibility is not claimed.
 
-The executable uses one encoding thread for repeatability. Raw input is staged
+Both encoders default to one thread; `Threads=N` selects a positive integer
+thread count. Executable raw input is staged
 in row chunks. Native pixels and compressed bytes remain in MATLAB memory;
 normalization temporarily holds both codestream copies. Reported temporary
 bytes count the raw input plus encoder output, excluding the installed codec
 and destination NITF. Timings exclude raw staging and executable version checks;
 they are individual observations, not controlled performance benchmarks.
+
+## In-memory MEX backend
+
+The MEX accepts and returns MATLAB arrays directly. It stages no raw pixels
+or codestream files and launches no external encoder/decoder processes.
+It uses the same profile settings, structural validation, normalization,
+J2KLRA derivation, and compression snapshots as the executable backend.
+
+### Build once
+
+On 64-bit Windows, install Microsoft Visual C++ 2022 Build Tools with its
+C++ workload and CMake tools, then select it using `mex -setup C++`. From the
+NFX root in MATLAB:
+
+```matlab
+binary = buildOpenJPEGMex;
+```
+
+The build downloads SHA-256-verified OpenJPEG 2.5.4 source, builds a Release
+static library using CMake, and creates
+`src/+nfx/+internal/openjpegMex.mexw64`. A separate CMake installation can be
+selected with `buildOpenJPEGMex(CMake='C:/path/to/cmake.exe')`.
+The build makes no persistent MATLAB path changes. As with ordinary NFX use,
+add only `src` to the MATLAB path using the Set Path GUI if desired.
+Generated source/build files and the MEX binary remain ignored by Git.
+
+OpenJPEG is statically linked: the built MEX needs no OpenJPEG executable or
+DLL at runtime. A compatible Microsoft Visual C++ runtime is still required.
+For redistribution, include [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
+The build targets MATLAB R2023b+ and has been exercised on R2026a Update 4 with
+MSVC 2022. Other MATLAB releases/compiler combinations have not been tested.
+This host codec path is outside the MATLAB Coder compatibility goal.
+
+### Encode and decode
+
+```matlab
+image = image.compress(Backend='mex', Profile='EPJE', Threads=4);
+
+packed = nfx.JPEG2000(pixels, Backend='mex', Profile='NPJE', Threads=4);
+restored = nfx.JPEG2000.decode(packed.codestream, Backend='mex', Threads=4);
+
+[file, ok, status] = nfx.File.read('capture.ntf', readAll=true, ...
+    JPEG2000Backend='mex', JPEG2000Threads=4);
+```
+
+For encoding, `Backend='auto'` preserves an explicitly supplied executable
+path; without a path it selects MEX. Thus `image.compress(encoder)` retains
+its original meaning, while `image.compress()` uses the optional MEX.
+Explicit `Backend='mex'` requires omitting the executable path.
+
+For decoding, `Backend='auto'` (or `JPEG2000Backend` on readers) selects MEX
+when installed and MATLAB otherwise. Force `'matlab'` to use the original
+decoder. MEX decoding defaults to four threads; encoding defaults to one.
+Explicit `'mex'` reports a missing dependency when the binary is
+absent. A broken binary or failed MEX decode is reported without silently
+retrying another backend. Standalone `decode` validates the supported NPJE
+or EPJE structure and automatically identifies its progression order.
+
+No source pixels are modified. Thread counts may affect performance differently
+by image and machine. Four threads are an example, not a required setting.
+MEX `metrics.temporary_bytes` is zero; it measures disk staging, not RAM.
+
+### Tests and timing
+
+```matlab
+results = runTests(OpenJPEGMex=true, OpenJPEG=encoder);
+timings = benchmarkOpenJPEGMex(pixels, encoder, Profile='EPJE', Threads=4);
+```
+
+The benchmark is in `examples`. It uses warmed `timeit` measurements of full
+public encode/decode calls, verifies exact pixels, and compares the executable
+and MATLAB decoder against MEX with one and multiple threads. There are no
+timing assertions in the unit suite. `OpenJPEGMex=true` alone runs MEX tests
+without the executable cross-checks. TWD tests remain separate.
+
+On 2026-10-04, R2026a Update 4 / MSVC 2022 validation passed the 2,963-test
+ordinary NFX suite. After the final native allocation hardening, all 175
+affected checks passed, including exact 5000-by-15000 uint16 round trips in
+both profiles and explicit collection backend selection. An additional run
+with the MEX removed passed all 109 executable/reader/collection checks.
+A fresh independent code review had no unresolved findings. Large-data tests
+remain opt-in; the multi-GB, 20-frame stress test was not run in this iteration.
+
+Final warmed `timeit` observations for a 1024-by-1024 uint16 noise image:
+
+| Profile | CLI encode, 1 thread | MEX encode, 1 thread | MEX encode, 4 threads | MATLAB decode | MEX decode, 4 threads |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| NPJE | 1.006 s | 0.424 s | 0.166 s | 0.186 s | 0.144 s |
+| EPJE | 0.991 s | 0.413 s | 0.159 s | 0.189 s | 0.134 s |
+
+This case showed about 2.4x faster encoding with one MEX thread, 6.1–6.2x
+with four threads, and 1.3–1.4x faster decoding with four threads. Single-thread
+MEX decoding was slower (0.406/0.402 s), motivating the four-thread decoder
+default. These synthetic timings depend on image content, size, thread count,
+and machine; benchmark operational imagery before choosing a configuration.
+The MEX used zero temporary-file bytes, versus about 4.34 MB for CLI encoding.
+
+Source archive SHA-256:
+`1048d084b89ac1587e3b0dca00b863a757fed2bc1804c6355eb4bce9090356b7`.
 
 ### Initial local observations
 
