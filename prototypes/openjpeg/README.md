@@ -199,7 +199,7 @@ The benchmark is in `examples`. It uses warmed `timeit` measurements of full
 public encode/decode calls, verifies exact pixels, and compares the executable
 and MATLAB decoder against MEX with one and multiple threads. There are no
 timing assertions in the unit suite. `OpenJPEGMex=true` alone runs MEX tests
-without the executable cross-checks. TWD tests remain separate.
+without the executable cross-checks.
 
 On 2026-10-04, R2026a Update 4 / MSVC 2022 validation passed the 2,963-test
 ordinary NFX suite. After the final native allocation hardening, all 175

@@ -25,16 +25,6 @@ SNIP support. MIE collections can use the documented C8 configuration.
 Run its tests with `runTests(OpenJPEG=encoder, OpenJPEGMex=true)` after building
 the MEX, or omit `OpenJPEGMex` to test the basic executable setup.
 
-## Image viewer
-
-The independent [`twd` utility](TWD.md) provides a three-window display:
-a fixed 1:1 main view, an overview with a draggable
-viewport box, and an integer-magnified zoom view. All views preserve image
-aspect ratio. Open a grayscale or RGB array with `viewer = twd.show(pixels)`
-or inspect an NFX image with `twd.show(file.images(1).data)`.
-Double-click the main image to open an independent cursor window showing
-source coordinates, displayed intensities, and original pixel values.
-
 ## Example
 
 Run from the repository root. These pixels, dates, and RPC parameters are **synthetic demonstration data**, not a fitted camera model.
@@ -422,9 +412,7 @@ MATLAB reader round trips, metadata and layout boundaries, snapshot/removal
 behavior, and injected filesystem failures. Reports go under ignored
 `coverage/nfx/`; generated files use temporary fixtures.
 
-Run the independent viewer suite in `tests/twd/` with `runTwdTests` (optionally
-`Coverage=true`). Its reports go under `coverage/twd/`. See
-[test and compatibility notes](tests/README.md).
+See [test and compatibility notes](tests/README.md).
 
 Classified products, LUTs, compression beyond the documented C8 prototype, and geographic coordinate representations other than D/G are not supported. SNIP validation is restricted to the selected case above; MIE validation covers the original-resolution NC and single-frame C8 subset described above. RPC fitting and evaluation are outside scope.
 

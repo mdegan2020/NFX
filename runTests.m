@@ -2,7 +2,6 @@ function results = runTests(options)
     %runTests - Run NFX tests with optional implementation coverage
     %   RESULTS = runTests runs class-based unit, byte-oracle, and reader tests.
     %   Image Processing Toolbox is required for the reader round trips.
-    %   TWD tests run separately with runTwdTests.
     %
     %   RESULTS = runTests(Coverage=true) also creates Cobertura and HTML
     %   reports under coverage/nfx. Any failed or incomplete test errors.
@@ -14,7 +13,7 @@ function results = runTests(options)
     %   OpenJPEGMex=true includes tests for a built in-memory MEX backend.
     %   Supply both options to include cross-backend interoperability tests.
     %
-    %   See also runTwdTests, runtests, matlab.unittest.TestRunner
+    %   See also runtests, matlab.unittest.TestRunner
     arguments
         options.Coverage (1,1) logical = false
         options.OpenJPEG {mustBeTextScalar} = getenv('NFX_OPENJPEG')

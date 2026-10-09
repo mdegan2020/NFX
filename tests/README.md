@@ -4,12 +4,7 @@ From the repository root, run `runTests()` or `runTests(Coverage=true)` in MATLA
 for NFX only. Its classes and fixtures live in `tests/nfx/`; coverage measures
 `src/+nfx/` and reports go under ignored `coverage/nfx/`.
 
-Run `runTwdTests()` or `runTwdTests(Coverage=true)` separately for the viewer.
-Its classes live in `tests/twd/`; coverage measures `src/+twd/` and reports go
-under ignored `coverage/twd/`. TWD gesture tests require MATLAB desktop and
-briefly open their own windows. Neither runner selects the other suite.
-
-Both runners error on invalid test files, failed tests, or incomplete tests.
+The runner errors on invalid test files, failed tests, or incomplete tests.
 Base MATLAB supplies `matlab.unittest` and statement coverage; Image Processing
 Toolbox supplies `nitfread`, `nitfinfo`, and `isnitf` for NFX round trips. Tests
 require no local reference library, design documents, GDAL, or NITRO.
@@ -174,7 +169,7 @@ entire repository or every possible metadata combination.
 The 2026-10-02 verification passed 2,900 NFX tests with OpenJPEG, followed by
 241 affected tests after two review fixes, including two new regressions.
 The single 5000-by-15000 frame test also passed, with independent `nitfread`
-verification. This covers 2,903 distinct passing cases; TWD was not run.
+verification. This covers 2,903 distinct passing cases.
 The twenty-frame full-resolution case is available but was not executed
 on the busy development machine. A fresh GPT-6 Astra Extra High review
 confirmed both findings resolved; Code Analyzer reported no issues in the
